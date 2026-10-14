@@ -3,11 +3,10 @@ export default async function handler(req, res) {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "Use POST for feedback requests." });
   }
-  if (!process.env.OPENAI_API_KEY) {
-    return res.status(503).json({ error: "AI feedback is not configured yet. Add OPENAI_API_KEY in Vercel Project Settings → Environment Variables, then redeploy." });
-  }
   try {
     const body = req.body || {};
+    const apiKey = String(req.headers["x-openai-api-key"] || process.env.OPENAI_API_KEY || "").trim();
+    if (!apiKey) return res.status(503).json({ error: "Enter your OpenAI API key in the AI Coach panel, or configure OPENAI_API_KEY in Vercel." });
     const notes = Array.isArray(body.notes) ? body.notes.slice(0, 500).map(n => String(n).slice(0, 8)) : [];
     if (!notes.length) return res.status(400).json({ error: "No detected notes were provided." });
     const piece = String(body.piece || "unspecified exercise").slice(0, 160);
@@ -24,7 +23,7 @@ export default async function handler(req, res) {
     const upstream = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": "Bearer " + process.env.OPENAI_API_KEY,
+        "Authorization": "Bearer " + apiKey,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
