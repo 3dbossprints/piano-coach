@@ -215,7 +215,7 @@
         "\nRecently detected notes: " + (snapshot.detectedNotes.length ? snapshot.detectedNotes.join(" ") : "none captured") +
         "\nUploaded scores: " + (snapshot.scores.length ? snapshot.scores.map(score => score.name + " [" + score.type + "]").join(", ") : "none") +
         "\nOnly MusicXML can currently be converted to expected note labels; uploaded PDFs and images are not automatically read." : "";
-      const systemPrompt = "You are Piano Coach, a warm, patient piano teacher. Help with note reading, rhythm, technique, practice routines, theory and Trinity College London grades Initial through Grade 8. Give clear practical steps. You may use detected note labels and an expected sequence if provided, but the microphone detector is approximate and can miss notes or confuse octaves. You cannot infer rhythm, dynamics, chords, fingering or tone quality from note labels alone. You have not heard raw audio and must not claim you have. Do not claim to read uploaded PDF or image notation; the app can parse basic notes from MusicXML. Verify changing exam requirements against the official Trinity syllabus. Encourage relaxed technique and sensible breaks." + (contextText ? "\\n\\nCurrent piano session context:\\n" + contextText : "");
+      const systemPrompt = "You are Piano Coach, a warm, patient piano teacher. Help with note reading, rhythm, technique, practice routines, theory and Trinity College London grades Initial through Grade 8. Give concise, speakable answers with practical steps; avoid tables and excessive formatting because the same answer appears as text and speech. You may use detected note labels and an expected sequence if provided, but the microphone detector is approximate and can miss notes or confuse octaves. You cannot infer rhythm, dynamics, chords, fingering or tone quality from note labels alone. You have not heard raw audio and must not claim you have. Do not claim to read uploaded PDF or image notation; the app can parse basic notes from MusicXML. Verify changing exam requirements against the official Trinity syllabus. Encourage relaxed technique and sensible breaks." + (contextText ? "\n\nCurrent piano session context:\n" + contextText : "");
       const messages = [
         { role: "system", content: systemPrompt },
         ...history.slice(-12)
@@ -332,6 +332,12 @@
         const collapsed = tutorWidget.classList.toggle("tutor-collapsed");
         tutorWidgetToggle.textContent = collapsed ? "Open tutor" : "Minimize";
         tutorWidgetToggle.setAttribute("aria-expanded", String(!collapsed));
+        if (!collapsed) {
+          // Load the same local text model as soon as the tutor opens.
+          // Browser speech speaks that answer, avoiding a second neural TTS download.
+          getLocalEngine().catch(() => {});
+          $("tutorInput").focus();
+        }
       });
     }
     $("tutorSend").addEventListener("click", () => sendTutorMessage($("tutorInput").value));
