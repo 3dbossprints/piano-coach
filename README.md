@@ -29,3 +29,14 @@ The conversational tutor uses a quantized Llama 3.2 1B Instruct model through We
 The microphone's speech-to-text feature depends on browser support and may use a browser speech-recognition service. Spoken replies use browser speech synthesis. The tutor is text-only with respect to piano playing: it does not yet analyse live performance audio or interpret uploaded score images.
 
 The separate optional AI practice-feedback feature may still use an OpenAI-key workflow. Its offline note comparison works without a key.
+
+
+## On-device tutor, speech and playing feedback
+
+The conversational tutor uses a quantized Llama 3.2 1B model through WebLLM/WebGPU. It does not require an OpenAI key for chat. A compatible browser and GPU are required, and the first model download is large.
+
+The speech controls let you choose an installed browser/operating-system voice and adjust speed. An experimental optional “Natural AI voice (local)” uses a separate Kokoro neural text-to-speech model downloaded from a model CDN; generation is intended to run in the browser. This is inference with a pretrained voice model, not training a voice model on user recordings. If the model cannot load, the tutor falls back to the device speech voice. The extra TTS model can use significant memory alongside the 1B chat model.
+
+For playing feedback, the tutor can use the app's recent detected note labels and compare them with an expected note sequence. The pitch detector is experimental and works best with clear single notes; it cannot reliably judge rhythm, dynamics, chords, fingering, or tone quality from those labels alone.
+
+PDF and image scores remain stored locally and are not automatically interpreted. MusicXML files can be parsed locally into a basic note sequence from the first part; chord tones and rests are skipped, so verify the extracted sequence before using it. Full optical music recognition for scanned pages and robust live piano audio transcription are not yet implemented.
