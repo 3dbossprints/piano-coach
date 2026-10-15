@@ -5,6 +5,11 @@
   let voiceModeEnabled = false;
   let voiceReplyWillSpeak = false;
   let enginePromise = null;
+  let kokoroWorker = null;
+  let kokoroAudioContext = null;
+  let neuralJobId = 0;
+  let neuralPending = null;
+  let neuralSource = null;
   const $ = id => document.getElementById(id);
   const MODEL_ID = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
 
@@ -27,7 +32,7 @@
     const select = $("tutorVoiceChoice");
     if (!select) return;
     const selected = select.value || "auto";
-    select.replaceChildren(new Option("Best available device voice", "auto"));
+    select.replaceChildren(new Option("Fast device voice", "auto"), new Option("AI neural voice (downloads voice model)", "kokoro"));
     availableVoices.forEach((voice, index) => {
       select.add(new Option(voice.name + " (" + voice.lang + ")" + (voice.localService ? " · on device" : ""), String(index)));
     });
@@ -35,17 +40,87 @@
   }
 
   function stopTutorSpeech() {
+    neuralJobId++;
+    if (neuralPending) { neuralPending.reject(new Error("Speech stopped")); neuralPending = null; }
+    if (neuralSource) { try { neuralSource.stop(); } catch (_) {} neuralSource = null; }
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     $("tutorVoiceStatus").textContent = "Speech stopped.";
   }
 
-  function say(text) {
-    if (!$("tutorSpeak").checked) return;
-    if (!("speechSynthesis" in window)) return;
-    stopTutorSpeech();
+  function getKokoroWorker() {
+    if (!kokoroWorker) {
+      kokoroWorker = new Worker("./kokoro-worker.js", { type: "module" });
+      kokoroWorker.onmessage = event => {
+        if (!neuralPending || event.data.id !== neuralPending.id) return;
+        const pending = neuralPending; neuralPending = null;
+        if (event.data.error) pending.reject(new Error(event.data.error));
+        else pending.resolve(event.data);
+      };
+      kokoroWorker.onerror = event => {
+        if (neuralPending) { const pending = neuralPending; neuralPending = null; pending.reject(new Error(event.message || "AI voice worker failed")); }
+      };
+    }
+    return kokoroWorker;
+  }
+
+  function speechChunks(text) {
+    const sentences = String(text).match(/[^.!?]+[.!?]*/g) || [String(text)];
+    const chunks = [];
+    let part = "";
+    for (const sentence of sentences) {
+      for (const word of sentence.trim().split(/\s+/)) {
+        if ((part + " " + word).trim().length > 220 && part) { chunks.push(part); part = word; }
+        else part = (part + " " + word).trim();
+      }
+      if (part) { chunks.push(part); part = ""; }
+    }
+    return chunks.filter(Boolean);
+  }
+
+  async function sayNeural(text) {
+    const job = ++neuralJobId;
+    try {
+      $("tutorVoiceStatus").textContent = "Loading optional AI voice model. First use downloads extra files…";
+      const worker = getKokoroWorker();
+      if (!kokoroAudioContext) kokoroAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+      await kokoroAudioContext.resume();
+      for (const chunk of speechChunks(text)) {
+        if (job !== neuralJobId) return;
+        const id = job + "-" + Math.random().toString(36).slice(2);
+        const result = await new Promise((resolve, reject) => {
+          neuralPending = { id, resolve, reject };
+          worker.postMessage({ id, text: chunk });
+        });
+        if (job !== neuralJobId) return;
+        const samples = result.audio instanceof Float32Array ? result.audio : new Float32Array(result.audio);
+        const buffer = kokoroAudioContext.createBuffer(1, samples.length, result.sampleRate || 24000);
+        buffer.copyToChannel(samples, 0);
+        await new Promise(resolve => {
+          neuralSource = kokoroAudioContext.createBufferSource();
+          neuralSource.buffer = buffer;
+          neuralSource.connect(kokoroAudioContext.destination);
+          neuralSource.onended = () => { neuralSource = null; resolve(); };
+          neuralSource.start();
+        });
+      }
+      if (job === neuralJobId) finishVoiceReply();
+    } catch (error) {
+      if (job !== neuralJobId) return;
+      $("tutorVoiceStatus").textContent = "AI voice unavailable; falling back to device speech. " + (error.message || error);
+      sayDevice(text, true);
+    }
+  }
+
+  function sayDevice(text, keepJob = false) {
+    if (!("speechSynthesis" in window)) {
+      $("tutorVoiceStatus").textContent = "Speech synthesis is not supported in this browser.";
+      finishVoiceReply();
+      return;
+    }
+    if (!keepJob) stopTutorSpeech();
     const utterance = new SpeechSynthesisUtterance(text);
     const choice = $("tutorVoiceChoice")?.value || "auto";
-    if (choice !== "auto" && availableVoices[Number(choice)]) utterance.voice = availableVoices[Number(choice)];
+    if (choice !== "auto" && choice !== "kokoro" && availableVoices[Number(choice)]) utterance.voice = availableVoices[Number(choice)];
     else {
       const english = availableVoices.filter(voice => /^en(-|$)/i.test(voice.lang));
       const natural = english.find(voice => /natural|neural|aria|jenny|samantha|ava|zira|google.*english|enhanced/i.test(voice.name));
@@ -54,9 +129,19 @@
     utterance.rate = Number($("tutorRate")?.value || 0.92);
     utterance.pitch = 1.02;
     utterance.volume = 1;
+    utterance.onstart = () => { $("tutorVoiceStatus").textContent = "Speaking tutor reply…"; };
     utterance.onend = finishVoiceReply;
-    utterance.onerror = finishVoiceReply;
+    utterance.onerror = () => { $("tutorVoiceStatus").textContent = "Browser speech could not play. Try another voice."; finishVoiceReply(); };
+    window.speechSynthesis.resume();
     window.speechSynthesis.speak(utterance);
+  }
+
+  function say(text) {
+    if (!$("tutorSpeak").checked) { if (voiceModeEnabled) finishVoiceReply(); return; }
+    if ($("tutorVoiceChoice")?.value === "kokoro") {
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      sayNeural(text);
+    } else sayDevice(text);
   }
 
   function pianoContext() {
@@ -219,9 +304,8 @@
         tutorWidgetToggle.textContent = collapsed ? "Open tutor" : "Minimize";
         tutorWidgetToggle.setAttribute("aria-expanded", String(!collapsed));
         if (!collapsed) {
-          // Load the same local text model as soon as the tutor opens.
-          // Browser speech speaks that answer, avoiding a second neural TTS download.
-          getLocalEngine().catch(() => {});
+          // Preload the text model when opened; the optional voice model loads only if selected.
+          getLocalEngine().catch(error => { $("tutorVoiceStatus").textContent = error.message; });
           $("tutorInput").focus();
         }
       });
