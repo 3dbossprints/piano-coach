@@ -20,3 +20,12 @@ Open `index.html` in a browser. Microphone access generally requires HTTPS or lo
 
 ## Important limitations
 This is an early prototype. The pitch detector is experimental and is not a full performance assessor: it does not yet compare a played piece with sheet music or reliably diagnose missed notes, timing, fingering, or exam readiness. Progress is stored in the current browser only; it is not synchronised between devices. Grade syllabuses vary by exam board, so confirm exam requirements with your chosen board and teacher.
+
+
+## Local AI piano tutor (experimental)
+
+The conversational tutor uses a quantized Llama 3.2 1B Instruct model through WebLLM and WebGPU in the browser. It does not use an OpenAI API key or send chat prompts to an AI inference API. The first use downloads model files (roughly 1 GB, depending on the model build) from the model CDN; subsequent use may reuse the browser cache. A modern browser with WebGPU support and sufficient free memory is required. This can be slow or unavailable on older devices or browsers without WebGPU.
+
+The microphone's speech-to-text feature depends on browser support and may use a browser speech-recognition service. Spoken replies use browser speech synthesis. The tutor is text-only with respect to piano playing: it does not yet analyse live performance audio or interpret uploaded score images.
+
+The separate optional AI practice-feedback feature may still use an OpenAI-key workflow. Its offline note comparison works without a key.
