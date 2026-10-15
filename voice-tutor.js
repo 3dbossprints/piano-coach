@@ -27,10 +27,7 @@
     const select = $("tutorVoiceChoice");
     if (!select) return;
     const selected = select.value || "auto";
-    select.replaceChildren(
-      new Option("Fast device voice (recommended)", "auto"),
-      new Option("Natural AI voice (local, experimental)", "kokoro")
-    );
+    select.replaceChildren(new Option("Best available device voice", "auto"));
     availableVoices.forEach((voice, index) => {
       select.add(new Option(voice.name + " (" + voice.lang + ")" + (voice.localService ? " · on device" : ""), String(index)));
     });
