@@ -2,6 +2,7 @@
    First use downloads model weights from Hugging Face; browser cache is reused afterward. */
 (function(){
   const MODEL = 'onnx-community/Llama-3.2-1B-Instruct-q4f16';
+  const CPU_MODEL = 'onnx-community/Llama-3.2-1B-Instruct';
   let generator = null, loading = null, deviceUsed = null;
   function emit(cb, message, percent) { if (typeof cb === 'function') cb({message, percent}); }
   async function init(onProgress) {
@@ -19,14 +20,14 @@
       };
       if (navigator.gpu) {
         try {
-          generator = await pipeline('text-generation', MODEL, { device: 'webgpu', dtype: 'q4', progress_callback });
+          generator = await pipeline('text-generation', MODEL, { device: 'webgpu', dtype: 'q4f16', progress_callback });
           deviceUsed = 'WebGPU';
           return generator;
         } catch (gpuError) {
           emit(onProgress, 'GPU model loading failed; trying compatible CPU/WASM mode…', 0);
         }
       }
-      generator = await pipeline('text-generation', MODEL, { device: 'wasm', dtype: 'q4', progress_callback });
+      generator = await pipeline('text-generation', CPU_MODEL, { device: 'wasm', dtype: 'q4', progress_callback });
       deviceUsed = 'CPU/WASM';
       return generator;
     })().catch(err => { loading = null; generator = null; throw err; });
