@@ -232,6 +232,7 @@
       pending.textContent = "I couldn't start the on-device AI: " + (error && error.message ? error.message : String(error)) +
         "\nTry a current browser with WebGPU support and enough free memory. The local model must download the first time; no OpenAI key is used by this tutor.";
       history.pop();
+      voiceReplyWillSpeak = false;
       $("tutorVoiceStatus").textContent = "Local tutor not ready. See the message above for troubleshooting.";
     } finally {
       send.disabled = false;
