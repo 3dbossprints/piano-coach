@@ -8,7 +8,7 @@ A mobile-friendly piano practice companion.
 - A short daily checklist and focus timer that follows your session goal
 - Weekly practice-day/minute totals and a recent 14-day session history
 - Progress, practice history, reflections, and uploaded scores saved locally with IndexedDB (localStorage fallback)
-- An audible Web Audio mini keyboard plus experimental microphone-based single-note pitch estimation
+- An audible Web Audio mini keyboard plus experimental live spectral pitch-group estimation across A0–C8
 
 ## Run locally
 Open `index.html` in a browser. Microphone access generally requires HTTPS or localhost.
@@ -20,7 +20,7 @@ Open `index.html` in a browser. Microphone access generally requires HTTPS or lo
 4. Deploy. Vercel will provide a public URL.
 
 ## Important limitations
-This is an early prototype. The pitch detector is experimental and is not a full performance assessor: it does not yet compare a played piece with sheet music or reliably diagnose missed notes, timing, fingering, or exam readiness. Progress is stored in the current browser only; it is not synchronised between devices. Grade syllabuses vary by exam board, so confirm exam requirements with your chosen board and teacher.
+This is an early prototype. The live pitch detector estimates multiple spectral peaks and groups them as chord-like events, then can compare those groups with an entered target sequence. It is still a spectrum-based prototype rather than a trained polyphonic transcription model; piano overtones may be mistaken for notes, and it does not reliably score timing, rhythm, fingering, dynamics, or exam readiness. Progress is stored in the current browser only; it is not synchronised between devices. Grade syllabuses vary by exam board, so confirm exam requirements with your chosen board and teacher.
 
 
 ## Local AI piano tutor (experimental)
@@ -38,7 +38,7 @@ The conversational tutor uses a quantized Llama 3.2 1B model through WebLLM/WebG
 
 The speech controls let you choose the natural Kokoro neural voice or an installed browser/operating-system voice and adjust speed. The Kokoro speech model is downloaded on first use; actual audio playback depends on browser support and successful model loading. The tutor uses the same generated answer for text and speech.
 
-For playing feedback, the tutor can use the app's recent detected note labels and compare them with an expected note sequence. The pitch detector is experimental and works best with clear single notes; it cannot reliably judge rhythm, dynamics, chords, fingering, or tone quality from those labels alone.
+For playing feedback, the tutor can use recent grouped pitch estimates and compare them with an expected sequence. MusicXML extraction keeps chord tones together when the file encodes them as simultaneous notes. The live detector is experimental and can confuse harmonics with real notes; it does not yet provide reliable full-piece alignment or score timing, dynamics, fingering, or tone quality.
 
 PDF and image scores remain stored locally and are not automatically interpreted. MusicXML files can be parsed locally into a basic note sequence from the first part; chord tones and rests are skipped, so verify the extracted sequence before using it. Full optical music recognition for scanned pages and robust live piano audio transcription are not yet implemented.
 
