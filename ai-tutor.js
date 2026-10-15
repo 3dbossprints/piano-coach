@@ -1,7 +1,7 @@
 /* Piano Coach built-in, browser-local tutor. No API key or backend required.
    First use downloads model weights from Hugging Face; browser cache is reused afterward. */
 (function(){
-  const MODEL = 'onnx-community/Qwen2.5-1.5B-Instruct';
+  const MODEL = 'onnx-community/Llama-3.2-1B-Instruct-q4f16';
   let generator = null, loading = null, deviceUsed = null;
   function emit(cb, message, percent) { if (typeof cb === 'function') cb({message, percent}); }
   async function init(onProgress) {
