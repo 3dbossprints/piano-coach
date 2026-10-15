@@ -18,20 +18,50 @@
   }
 
   let availableVoices = [];
+  let kokoroPromise = null;
+  let kokoroAudioContext = null;
   function loadVoices() {
     if (!("speechSynthesis" in window)) return;
     availableVoices = window.speechSynthesis.getVoices() || [];
     const select = $("tutorVoiceChoice");
     if (!select) return;
     const selected = select.value || "auto";
-    select.replaceChildren(new Option("Best available voice", "auto"));
+    select.replaceChildren(new Option("Best available voice", "auto"), new Option("Natural AI voice (local, experimental)", "kokoro"));
     availableVoices.forEach((voice, index) => {
       select.add(new Option(voice.name + " (" + voice.lang + ")" + (voice.localService ? " · on device" : ""), String(index)));
     });
     select.value = [...select.options].some(option => option.value === selected) ? selected : "auto";
   }
-  function say(text) {
-    if (!("speechSynthesis" in window) || !$("tutorSpeak").checked) return;
+  async function sayNeural(text) {
+    try {
+      $("tutorVoiceStatus").textContent = "Loading local neural voice (extra download on first use)…";
+      if (!kokoroPromise) kokoroPromise = (async () => {
+        const module = await import("https://esm.run/kokoro-js");
+        return module.KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", { dtype: "q8" });
+      })().catch(error => { kokoroPromise = null; throw error; });
+      const tts = await kokoroPromise;
+      const generated = await tts.generate(text, { voice: "af_heart" });
+      const samples = generated.audio || generated;
+      const rate = generated.sampling_rate || 24000;
+      if (!samples || !samples.length) throw new Error("Neural voice returned no audio.");
+      if (!kokoroAudioContext) kokoroAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+      await kokoroAudioContext.resume();
+      const buffer = kokoroAudioContext.createBuffer(1, samples.length, rate);
+      buffer.copyToChannel(samples, 0);
+      const source = kokoroAudioContext.createBufferSource();
+      source.buffer = buffer;
+      source.connect(kokoroAudioContext.destination);
+      source.start();
+      $("tutorVoiceStatus").textContent = "Speaking with the local neural voice. Audio is generated on this device.";
+    } catch (error) {
+      $("tutorVoiceStatus").textContent = "Local neural voice unavailable (" + (error.message || String(error)) + "). Falling back to the device speech voice.";
+      say(text, true);
+    }
+  }
+  function say(text, fallback = false) {
+    if (!$("tutorSpeak").checked) return;
+    if (!fallback && $("tutorVoiceChoice")?.value === "kokoro") { sayNeural(text); return; }
+    if (!("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     const choice = $("tutorVoiceChoice")?.value || "auto";
@@ -46,6 +76,7 @@
     utterance.volume = 1;
     window.speechSynthesis.speak(utterance);
   }
+
   function pianoContext() {
     try { return typeof window.getPianoCoachSnapshot === "function" ? window.getPianoCoachSnapshot() : null; }
     catch (_) { return null; }
