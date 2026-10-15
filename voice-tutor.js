@@ -273,6 +273,15 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
+    const tutorWidget = $("voiceTutor");
+    const tutorWidgetToggle = $("tutorWidgetToggle");
+    if (tutorWidget && tutorWidgetToggle) {
+      tutorWidgetToggle.addEventListener("click", () => {
+        const collapsed = tutorWidget.classList.toggle("tutor-collapsed");
+        tutorWidgetToggle.textContent = collapsed ? "Open tutor" : "Minimize";
+        tutorWidgetToggle.setAttribute("aria-expanded", String(!collapsed));
+      });
+    }
     $("tutorSend").addEventListener("click", () => sendTutorMessage($("tutorInput").value));
     $("tutorStopSpeech")?.addEventListener("click", stopTutorSpeech);
     $("tutorInput").addEventListener("keydown", event => {
