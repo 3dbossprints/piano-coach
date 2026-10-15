@@ -130,6 +130,7 @@
   }
 
   async function sayNeural(text) {
+    stopTutorSpeech();
     const jobId = ++neuralJobId;
     try {
       const worker = getKokoroWorker();
