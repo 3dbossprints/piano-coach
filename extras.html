@@ -70,7 +70,7 @@ input:focus,textarea:focus,select:focus{border-color:#b9a9e8!important;box-shado
 const $ = id => document.getElementById(id);
 const config = JSON.parse(localStorage.getItem('pc_ai_config') || '{}');
 ['provider','endpoint','key','model'].forEach(k => { if (config[k]) $(k).value = config[k]; });
-if (!config.provider) $('provider').value = 'Built-in local AI (no key)';
+if (!config.provider || (config.provider === 'OpenAI-compatible API' && !config.endpoint && !config.key && !config.model)) $('provider').value = 'Built-in local AI (no key)';
 $('voice').value = localStorage.getItem('pc_voice') || 'robot';
 $('save').onclick = () => {
   localStorage.setItem('pc_ai_config', JSON.stringify({
