@@ -2,6 +2,8 @@
   const history = [];
   let recognition = null;
   let listening = false;
+  let voiceModeEnabled = false;
+  let voiceReplyWillSpeak = false;
   let enginePromise = null;
   const $ = id => document.getElementById(id);
   const MODEL_ID = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
@@ -143,7 +145,7 @@
           worker.postMessage({ type: "speak", jobId, text: chunk });
         });
       }
-      if (jobId === neuralJobId) $("tutorVoiceStatus").textContent = "Finished speaking with the local neural voice.";
+      if (jobId === neuralJobId) { $("tutorVoiceStatus").textContent = "Finished speaking with the local neural voice."; finishVoiceReply(); }
     } catch (error) {
       if (jobId !== neuralJobId) return;
       $("tutorVoiceStatus").textContent = "Local neural voice unavailable (" + (error.message || String(error)) + "). Falling back to the device speech voice.";
@@ -166,6 +168,8 @@
     utterance.rate = Number($("tutorRate")?.value || 0.92);
     utterance.pitch = 1.02;
     utterance.volume = 1;
+    utterance.onend = finishVoiceReply;
+    utterance.onerror = finishVoiceReply;
     window.speechSynthesis.speak(utterance);
   }
 
@@ -222,6 +226,7 @@
       pending.textContent = reply;
       history.push({ role: "assistant", content: reply });
       if (history.length > 12) history.splice(0, history.length - 12);
+      voiceReplyWillSpeak = voiceModeEnabled && $("tutorSpeak").checked;
       say(reply);
     } catch (error) {
       pending.textContent = "I couldn't start the on-device AI: " + (error && error.message ? error.message : String(error)) +
@@ -232,7 +237,20 @@
       send.disabled = false;
       send.textContent = "Ask tutor";
       input.focus();
+      if (voiceModeEnabled && !voiceReplyWillSpeak) { voiceReplyWillSpeak = false; resumeVoiceMode(); }
     }
+  }
+
+  function resumeVoiceMode() {
+    if (!voiceModeEnabled || !recognition || listening) return;
+    try { recognition.start(); } catch (_) {}
+  }
+
+  function finishVoiceReply() {
+    if (!voiceModeEnabled) return;
+    voiceReplyWillSpeak = false;
+    $("tutorVoiceStatus").textContent = "Voice mode is on. Listening for your next question…";
+    resumeVoiceMode();
   }
 
   function startVoiceInput() {
@@ -241,35 +259,68 @@
       $("tutorVoiceStatus").textContent = "Voice input isn't supported in this browser. Try current Chrome or Edge, or type your question.";
       return;
     }
-    if (recognition && listening) {
-      recognition.stop(); listening = false;
-      $("tutorVoice").textContent = "🎙 Ask by voice";
-      $("tutorVoiceStatus").textContent = "Voice input stopped.";
+    if (voiceModeEnabled) {
+      voiceModeEnabled = false;
+      listening = false;
+      if (recognition) { try { recognition.stop(); } catch (_) {} }
+      recognition = null;
+      $("tutorVoice").textContent = "🎙 Start voice mode";
+      $("tutorVoice").setAttribute("aria-pressed", "false");
+      $("tutorVoiceStatus").textContent = "Voice mode is off.";
       return;
     }
+    voiceModeEnabled = true;
+    voiceReplyWillSpeak = false;
     recognition = new SpeechRecognition();
     recognition.lang = "en-US";
     recognition.interimResults = true;
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.onstart = () => {
-      listening = true; $("tutorVoice").textContent = "Stop listening";
-      $("tutorVoiceStatus").textContent = "Listening for your question…";
+      listening = true;
+      $("tutorVoice").textContent = "🎙 Voice mode is on · turn off";
+      $("tutorVoice").setAttribute("aria-pressed", "true");
+      $("tutorVoiceStatus").textContent = "Voice mode is on. Ask a question naturally; it will listen again after the tutor replies.";
     };
     recognition.onresult = event => {
-      let transcript = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) transcript += event.results[i][0].transcript;
-      $("tutorInput").value = transcript;
-      if (event.results[event.results.length - 1].isFinal) {
-        listening = false; $("tutorVoice").textContent = "🎙 Ask by voice";
+      let finalTranscript = "";
+      let interimTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const phrase = event.results[i][0].transcript;
+        if (event.results[i].isFinal) finalTranscript += phrase + " ";
+        else interimTranscript += phrase;
+      }
+      if (interimTranscript) $("tutorInput").value = interimTranscript;
+      if (finalTranscript.trim()) {
+        const transcript = finalTranscript.trim();
+        $("tutorInput").value = transcript;
+        voiceReplyWillSpeak = true;
+        try { recognition.stop(); } catch (_) {}
         sendTutorMessage(transcript);
       }
     };
     recognition.onerror = event => {
-      listening = false; $("tutorVoice").textContent = "🎙 Ask by voice";
-      $("tutorVoiceStatus").textContent = "Voice input error (" + event.error + "). You can type your question instead.";
+      listening = false;
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        voiceModeEnabled = false;
+        $("tutorVoice").textContent = "🎙 Start voice mode";
+        $("tutorVoice").setAttribute("aria-pressed", "false");
+        $("tutorVoiceStatus").textContent = "Microphone permission was denied. Allow microphone access and try again.";
+      } else if (voiceModeEnabled) {
+        $("tutorVoiceStatus").textContent = "Voice input paused (" + event.error + "). Trying to resume…";
+        resumeVoiceMode();
+      }
     };
-    recognition.onend = () => { listening = false; $("tutorVoice").textContent = "🎙 Ask by voice"; };
-    try { recognition.start(); } catch (error) { $("tutorVoiceStatus").textContent = "Couldn't start the microphone. Check browser permissions."; }
+    recognition.onend = () => {
+      listening = false;
+      if (voiceModeEnabled && !voiceReplyWillSpeak) resumeVoiceMode();
+    };
+    try { recognition.start(); }
+    catch (_) {
+      voiceModeEnabled = false;
+      $("tutorVoice").textContent = "🎙 Start voice mode";
+      $("tutorVoice").setAttribute("aria-pressed", "false");
+      $("tutorVoiceStatus").textContent = "Couldn't start the microphone. Check browser permissions.";
+    }
   }
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -283,7 +334,7 @@
       });
     }
     $("tutorSend").addEventListener("click", () => sendTutorMessage($("tutorInput").value));
-    $("tutorStopSpeech")?.addEventListener("click", stopTutorSpeech);
+    $("tutorStopSpeech")?.addEventListener("click", () => { stopTutorSpeech(); if (voiceModeEnabled) { voiceReplyWillSpeak = false; resumeVoiceMode(); } });
     $("tutorInput").addEventListener("keydown", event => {
       if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendTutorMessage($("tutorInput").value); }
     });
