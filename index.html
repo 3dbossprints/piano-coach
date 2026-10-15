@@ -283,7 +283,7 @@ function findPitchesFromSpectrum(analyser,frequencyData,sampleRate){
   let maxDb=-120;
   for(let i=2;i<frequencyData.length-2;i++){const hz=i*binHz;if(hz<27.5||hz>4200)continue;const db=frequencyData[i];if(db>maxDb)maxDb=db;if(db>frequencyData[i-1]&&db>=frequencyData[i+1]){const left=frequencyData[i-1],mid=db,right=frequencyData[i+1];const denom=left-2*mid+right;const offset=denom?0.5*(left-right)/denom:0;const refined=(i+Math.max(-0.5,Math.min(0.5,offset)))*binHz;peaks.push({hz:refined,db, midi:Math.round(69+12*Math.log2(refined/440))})}}
   if(maxDb<-82)return [];
-  const floor=maxDb-31;
+  const floor=maxDb-24;
   const candidates=peaks.filter(p=>p.db>floor&&p.midi>=21&&p.midi<=108&&Math.abs(69+12*Math.log2(p.hz/440)-p.midi)<0.48)
     .sort((a,b)=>b.db-a.db);
   // Work from all plausible peaks, not only peaks already selected. Piano
@@ -314,7 +314,7 @@ function findPitchesFromSpectrum(analyser,frequencyData,sampleRate){
     });
     if(explained)continue;
     chosen.push(p);
-    if(chosen.length>=6)break;
+    if(chosen.length>=5)break;
   }
   return chosen.sort((a,b)=>a.midi-b.midi).map(p=>({midi:p.midi,name:midiName(p.midi),db:p.db}));
 }
@@ -323,24 +323,28 @@ async function toggleListening(){
   try{
     stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
     audioContext=new(window.AudioContext||window.webkitAudioContext)();await audioContext.resume();
-    const source=audioContext.createMediaStreamSource(stream),analyser=audioContext.createAnalyser();analyser.fftSize=16384;analyser.smoothingTimeConstant=0.72;source.connect(analyser);
+    const source=audioContext.createMediaStreamSource(stream),analyser=audioContext.createAnalyser();analyser.fftSize=16384;analyser.smoothingTimeConstant=0.88;source.connect(analyser);
     const frequencyData=new Float32Array(analyser.frequencyBinCount),timeData=new Float32Array(analyser.fftSize);
     document.getElementById('listenBtn').textContent='Turn microphone off';document.getElementById('musicRecordBtn').disabled=false;document.getElementById('listenStatus').textContent='Live pitch display is experimental. For more stable chord analysis, record a short passage and use Analyze recording.';
     let lastDisplay='',stableFrames=0,displayedAt=0,silentFrames=0;
     function detect(){
       if(!stream)return;
       analyser.getFloatTimeDomainData(timeData);let energy=0;for(let i=0;i<timeData.length;i++)energy+=timeData[i]*timeData[i];const rms=Math.sqrt(energy/timeData.length);
-      if(rms>0.0045){
+      if(rms>0.007){
         silentFrames=0;
         const pitches=findPitchesFromSpectrum(analyser,frequencyData,audioContext.sampleRate);
         if(pitches.length){
           const group=pitches.map(p=>p.name).join('+');
           if(group===lastDisplay)stableFrames++;else{lastDisplay=group;stableFrames=1}
           const cents=pitches.length===1?Math.round(1200*Math.log2((pitches[0].hz||440)/440)):null;
-          document.getElementById('detectedNote').textContent=pitches.map(p=>p.name).join(' · ');
-          document.getElementById('frequency').textContent=pitches.length+' pitch candidate(s) · estimated range A0–C8';
-          if(stableFrames>=3&&Date.now()-displayedAt>230){logDetectedNote(group);displayedAt=Date.now()}
-          document.getElementById('listenStatus').textContent=pitches.length===1?'One strong pitch detected. Low and high notes are both included.':'Chord detector is suppressing likely harmonics. If you entered the expected chord, it uses that to preserve its notes.';
+          // Only refresh the visible pitch group after it persists across several
+          // frames. Keep the last stable reading while transient spectral peaks settle.
+          if(stableFrames>=5){
+            document.getElementById('detectedNote').textContent=pitches.map(p=>p.name).join(' · ');
+            document.getElementById('frequency').textContent=pitches.length+' stable pitch candidate(s) · estimated range A0–C8';
+            if(Date.now()-displayedAt>350){logDetectedNote(group);displayedAt=Date.now()}
+          }
+          document.getElementById('listenStatus').textContent=pitches.length===1?'Listening for a stable pitch. For chords, recording and model analysis is more reliable.':'Filtering transient pitch changes. For steadier chord analysis, record and analyze a short passage.';
         }else{document.getElementById('frequency').textContent='Waiting for clear musical energy…'}
       }else{lastDisplay='';stableFrames=0;silentFrames++;if(silentFrames>8)lastLoggedNote='';document.getElementById('frequency').textContent='Waiting for a clear note or chord…'}
       raf=requestAnimationFrame(detect)
