@@ -17,12 +17,38 @@
     return item;
   }
 
+  let availableVoices = [];
+  function loadVoices() {
+    if (!("speechSynthesis" in window)) return;
+    availableVoices = window.speechSynthesis.getVoices() || [];
+    const select = $("tutorVoiceChoice");
+    if (!select) return;
+    const selected = select.value || "auto";
+    select.replaceChildren(new Option("Best available voice", "auto"));
+    availableVoices.forEach((voice, index) => {
+      select.add(new Option(voice.name + " (" + voice.lang + ")" + (voice.localService ? " · on device" : ""), String(index)));
+    });
+    select.value = [...select.options].some(option => option.value === selected) ? selected : "auto";
+  }
   function say(text) {
     if (!("speechSynthesis" in window) || !$("tutorSpeak").checked) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.96;
+    const choice = $("tutorVoiceChoice")?.value || "auto";
+    if (choice !== "auto" && availableVoices[Number(choice)]) utterance.voice = availableVoices[Number(choice)];
+    else {
+      const english = availableVoices.filter(voice => /^en(-|$)/i.test(voice.lang));
+      const natural = english.find(voice => /natural|neural|aria|jenny|samantha|ava|zira|google.*english|enhanced/i.test(voice.name));
+      if (natural || english[0]) utterance.voice = natural || english[0];
+    }
+    utterance.rate = Number($("tutorRate")?.value || 0.92);
+    utterance.pitch = 1.02;
+    utterance.volume = 1;
     window.speechSynthesis.speak(utterance);
+  }
+  function pianoContext() {
+    try { return typeof window.getPianoCoachSnapshot === "function" ? window.getPianoCoachSnapshot() : null; }
+    catch (_) { return null; }
   }
 
   async function getLocalEngine() {
@@ -55,8 +81,16 @@
       const engine = await getLocalEngine();
       pending.textContent = "Thinking on your device…";
       $("tutorVoiceStatus").textContent = "Your tutor is running locally in this browser. Chat prompts are processed on this device.";
+      const snapshot = pianoContext();
+      const contextText = snapshot ? "Current session context (detector is approximate):\n" +
+        "Grade: " + snapshot.grade + "\nPiece/exercise: " + (snapshot.piece || "not specified") +
+        "\nExpected notes: " + (snapshot.targetNotes || "not provided") +
+        "\nRecently detected notes: " + (snapshot.detectedNotes.length ? snapshot.detectedNotes.join(" ") : "none captured") +
+        "\nUploaded scores: " + (snapshot.scores.length ? snapshot.scores.map(score => score.name + " [" + score.type + "]").join(", ") : "none") +
+        "\nOnly MusicXML can currently be converted to expected note labels; uploaded PDFs and images are not automatically read." : "";
       const messages = [
-        { role: "system", content: "You are Piano Coach, a warm, patient, accurate piano teacher. Help learners with note reading, rhythm, technique, practice routines, music theory, and Trinity College London piano grades Initial through Grade 8. Give clear step-by-step advice suited to the learner. Ask a clarifying question when needed. Do not claim to hear the user's playing or inspect sheet music unless data is explicitly provided. For exam requirements that may change, say to verify against the current official Trinity syllabus. Encourage relaxed technique and sensible breaks. Keep answers practical and concise." },
+        { role: "system", content: "You are Piano Coach, a warm, patient piano teacher. Help with note reading, rhythm, technique, practice routines, theory and Trinity College London grades Initial through Grade 8. Give clear practical steps. You may use detected note labels and an expected sequence if provided, but the microphone detector is approximate and can miss notes or confuse octaves. You cannot infer rhythm, dynamics, chords, fingering or tone quality from note labels alone. You have not heard raw audio and must not claim you have. Do not claim to read uploaded PDF or image notation; the app can parse basic notes from MusicXML. Verify changing exam requirements against the official Trinity syllabus. Encourage relaxed technique and sensible breaks." },
+        ...(contextText ? [{ role: "system", content: contextText }] : []),
         ...history.slice(-12)
       ];
       const result = await engine.chat.completions.create({ messages, temperature: 0.7, max_tokens: 450 });
@@ -121,6 +155,20 @@
       if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendTutorMessage($("tutorInput").value); }
     });
     $("tutorVoice").addEventListener("click", startVoiceInput);
+    $("tutorReview").addEventListener("click", () => {
+      const snapshot = pianoContext();
+      if (!snapshot || !snapshot.detectedNotes.length) {
+        $("tutorVoiceStatus").textContent = "No playing notes captured yet. Enable the microphone, start note tracking in AI practice feedback, and play a short passage first.";
+        return;
+      }
+      sendTutorMessage("Review my recent playing using the detected notes and expected notes in the session context. Tell me what seems correct, where the sequence differs, and how to practise the difficult part. Explain the limits of approximate single-note pitch detection; do not infer rhythm, dynamics, chords, fingering or tone quality from note labels alone.");
+      $("voiceTutor").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    if ("speechSynthesis" in window) {
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+      $("tutorVoiceChoice").addEventListener("focus", loadVoices);
+    }
     $("tutorClear").addEventListener("click", () => {
       history.length = 0; $("tutorMessages").replaceChildren();
       addMessage("assistant", "Hi! I'm your on-device piano tutor. Ask about notes, rhythm, technique, practice planning, or Trinity grades.");
