@@ -18,42 +18,133 @@
   }
 
   let availableVoices = [];
-  let kokoroPromise = null;
+  let kokoroWorker = null;
   let kokoroAudioContext = null;
+  let neuralJobId = 0;
+  let neuralPending = null;
+  let neuralSource = null;
+
   function loadVoices() {
     if (!("speechSynthesis" in window)) return;
     availableVoices = window.speechSynthesis.getVoices() || [];
     const select = $("tutorVoiceChoice");
     if (!select) return;
     const selected = select.value || "auto";
-    select.replaceChildren(new Option("Best available voice", "auto"), new Option("Natural AI voice (local, experimental)", "kokoro"));
+    select.replaceChildren(
+      new Option("Fast device voice (recommended)", "auto"),
+      new Option("Natural AI voice (local, experimental)", "kokoro")
+    );
     availableVoices.forEach((voice, index) => {
       select.add(new Option(voice.name + " (" + voice.lang + ")" + (voice.localService ? " · on device" : ""), String(index)));
     });
     select.value = [...select.options].some(option => option.value === selected) ? selected : "auto";
   }
+
+  function stopTutorSpeech() {
+    neuralJobId++;
+    if (kokoroWorker) kokoroWorker.postMessage({ type: "cancel", jobId: neuralJobId });
+    if (neuralSource) {
+      try { neuralSource.stop(); } catch (_) {}
+      neuralSource = null;
+    }
+    if (neuralPending) {
+      const pending = neuralPending;
+      neuralPending = null;
+      pending.resolve();
+    }
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    $("tutorVoiceStatus").textContent = "Speech stopped.";
+  }
+
+  function getKokoroWorker() {
+    if (kokoroWorker) return kokoroWorker;
+    kokoroWorker = new Worker("kokoro-worker.js", { type: "module" });
+    kokoroWorker.addEventListener("message", event => {
+      const data = event.data || {};
+      if (!neuralPending || data.jobId !== neuralPending.jobId) return;
+      if (data.type === "status") {
+        $("tutorVoiceStatus").textContent = data.message || "Preparing neural voice…";
+      } else if (data.type === "error") {
+        const pending = neuralPending;
+        neuralPending = null;
+        pending.reject(new Error(data.message || "Neural voice failed."));
+      } else if (data.type === "audio") {
+        try {
+          if (!kokoroAudioContext) kokoroAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const samples = data.audio;
+          const buffer = kokoroAudioContext.createBuffer(1, samples.length, data.sampleRate || 24000);
+          buffer.copyToChannel(samples, 0);
+          const source = kokoroAudioContext.createBufferSource();
+          neuralSource = source;
+          source.buffer = buffer;
+          source.connect(kokoroAudioContext.destination);
+          source.onended = () => {
+            if (neuralSource === source) neuralSource = null;
+            const pending = neuralPending;
+            if (pending && pending.jobId === data.jobId) {
+              neuralPending = null;
+              pending.resolve();
+            }
+          };
+          kokoroAudioContext.resume().then(() => source.start()).catch(error => {
+            const pending = neuralPending;
+            neuralPending = null;
+            if (pending) pending.reject(error);
+          });
+        } catch (error) {
+          const pending = neuralPending;
+          neuralPending = null;
+          if (pending) pending.reject(error);
+        }
+      }
+    });
+    kokoroWorker.addEventListener("error", event => {
+      if (neuralPending) {
+        const pending = neuralPending;
+        neuralPending = null;
+        pending.reject(new Error(event.message || "Neural voice worker failed."));
+      }
+    });
+    return kokoroWorker;
+  }
+
+  function makeSpeechChunks(text) {
+    const sentences = String(text || "").match(/[^.!?]+[.!?]*/g) || [String(text || "")];
+    const chunks = [];
+    let current = "";
+    for (const sentence of sentences) {
+      const part = sentence.trim();
+      if (!part) continue;
+      if ((current + " " + part).trim().length > 220 && current) {
+        chunks.push(current);
+        current = "";
+      }
+      if (part.length > 220) {
+        for (let i = 0; i < part.length; i += 220) chunks.push(part.slice(i, i + 220));
+      } else {
+        current = (current ? current + " " : "") + part;
+      }
+    }
+    if (current) chunks.push(current);
+    return chunks;
+  }
+
   async function sayNeural(text) {
+    const jobId = ++neuralJobId;
     try {
-      $("tutorVoiceStatus").textContent = "Loading local neural voice (extra download on first use)…";
-      if (!kokoroPromise) kokoroPromise = (async () => {
-        const module = await import("https://esm.run/kokoro-js");
-        return module.KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", { dtype: "q8" });
-      })().catch(error => { kokoroPromise = null; throw error; });
-      const tts = await kokoroPromise;
-      const generated = await tts.generate(text, { voice: "af_heart" });
-      const samples = generated.audio || generated;
-      const rate = generated.sampling_rate || 24000;
-      if (!samples || !samples.length) throw new Error("Neural voice returned no audio.");
-      if (!kokoroAudioContext) kokoroAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-      await kokoroAudioContext.resume();
-      const buffer = kokoroAudioContext.createBuffer(1, samples.length, rate);
-      buffer.copyToChannel(samples, 0);
-      const source = kokoroAudioContext.createBufferSource();
-      source.buffer = buffer;
-      source.connect(kokoroAudioContext.destination);
-      source.start();
-      $("tutorVoiceStatus").textContent = "Speaking with the local neural voice. Audio is generated on this device.";
+      const worker = getKokoroWorker();
+      const chunks = makeSpeechChunks(text);
+      for (const chunk of chunks) {
+        if (jobId !== neuralJobId) return;
+        $("tutorVoiceStatus").textContent = "Generating a short chunk with the local neural voice…";
+        await new Promise((resolve, reject) => {
+          neuralPending = { jobId, resolve, reject };
+          worker.postMessage({ type: "speak", jobId, text: chunk });
+        });
+      }
+      if (jobId === neuralJobId) $("tutorVoiceStatus").textContent = "Finished speaking with the local neural voice.";
     } catch (error) {
+      if (jobId !== neuralJobId) return;
       $("tutorVoiceStatus").textContent = "Local neural voice unavailable (" + (error.message || String(error)) + "). Falling back to the device speech voice.";
       say(text, true);
     }
@@ -62,7 +153,7 @@
     if (!$("tutorSpeak").checked) return;
     if (!fallback && $("tutorVoiceChoice")?.value === "kokoro") { sayNeural(text); return; }
     if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
+    stopTutorSpeech();
     const utterance = new SpeechSynthesisUtterance(text);
     const choice = $("tutorVoiceChoice")?.value || "auto";
     if (choice !== "auto" && availableVoices[Number(choice)]) utterance.voice = availableVoices[Number(choice)];
@@ -182,6 +273,7 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     $("tutorSend").addEventListener("click", () => sendTutorMessage($("tutorInput").value));
+    $("tutorStopSpeech")?.addEventListener("click", stopTutorSpeech);
     $("tutorInput").addEventListener("keydown", event => {
       if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendTutorMessage($("tutorInput").value); }
     });
@@ -203,7 +295,7 @@
     $("tutorClear").addEventListener("click", () => {
       history.length = 0; $("tutorMessages").replaceChildren();
       addMessage("assistant", "Hi! I'm your on-device piano tutor. Ask about notes, rhythm, technique, practice planning, or Trinity grades.");
-      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      stopTutorSpeech();
     });
     addMessage("assistant", "Hi! I'm your on-device piano tutor. I run a local 1B model in your browser, without an OpenAI API key. The first use downloads the model; after that, it can run on this device.");
   });
