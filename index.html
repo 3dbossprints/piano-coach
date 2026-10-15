@@ -219,11 +219,32 @@ function findPitchesFromSpectrum(analyser,frequencyData,sampleRate){
   const floor=maxDb-31;
   const candidates=peaks.filter(p=>p.db>floor&&p.midi>=21&&p.midi<=108&&Math.abs(69+12*Math.log2(p.hz/440)-p.midi)<0.48)
     .sort((a,b)=>b.db-a.db);
+  // Work from all plausible peaks, not only peaks already selected. Piano
+  // harmonics can be louder than their fundamental, so a high partial may be
+  // encountered first and otherwise survive as a false note.
+  const target=getTargetSequence();
+  const expected=target[playedNoteLog.length]||'';
+  const expectedMidi=new Set(normalizeNoteGroup(expected));
+  const ranked=candidates.map(p=>{
+    const harmonicSupport=candidates.filter(q=>{
+      if(q.midi>=p.midi)return false;
+      const ratio=p.hz/q.hz;
+      return [2,3,4,5].some(n=>Math.abs(ratio-n)<Math.max(0.035,n*0.012)) && q.db>=p.db-28;
+    }).length;
+    const targetBonus=expectedMidi.has(p.midi)?9:0;
+    return {...p,score:p.db+targetBonus-harmonicSupport*12,harmonicSupport};
+  }).sort((a,b)=>b.score-a.score);
   const chosen=[];
-  for(const p of candidates){
+  for(const p of ranked){
     if(chosen.some(q=>Math.abs(q.midi-p.midi)<=1))continue;
-    // Suppress likely overtones when a stronger, lower fundamental explains them.
-    const explained=chosen.some(q=>q.midi<p.midi&&p.hz/q.hz>=1.96&&p.hz/q.hz<=2.04&&q.db>=p.db-20);
+    // Reject likely 2nd–5th harmonics when a lower peak explains them.
+    // Keep an explicitly expected score tone, so genuine high chord notes
+    // aren't automatically discarded just because they share a harmonic.
+    const explained=candidates.some(q=>{
+      if(q.midi>=p.midi||expectedMidi.has(p.midi))return false;
+      const ratio=p.hz/q.hz;
+      return [2,3,4,5].some(n=>Math.abs(ratio-n)<Math.max(0.035,n*0.012)) && q.db>=p.db-28;
+    });
     if(explained)continue;
     chosen.push(p);
     if(chosen.length>=6)break;
@@ -252,7 +273,7 @@ async function toggleListening(){
           document.getElementById('detectedNote').textContent=pitches.map(p=>p.name).join(' · ');
           document.getElementById('frequency').textContent=pitches.length+' pitch candidate(s) · estimated range A0–C8';
           if(stableFrames>=3&&Date.now()-displayedAt>230){logDetectedNote(group);displayedAt=Date.now()}
-          document.getElementById('listenStatus').textContent=pitches.length===1?'One strong pitch detected. Low and high notes are both included.':'Several simultaneous pitch candidates detected. Harmonics can still resemble extra notes.';
+          document.getElementById('listenStatus').textContent=pitches.length===1?'One strong pitch detected. Low and high notes are both included.':'Chord detector is suppressing likely harmonics. If you entered the expected chord, it uses that to preserve its notes.';
         }else{document.getElementById('frequency').textContent='Waiting for clear musical energy…'}
       }else{lastDisplay='';stableFrames=0;silentFrames++;if(silentFrames>8)lastLoggedNote='';document.getElementById('frequency').textContent='Waiting for a clear note or chord…'}
       raf=requestAnimationFrame(detect)
