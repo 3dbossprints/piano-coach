@@ -68,7 +68,27 @@ input:focus,textarea:focus,select:focus{border-color:#b9a9e8!important;box-shado
 
 /* Compact text-only footer link */
 .site-footer{display:flex;justify-content:flex-end;padding:0 clamp(16px,3vw,34px) 18px;margin:0 auto;max-width:1120px}.piano-coach-corner{position:static!important;display:inline!important;float:none!important;width:auto!important;height:auto!important;min-width:0!important;margin:0!important;padding:2px 0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;color:var(--muted,#716d82)!important;font-size:16px!important;font-weight:650!important;line-height:1.4!important;text-decoration:none!important;letter-spacing:.1px;opacity:.88}.piano-coach-corner:hover{transform:none!important;box-shadow:none!important;opacity:1;text-decoration:underline!important}.piano-coach-corner:before,.piano-coach-corner img{display:none!important;content:none!important}@media(max-width:600px){.site-footer{padding:0 16px 16px}.piano-coach-corner{font-size:15px!important}}
-</style></head><body><main class="app"><header><div><div class="brand"><img class="brand-logo" src="assets/piano-coach-logo.svg" alt="" aria-hidden="true"> Piano Coach</div><div class="small">Listen · Learn · Play</div></div><nav class="nav"><a href="index.html">⌂ Dashboard</a><a href="start-practice.html">▶ Practice</a><a href="sheet-music.html">♪ Sheet music</a><a href="library.html">📚 Library</a><a href="extras.html">✦ Extras</a></nav></header><section class="glass"><span class="pill">EXTRAS & CONFIGURATION</span><h1 class="hero">Your AI toolkit.</h1><p class="muted">The built-in Qwen piano tutor runs in your browser without an API key. The model downloads on first use and is cached by your browser. External providers are optional.</p><div class="field"><label for="provider">AI provider</label><select id="provider"><option>Built-in local AI (no key)</option><option>OpenAI-compatible API</option><option>Ollama (local)</option><option>LM Studio (local)</option><option>Google Gemini</option><option>Anthropic Claude</option><option>Qwen</option></select></div><div class="field"><label for="endpoint">Optional external API base URL</label><input id="endpoint" placeholder="e.g. http://localhost:11434/v1"></div><div class="field"><label for="key">Optional external API key</label><input id="key" type="password" autocomplete="off" placeholder="Paste provider key"></div><div class="field"><label for="model">Optional external model name</label><input id="model" placeholder="Model ID"></div><button class="primary" id="save">Save configuration on this device</button><div class="status" id="saveStatus">No configuration loaded.</div></section><section class="glass"><h2>Ask the additional tutor</h2><p class="muted">Built-in local AI is selected by default and needs no key. The first answer may take a while while the model downloads; later use is cached. External API mode is optional.</p><textarea id="question" rows="3" placeholder="How should I practise the left-hand pattern?"></textarea><button class="primary" id="ask" style="margin-top:8px">Ask tutor</button><div id="answer" class="status" aria-live="polite">Your answer will appear here.</div></section><section class="glass"><h2>Voice & previous sessions</h2><p class="muted">Voice selection and previous practice reflections are available here too. Session data can be edited from the dashboard.</p><div class="field"><label for="voice">Analysis voice</label><select id="voice"><option value="robot">Robotic · quick system voice</option><option value="neural">Neural · best available device voice</option></select></div><button id="saveVoice">Save voice preference</button><div id="sessions"></div></section><script src="ai-tutor.js"></script>
+
+/* WhatsApp-inspired tutor conversation */
+.chat-card{padding:clamp(12px,2.5vw,22px)!important}
+.chat-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.chat-heading h2{margin:0 0 3px}
+.chat-clear{padding:8px 10px;font-size:12px;white-space:nowrap}
+.chat-thread{height:min(54vh,520px);min-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:16px 12px;margin:12px 0;background:linear-gradient(135deg,#f4f0f7,#edf7f0 65%,#eef5fc);border:1px solid #fff;border-radius:20px;scroll-behavior:smooth}
+.chat-bubble{max-width:min(86%,620px);padding:11px 14px;border-radius:17px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5;box-shadow:0 3px 10px #3e38500b}
+.chat-bubble.tutor{align-self:flex-start;background:#fff;border:1px solid #ffffff}
+.chat-bubble.user{align-self:flex-end;background:linear-gradient(135deg,#d6f4df,#dff1ff);border:1px solid #ffffff;border-bottom-right-radius:5px}
+.chat-bubble.tutor{border-bottom-left-radius:5px}
+.chat-bubble .bubble-label{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#77738b;font-weight:800;margin-bottom:4px}
+.chat-bubble .bubble-text{font-size:14px}
+.chat-status{min-height:20px;color:var(--muted);font-size:12px;padding:0 4px 8px;overflow-wrap:anywhere}
+.chat-compose{display:flex;align-items:flex-end;gap:9px;padding:8px;background:#ffffffbd;border:1px solid #fff;border-radius:20px;box-shadow:inset 0 2px 7px #675a7810}
+.chat-compose textarea{flex:1;resize:none;min-height:44px;max-height:130px;padding:11px 12px;border:0!important;box-shadow:none!important;background:transparent!important;outline:none}
+.chat-send{flex:0 0 46px;width:46px;height:46px;border-radius:15px!important;font-size:20px;padding:0}
+.chat-hint{margin:7px 4px 0;font-size:11px}
+@media(max-width:600px){.chat-thread{height:52vh;min-height:280px;padding:11px 8px}.chat-bubble{max-width:92%}.chat-heading{align-items:center}}
+
+</style></head><body><main class="app"><header><div><div class="brand"><img class="brand-logo" src="assets/piano-coach-logo.svg" alt="" aria-hidden="true"> Piano Coach</div><div class="small">Listen · Learn · Play</div></div><nav class="nav"><a href="index.html">⌂ Dashboard</a><a href="start-practice.html">▶ Practice</a><a href="sheet-music.html">♪ Sheet music</a><a href="library.html">📚 Library</a><a href="extras.html">✦ Extras</a></nav></header><section class="glass"><span class="pill">EXTRAS & CONFIGURATION</span><h1 class="hero">Your AI toolkit.</h1><p class="muted">The built-in Qwen piano tutor runs in your browser without an API key. The model downloads on first use and is cached by your browser. External providers are optional.</p><div class="field"><label for="provider">AI provider</label><select id="provider"><option>Built-in local AI (no key)</option><option>OpenAI-compatible API</option><option>Ollama (local)</option><option>LM Studio (local)</option><option>Google Gemini</option><option>Anthropic Claude</option><option>Qwen</option></select></div><div class="field"><label for="endpoint">Optional external API base URL</label><input id="endpoint" placeholder="e.g. http://localhost:11434/v1"></div><div class="field"><label for="key">Optional external API key</label><input id="key" type="password" autocomplete="off" placeholder="Paste provider key"></div><div class="field"><label for="model">Optional external model name</label><input id="model" placeholder="Model ID"></div><button class="primary" id="save">Save configuration on this device</button><div class="status" id="saveStatus">No configuration loaded.</div></section><section class="glass chat-card"><div class="chat-heading"><div><h2>Chat with your piano tutor</h2><p class="muted">Ask questions, follow up, and work through tricky passages together.</p></div><button id="clearChat" type="button" class="chat-clear">Clear chat</button></div><div class="chat-thread" id="chatLog" role="log" aria-live="polite" aria-relevant="additions text"></div><div class="chat-status" id="chatStatus" aria-live="polite">Your messages stay in this browser. Built-in local AI needs no API key.</div><form class="chat-compose" id="chatForm"><textarea id="chatInput" rows="1" aria-label="Message your piano tutor" placeholder="Message your piano tutor…" required></textarea><button class="primary chat-send" id="sendMessage" type="submit" aria-label="Send message">➤</button></form><p class="muted chat-hint">Enter to send · Shift + Enter for a new line</p></section><section class="glass"><h2>Voice & previous sessions</h2><p class="muted">Voice selection and previous practice reflections are available here too. Session data can be edited from the dashboard.</p><div class="field"><label for="voice">Analysis voice</label><select id="voice"><option value="robot">Robotic · quick system voice</option><option value="neural">Neural · best available device voice</option></select></div><button id="saveVoice">Save voice preference</button><div id="sessions"></div></section><script src="ai-tutor.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const config = JSON.parse(localStorage.getItem('pc_ai_config') || '{}');
@@ -86,41 +106,111 @@ $('saveVoice').onclick = () => {
   localStorage.setItem('pc_voice', $('voice').value);
   $('saveStatus').textContent = 'Voice preference saved.';
 };
-$('ask').onclick = async () => {
-  const question = $('question').value.trim();
-  if (!question) { $('answer').textContent = 'Type a question first.'; return; }
+
+const CHAT_KEY = 'pc_tutor_chat';
+let chatHistory = [];
+try { chatHistory = JSON.parse(localStorage.getItem(CHAT_KEY) || '[]'); } catch (_) { chatHistory = []; }
+if (!Array.isArray(chatHistory)) chatHistory = [];
+chatHistory = chatHistory.filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string').slice(-40);
+function saveChat(){ try { localStorage.setItem(CHAT_KEY, JSON.stringify(chatHistory.slice(-40))); } catch (_) {} }
+function addBubble(role, content) {
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-bubble ' + (role === 'user' ? 'user' : 'tutor');
+  const label = document.createElement('div');
+  label.className = 'bubble-label';
+  label.textContent = role === 'user' ? 'You' : 'Piano Coach';
+  const body = document.createElement('div');
+  body.className = 'bubble-text';
+  body.textContent = content;
+  bubble.append(label, body);
+  $('chatLog').appendChild(bubble);
+  $('chatLog').scrollTop = $('chatLog').scrollHeight;
+  return body;
+}
+function renderChat() {
+  $('chatLog').replaceChildren();
+  if (!chatHistory.length) {
+    addBubble('assistant', 'Hi! I’m your piano tutor. Ask me about technique, scales, chords, reading sheet music, practice routines, or a tricky passage. What are you working on?');
+  } else {
+    chatHistory.forEach(m => addBubble(m.role, m.content));
+  }
+}
+renderChat();
+$('chatForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const question = $('chatInput').value.trim();
+  if (!question || $('sendMessage').disabled) return;
   const provider = $('provider').value;
-  $('ask').disabled = true;
-  $('answer').textContent = 'Preparing tutor…';
+  const priorHistory = chatHistory.slice(-8);
+  chatHistory.push({ role: 'user', content: question });
+  saveChat();
+  addBubble('user', question);
+  $('chatInput').value = '';
+  $('chatInput').style.height = 'auto';
+  $('sendMessage').disabled = true;
+  $('chatStatus').textContent = provider === 'Built-in local AI (no key)' ? 'Waking up your local tutor… the first model download can take a while.' : 'Contacting your selected AI provider…';
+  const responseBubble = addBubble('assistant', 'Thinking…');
   try {
+    let answer = '';
     if (provider === 'Built-in local AI (no key)') {
       if (!window.PianoCoachAI) throw new Error('The local tutor script did not load. Refresh and check the connection.');
       const result = await window.PianoCoachAI.ask(question, {
-        onProgress: p => { $('answer').textContent = p.message + (p.percent > 0 ? ' ' + Math.round(p.percent) + '%' : ''); }
+        history: priorHistory,
+        max_new_tokens: 220,
+        onProgress: p => { $('chatStatus').textContent = p.message + (p.percent > 0 ? ' ' + Math.round(p.percent) + '%' : ''); }
       });
-      $('answer').textContent = result.answer + '\n\n— Built-in ' + result.model + ' · ' + result.device + ' · no API key';
+      answer = result.answer;
+      $('chatStatus').textContent = 'Built-in ' + result.model + ' · ' + result.device + ' · no API key';
     } else {
       const c = { endpoint: $('endpoint').value.trim(), key: $('key').value, model: $('model').value.trim() };
       if (!c.endpoint || !c.model) throw new Error('For an external provider, enter its OpenAI-compatible base URL and model name. Or select Built-in local AI (no key).');
-      $('answer').textContent = 'Contacting optional external provider…';
+      const messages = [
+        { role: 'system', content: 'You are Piano Coach, a practical, encouraging piano teacher chatting directly with a learner. Answer the latest question directly, without a generic greeting or asking what they need help with. Give specific, actionable piano guidance and use previous messages to understand follow-ups. Do not invent playing feedback.' },
+        ...priorHistory,
+        { role: 'user', content: question }
+      ];
       const res = await fetch(c.endpoint.replace(/\/$/, '') + '/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(c.key ? { Authorization: 'Bearer ' + c.key } : {}) },
-        body: JSON.stringify({ model: c.model, messages: [
-          { role: 'system', content: 'You are a friendly, concise piano practice tutor. Give practical, age-appropriate piano advice.' },
-          { role: 'user', content: question }
-        ] })
+        body: JSON.stringify({ model: c.model, messages, temperature: 0.4 })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error?.message || 'HTTP ' + res.status);
-      $('answer').textContent = data.choices?.[0]?.message?.content || 'The provider returned no answer.';
+      answer = data.choices?.[0]?.message?.content || '';
+      if (!answer.trim()) throw new Error('The provider returned an empty answer.');
+      $('chatStatus').textContent = 'Connected to ' + c.model;
     }
+    responseBubble.textContent = answer;
+    chatHistory.push({ role: 'assistant', content: answer });
+    chatHistory = chatHistory.slice(-40);
+    saveChat();
   } catch (e) {
-    $('answer').textContent = 'Tutor could not start: ' + e.message + '. Built-in mode needs internet access for its first model download and a browser that supports WebGPU or WASM. No API key is required for built-in mode.';
+    responseBubble.textContent = 'I couldn’t get a reply this time: ' + e.message;
+    $('chatStatus').textContent = 'Check your connection or AI configuration, then try again.';
   } finally {
-    $('ask').disabled = false;
+    $('sendMessage').disabled = false;
+    $('chatInput').focus();
+    $('chatLog').scrollTop = $('chatLog').scrollHeight;
   }
+});
+$('chatInput').addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    $('chatForm').requestSubmit();
+  }
+});
+$('chatInput').addEventListener('input', () => {
+  $('chatInput').style.height = 'auto';
+  $('chatInput').style.height = Math.min($('chatInput').scrollHeight, 130) + 'px';
+});
+$('clearChat').onclick = () => {
+  chatHistory = [];
+  saveChat();
+  renderChat();
+  $('chatStatus').textContent = 'Chat cleared on this device.';
+  $('chatInput').focus();
 };
+
 const sessions = JSON.parse(localStorage.getItem('pc_sessions') || '[]');
 $('sessions').innerHTML = sessions.slice(0, 10).map(s =>
   '<article class="tile" style="margin-top:8px"><b>' +
