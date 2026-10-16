@@ -37,16 +37,17 @@
     const prompt = String(question || '').trim();
     if (!prompt) throw new Error('Type a question first.');
     const pipe = await init(options.onProgress);
-    emit(options.onProgress, 'Thinking with the local model (' + deviceUsed + ')…', 100);
-    const messages = [
-      { role: 'system', content: 'You are Piano Coach, a warm, practical piano tutor for learners. Give clear, concise, actionable advice. For playing feedback, discuss only notes and timing data supplied to you; never claim to have heard audio unless data is provided. Do not ask for API keys or suggest installing a separate app.' },
-      { role: 'user', content: prompt }
-    ];
-    const out = await pipe(messages, { max_new_tokens: options.max_new_tokens || 180, do_sample: true, temperature: 0.65, return_full_text: false });
+    emit(options.onProgress, 'Thinking about your question…', 100);
+    const system = 'You are Piano Coach, a practical and encouraging piano teacher chatting directly with a learner. Answer the latest user message itself; do not open with a generic greeting, onboarding line, or “What can I help you with today?” Do not repeat the question. Start with the useful answer, then give clear, specific steps or a short example. Keep most answers under 180 words unless the learner asks for detail. Ask at most one clarifying question only when genuinely needed. Use prior chat messages to understand follow-ups. For practice feedback, use only the notes and timing data provided; never claim to have heard audio unless audio-analysis data is supplied. Be honest about uncertainty. Do not ask for API keys or suggest installing a separate app.';
+    const history = Array.isArray(options.history) ? options.history
+      .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+      .slice(-8).map(m => ({ role: m.role, content: m.content.slice(0, 1800) })) : [];
+    const messages = [{ role: 'system', content: system }, ...history, { role: 'user', content: prompt }];
+    const out = await pipe(messages, { max_new_tokens: options.max_new_tokens || 220, do_sample: false, repetition_penalty: 1.08, return_full_text: false });
     let answer = out?.[0]?.generated_text;
     if (Array.isArray(answer)) answer = answer.filter(m => m.role === 'assistant').map(m => m.content).join('\n');
     if (typeof answer !== 'string') answer = String(answer || '');
-    answer = answer.replace(/^\s*assistant\s*/i,'').trim();
+    answer = answer.replace(/^\s*(assistant|piano coach)\s*[:\-]?\s*/i,'').trim();
     if (!answer) throw new Error('The local model returned an empty answer. Please try a shorter question.');
     return { answer, model: MODEL, device: deviceUsed };
   }
