@@ -10,12 +10,12 @@
     "test": "node --test"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "latest",
-    "vite": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "tone": "latest",
-    "vexflow": "latest"
+    "@vitejs/plugin-react": "4.3.1",
+    "vite": "5.4.2",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "tone": "15.1.22",
+    "vexflow": "5.0.0"
   },
   "devDependencies": {}
 }
