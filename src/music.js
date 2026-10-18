@@ -15,7 +15,7 @@ export function compareSequences(expected, actual) {
   const a=parseSequence(expected).filter(n=>n.midi!==null), b=actual||[];
   let correct=0; const rows=[];
   for(let i=0;i<Math.max(a.length,b.length);i++){
-    const e=a[i],p=b[i]; const status=!e?'extra':!p?'missed':e.midi===p.midi?'correct':'incorrect';
+    const e=a[i],p=b[i],playedMidi=p?.midi??noteToMidi(p?.note); const status=!e?'extra':!p?'missed':e.midi===playedMidi?'correct':'incorrect';
     if(status==='correct')correct++;
     rows.push({expected:e?.token||'—',played:p?.note||'—',status});
   }
