@@ -64,7 +64,8 @@ export default function App(){
  const [sessions,setSessions]=useState(()=>{try{return JSON.parse(localStorage.getItem('pc_sessions')||'[]')}catch{return[]}});
  const [saved,setSaved]=useState(()=>{try{return JSON.parse(localStorage.getItem('pc_studies')||'[]')}catch{return[]}});
  const synth=useRef(null), mic=useRef(null), analyser=useRef(null), micStream=useRef(null), raf=useRef(null), beatLoop=useRef(null), sequenceLoop=useRef(null), startTime=useRef(0), sessionEvents=useRef([]), recorderRef=useRef(null), chunksRef=useRef([]), recordingTimer=useRef(null), autoAnalyzeRef=useRef(false), analyseBlobRef=useRef(null), practiceTimerRef=useRef(null);
- const [targetIndex,setTargetIndex]=useState(0);\n const heldKeysRef=useRef({});
+ const [targetIndex,setTargetIndex]=useState(0);
+ const heldKeysRef=useRef({});
  const targets=useMemo(()=>parseSequence(expected).filter(x=>x.midi!==null),[expected]);
  const actual=events;
  const comparison=useMemo(()=>compareSequences(expected,actual),[expected,actual]);
