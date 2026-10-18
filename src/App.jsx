@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as Tone from 'tone';
-import { Factory, Renderer, Stave, StaveNote, Voice } from 'vexflow';
+import { Renderer, Stave, StaveNote, Voice, Formatter } from 'vexflow';
 import { midiToNote, noteToMidi, parseSequence, compareSequences } from './music.js';
 
 const KEYMAP = {a:'C4',w:'C#4',s:'D4',e:'D#4',d:'E4',f:'F4',t:'F#4',g:'G4',y:'G#4',h:'A4',u:'A#4',j:'B4',k:'C5'};
@@ -22,8 +22,7 @@ function Staff({notes,expanded}) {
     const staveNotes=pitch.map(k=>new StaveNote({keys:[k],duration:'q'}));
     const voice=new Voice({numBeats:Math.max(4,staveNotes.length),beatValue:4}).setStrict(false);
     voice.addTickables(staveNotes);
-    const formatter=new (requireVexFormatter())();
-    formatter.joinVoices([voice]).format([voice],width-100);
+    new Formatter().joinVoices([voice]).format([voice],width-100);
     voice.draw(ctx,stave);
    }
   } catch(e) { /* Keep the note list usable even if notation cannot render a rare spelling. */ }
