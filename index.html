@@ -1,74 +1,15 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#faf7f2">
-<link rel="icon" type="image/svg+xml" href="assets/piano-coach-logo.svg"><title>Dashboard · Piano Coach</title><style>:root{--ink:#35334a;--muted:#77748b;--paper:#faf7f2;--line:#e9e1ee;--purple:#8370bd;--mint:#e0f2e7}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 10% 0,#eee7ff 0,transparent 42%),radial-gradient(ellipse at 95% 100%,#e1f4e8 0,transparent 42%),var(--paper);color:var(--ink);font:15px/1.5 system-ui,sans-serif}.app{max-width:1000px;margin:auto;padding:clamp(12px,3vw,28px)}header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}.brand{font-size:21px;font-weight:850}.nav{display:flex;gap:7px;flex-wrap:wrap}a,button{font:inherit;border:1px solid #e9e1ee;border-radius:14px;padding:10px 13px;background:#fff;color:var(--ink);text-decoration:none;font-weight:700;cursor:pointer}.primary{background:var(--purple);border-color:var(--purple);color:white}.glass{background:#ffffffc9;border:1px solid #fff;border-radius:23px;padding:clamp(15px,3vw,24px);box-shadow:0 12px 34px #54466b0e;backdrop-filter:blur(18px);margin:12px 0}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.tile{background:#fff;border:1px solid #e9e1ee;border-radius:18px;padding:16px;min-width:0}.tile h2,.tile h3{margin:0 0 7px}.muted,.small{color:var(--muted);font-size:13px}.hero{font-size:clamp(28px,5vw,42px);line-height:1.1;margin:8px 0}.pill{display:inline-block;padding:5px 10px;border-radius:99px;background:var(--mint);font-size:12px;font-weight:800}@media(max-width:680px){.grid{grid-template-columns:1fr}.nav a{padding:9px}.hero{font-size:30px}}
-/* Shared pastel liquid-glass design */
-:root{--ink:#39364f;--muted:#77738b;--paper:#fffaf5;--line:#ffffffc9;--purple:#9583cf;--mint:#c9f0dc;--pink:#ffd8dc;--blue:#cfe8ff;--glass-shadow:0 9px 28px #61587916, inset 0 1px 0 #ffffffd9}
-body{background:radial-gradient(ellipse at 3% 7%,#ffd9dfaa 0,transparent 32%),radial-gradient(ellipse at 96% 4%,#fff0b8b8 0,transparent 30%),radial-gradient(ellipse at 8% 96%,#c9f0dca8 0,transparent 33%),radial-gradient(ellipse at 94% 88%,#cfe8ffb8 0,transparent 34%),#fffaf6!important}
-.glass,.tile,.card,article,.panel{background:linear-gradient(135deg,#ffffffd9,#ffffffa6)!important;border:1px solid #ffffffed!important;box-shadow:var(--glass-shadow)!important;backdrop-filter:blur(22px) saturate(145%);-webkit-backdrop-filter:blur(22px) saturate(145%);border-radius:24px}
-button,a, input,textarea,select{transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
-button,a{position:relative;overflow:hidden;background:linear-gradient(135deg,#ffffffed 0%,#fffaf8c9 42%,#eaf4ffc9 100%)!important;border:1px solid #ffffff!important;box-shadow:0 5px 16px #645b7915,inset 0 1px 0 #ffffff,inset 0 -1px 0 #d9d5e64d!important;backdrop-filter:blur(18px) saturate(155%);-webkit-backdrop-filter:blur(18px) saturate(155%);border-radius:16px!important;color:var(--ink);}
-button:before,a:before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,#ffd4da30 0%,transparent 28%,#fff9d830 47%,transparent 65%,#cce9ff35 100%);pointer-events:none}
-button:hover,a:hover{transform:translateY(-2px);box-shadow:0 9px 22px #645b7923,inset 0 1px 0 #fff!important}
-button:active,a:active{transform:translateY(0) scale(.985)}
-button.primary,.primary{background:linear-gradient(125deg,#b8e9d0,#d9edff 54%,#f9d9e1)!important;color:#39364f!important;border-color:#ffffff!important}
-input,textarea,select{background:#ffffffb8!important;border:1px solid #ffffff!important;border-radius:15px!important;box-shadow:inset 0 2px 7px #675a7810,0 2px 9px #675a7808!important;backdrop-filter:blur(12px)}
-.status{background:linear-gradient(120deg,#ffe3e6b8,#fff2c9a6,#d8f3e2a6,#dcecffb8)!important;border:1px solid #ffffff!important;border-radius:17px!important;box-shadow:inset 0 1px 0 #fff}
-.piano-coach-corner{position:fixed;right:14px;bottom:14px;z-index:9999;width:70px;height:70px;padding:4px!important;border-radius:23px!important;background:linear-gradient(135deg,#ffcbd3,#fff0b9,#c9f0dc,#cfe8ff)!important;box-shadow:0 9px 28px #39364f30,inset 0 1px 0 #fff!important;display:grid;place-items:center}
-.piano-coach-corner img{display:block;width:100%;height:100%;object-fit:cover;border-radius:19px}
-@media(max-width:600px){.piano-coach-corner{width:58px;height:58px;right:10px;bottom:10px;border-radius:19px!important}}
-@media(prefers-reduced-motion:reduce){button,a{transition:none}}
-
-/* Logo placement refinements */
-.brand-logo{width:32px;height:32px;object-fit:contain;vertical-align:middle;margin-right:8px;filter:drop-shadow(0 2px 4px #39364f18)}
-.piano-coach-corner{position:relative!important;right:auto!important;bottom:auto!important;float:right;z-index:1;width:74px;height:74px;margin:20px 18px 18px;padding:7px!important;border-radius:20px!important;display:grid;place-items:center;clear:both}
-.piano-coach-corner img{width:100%;height:100%;object-fit:contain;border-radius:12px}
-.piano-coach-corner:before{display:none}
-@media(max-width:600px){.piano-coach-corner{width:60px;height:60px;margin:16px 12px 12px}}
-
-/* Final visual-system cleanup: clearer hierarchy, cleaner glass, stronger pastel accents */
-:root{--ink:#343047;--muted:#716d82;--pink:#ffdce2;--yellow:#fff0bd;--mint:#d4f2df;--blue:#d9edff;--lilac:#e7ddff;--edge:#ffffffd9;--shadow:0 12px 32px #62587912,0 2px 8px #62587908,inset 0 1px 0 #ffffff}
-html{scroll-behavior:smooth}
-body{color:var(--ink)!important;background:radial-gradient(ellipse at 0% 8%,#ffdbe3 0,transparent 29%),radial-gradient(ellipse at 100% 5%,#fff0bd 0,transparent 28%),radial-gradient(ellipse at 4% 95%,#d4f2df 0,transparent 29%),radial-gradient(ellipse at 100% 95%,#d9edff 0,transparent 30%),#fffaf7!important}
-.app{width:min(1120px,100%);max-width:1120px!important;margin-inline:auto!important;padding:clamp(16px,3vw,34px)!important}
-header,.top{gap:18px!important;margin-bottom:24px!important}
-.brand{font-size:clamp(22px,2vw,27px)!important;font-weight:850;letter-spacing:-.6px;display:flex;align-items:center;gap:10px}
-.brand-logo{width:42px!important;height:42px!important;object-fit:contain;vertical-align:middle;margin-right:0!important;flex:0 0 auto;filter:drop-shadow(0 3px 5px #39364f18)}
-.brand .logo{width:48px;height:48px;background:linear-gradient(135deg,#ffdce2,#fff0bd 36%,#d4f2df 68%,#d9edff)!important;border:1px solid #fff;box-shadow:var(--shadow);border-radius:16px;flex:0 0 auto}
-.brand .logo .brand-logo{width:36px!important;height:36px!important}
-.nav{gap:8px!important;align-items:center}
-.nav a,button,.button,.chip{font:inherit;font-weight:720;line-height:1.25;border:1px solid #ffffff!important;border-radius:16px!important;padding:11px 15px!important;background:linear-gradient(135deg,#ffffffed 0%,#fffaf9dd 45%,#eaf4ffdc 100%)!important;color:var(--ink)!important;box-shadow:0 5px 15px #62587912,inset 0 1px 0 #ffffff!important;backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}
-.nav a{padding:10px 14px!important;white-space:nowrap}
-button:before,a:before{display:none!important;content:none!important}
-.nav a:hover,button:hover,.button:hover,.chip:hover{transform:translateY(-1px);box-shadow:0 8px 20px #6258791c,inset 0 1px 0 #fff!important;filter:saturate(1.08)}
-button:active,.nav a:active{transform:scale(.985)}
-button.primary,.primary,.button.primary{background:linear-gradient(120deg,#c9edda,#d8eaff 58%,#f7d9e5)!important;color:#343047!important;border:1px solid #fff!important}
-button:disabled{opacity:.48;filter:grayscale(.15);box-shadow:none!important;transform:none!important}
-.glass,.tile,.card,article,.panel,.hero{border:1px solid #ffffffdf!important;background:linear-gradient(145deg,#ffffffeb 0%,#fffdfae0 65%,#f7f4ffba 100%)!important;box-shadow:var(--shadow)!important;backdrop-filter:blur(20px) saturate(135%);-webkit-backdrop-filter:blur(20px) saturate(135%);border-radius:25px!important}
-.glass{padding:clamp(20px,3vw,30px)!important;margin:16px 0!important}
-.tile,.card,article,.panel{padding:clamp(16px,2.2vw,23px)!important}
-h1,h2,h3{color:var(--ink);letter-spacing:-.35px}
-h1{line-height:1.12!important}
-h2{line-height:1.22!important}
-p{line-height:1.65}
-.field{gap:7px;margin:14px 0}
-.field label,label{color:#68637b;font-weight:750}
-input,textarea,select,.search input{min-height:44px;padding:12px 14px!important;background:#ffffffd9!important;border:1px solid #e8e3f1!important;border-radius:15px!important;color:var(--ink)!important;box-shadow:inset 0 1px 3px #62587908!important;outline:none}
-input:focus,textarea:focus,select:focus{border-color:#b9a9e8!important;box-shadow:0 0 0 3px #e7ddffb5!important}
-.grid{gap:15px!important}
-.status{padding:13px 16px!important;background:linear-gradient(105deg,#ffe1e6 0%,#fff0c8 34%,#dcf4e4 68%,#dcedff 100%)!important;border:1px solid #ffffff!important;border-radius:16px!important;color:#454058;line-height:1.5}
-.notes{background:linear-gradient(120deg,#fff0f3,#fffdf8 55%,#edf6ff)!important;border:1px solid #fff!important;border-radius:18px!important;min-height:72px;padding:18px!important}
-.pill{background:linear-gradient(120deg,#ffe0e5,#fff0c5,#d8f3e2)!important;color:#504761;border:1px solid #ffffff;padding:6px 11px!important}
-.hero{padding:clamp(22px,4vw,36px)!important}
-.piano-coach-corner{position:static!important;inset:auto!important;float:none!important;display:flex!important;align-items:center;justify-content:center;width:78px;height:78px;margin:30px max(18px,calc((100vw - 1120px)/2)) 18px auto!important;padding:7px!important;border-radius:22px!important;background:linear-gradient(135deg,#ffdce2,#fff0bd,#d4f2df,#d9edff)!important;border:1px solid #fff!important;box-shadow:0 8px 24px #62587920,inset 0 1px 0 #fff!important;clear:both}
-.piano-coach-corner img{display:block;width:100%;height:100%;object-fit:contain;border-radius:13px}
-@media(max-width:760px){.app{padding:16px!important}header,.top{align-items:flex-start;flex-direction:column}.nav{width:100%;gap:7px!important}.nav a{font-size:13px;padding:9px 11px!important}.brand-logo{width:39px!important;height:39px!important}.grid{grid-template-columns:1fr!important}.row>*{flex-basis:100%}.piano-coach-corner{width:64px;height:64px;margin:24px 14px 14px auto!important}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}button,.nav a{transition:none!important}}
-
-
-/* Small brand icon stacked over the JWS.L.CD link in the footer */
-.site-footer{display:flex;justify-content:flex-end;align-items:flex-end;padding:8px clamp(16px,3vw,34px) 16px;margin:0 auto;max-width:1120px}
-.piano-coach-corner{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:static!important;float:none!important;width:auto!important;height:auto!important;min-width:0!important;margin:0!important;padding:3px 0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;color:var(--muted,#716d82)!important;font-size:11px!important;font-weight:650!important;line-height:1.2!important;text-decoration:none!important;letter-spacing:.1px;opacity:.88}
-.piano-coach-corner img{display:block!important;width:20px!important;height:20px!important;object-fit:contain;border-radius:0!important;opacity:.9}
-.piano-coach-corner:hover{transform:none!important;box-shadow:none!important;opacity:1;text-decoration:underline!important}
-.piano-coach-corner:before{display:none!important;content:none!important}
-@media(max-width:600px){.site-footer{padding:6px 16px 12px}.piano-coach-corner{font-size:10px!important}.piano-coach-corner img{width:18px!important;height:18px!important}}
-</style></head><body><main class="app"><header><div><div class="brand"><img class="brand-logo" src="assets/piano-coach-logo.svg" alt="" aria-hidden="true"> Piano Coach</div><div class="small">Listen · Learn · Play</div></div><nav class="nav"><a href="index.html">⌂ Dashboard</a><a href="start-practice.html">▶ Practice</a><a href="sheet-music.html">♪ Sheet music</a><a href="library.html">📚 Library</a><a href="extras.html">✦ Extras</a></nav></header><section class="glass"><span class="pill">YOUR MUSIC JOURNEY</span><h1 class="hero">A little practice goes a long way.</h1><p class="muted">Your progress, recent sessions and next goal — all in one place.</p><a class="primary" href="start-practice.html">Start a practice session →</a></section><section class="grid"><article class="tile"><h3>⏱ Practice time</h3><div class="hero" id="minutes">0 min</div><div class="muted">Total recorded minutes</div></article><article class="tile"><h3>🎵 Recent sessions</h3><div class="hero" id="count">0</div><div class="muted">Saved sessions on this device</div></article><article class="tile"><h3>🌱 Latest reflection</h3><p id="reflection">Your reflection will appear here after your first practice.</p></article></section><section class="glass"><h2>Today’s practice</h2><p id="today" class="muted">No practice recorded today yet. Start a session when you’re ready.</p><div id="history" class="grid"></div></section><section class="glass"><h2>Quick links</h2><div class="grid"><a class="tile" href="start-practice.html"><h3>▶ Start practice</h3><p class="muted">Choose a song and session length.</p></a><a class="tile" href="sheet-music.html"><h3>🎼 Sheet music</h3><p class="muted">Upload a score for practice.</p></a><a class="tile" href="extras.html"><h3>✨ Extras & AI</h3><p class="muted">Choose provider, voice and additional tutor.</p></a></div></section><script>const sessions=JSON.parse(localStorage.getItem('pc_sessions')||'[]');document.getElementById('count').textContent=sessions.length;document.getElementById('minutes').textContent=sessions.reduce((a,s)=>a+(Number(s.minutes)||0),0)+' min';document.getElementById('reflection').textContent=localStorage.getItem('pc_latest_reflection')||sessions[0]?.reflection||'Your reflection will appear here after your first practice.';const today=new Date().toDateString(),todays=sessions.filter(s=>new Date(s.date).toDateString()===today);document.getElementById('today').textContent=todays.length?'Today: '+todays.length+' session(s), '+todays.reduce((a,s)=>a+(Number(s.minutes)||0),0)+' minutes practised.':'No practice recorded today yet. Start a session when you’re ready.';document.getElementById('history').innerHTML=sessions.slice(0,6).map(s=>'<article class="tile"><h3>'+String(s.song||'Practice session').replace(/[<>&"]/g,'')+'</h3><div class="muted">'+new Date(s.date).toLocaleString()+' · '+(s.minutes||0)+' min</div><p>'+String(s.reflection||'No reflection written.').replace(/[<>&"]/g,'')+'</p><button data-date="'+encodeURIComponent(s.date)+'">Edit reflection</button></article>').join('');document.querySelectorAll('[data-date]').forEach(b=>b.onclick=()=>{const s=sessions.find(x=>x.date===decodeURIComponent(b.dataset.date));const v=prompt('Edit reflection',s?.reflection||'');if(s&&v!==null){s.reflection=v;localStorage.setItem('pc_sessions',JSON.stringify(sessions));localStorage.setItem('pc_latest_reflection',v);location.reload()}})</script></main><footer class="site-footer"><a class="piano-coach-corner" href="https://jws.l.cd" target="_blank" rel="noopener noreferrer"><img src="assets/user-corner-logo.svg" alt="" aria-hidden="true"><span>jws.l.cd</span></a></footer></body></html>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f8f3" />
+    <meta name="description" content="A calm, local-first piano practice studio with a virtual keyboard, microphone pitch tracking, musical notation and note-sequence practice." />
+    <link rel="icon" type="image/svg+xml" href="/assets/piano-coach-logo.svg" />
+    <title>Piano Coach — Play, listen, improve</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
