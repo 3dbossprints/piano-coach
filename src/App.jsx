@@ -116,7 +116,7 @@ export default function App(){
      const note=midiToNote(midi),last=sessionEvents.current[sessionEvents.current.length-1];
      if(!last||last.note!==note||Date.now()-last.timeMs>500){
       const event={id:crypto.randomUUID?.()||String(Date.now()+Math.random()),note,midi,time:((Date.now()-startTime.current)/1000).toFixed(2),timeMs:Date.now(),source:'microphone'};
-      sessionEvents.current.push(event);setEvents([...sessionEvents.current]);setStatus(liveFeedback&&targets.length?'Live feedback · heard '+note+' · target '+midiToNote(targets[Math.min(sessionEvents.current.filter(e=>e.source==='microphone').length-1,targets.length-1)].midi):'Detected '+note);
+      sessionEvents.current.push(event);setEvents([...sessionEvents.current]);const micCount=sessionEvents.current.filter(e=>e.source==='microphone').length;const expectedNote=targets[Math.min(micCount-1,targets.length-1)];if(liveFeedback&&targets.length){const matched=expectedNote?.midi===midi;setTargetIndex(Math.min(micCount,targets.length));setStatus(matched?'Live feedback · correct '+note:'Live feedback · heard '+note+' · expected '+(expectedNote?midiToNote(expectedNote.midi):'end of sequence'));}else setStatus('Detected '+note);
      }
     }
    }
