@@ -143,7 +143,7 @@ export default function App(){
  }
  function saveStudy(){const title=prompt('Name this study','My note sequence');if(title?.trim()){setSaved([{id:Date.now(),title:title.trim(),notes:expected},...saved]);setStatus('Study saved')}}
  function useStudy(s){setExpected(s.notes);setPage('Practice');setMode('Note tracking');setStatus('Loaded '+s.title)}
- function pressKey(note){playNote(note);setStatus('Played '+note)}
+ function pressKey(note){playNote(note);if(!startTime.current)startTime.current=Date.now();const midi=noteToMidi(note);const event={id:crypto.randomUUID?.()||String(Date.now()+Math.random()),note,midi,time:((Date.now()-startTime.current)/1000).toFixed(2),timeMs:Date.now(),source:'keyboard'};sessionEvents.current.push(event);setEvents([...sessionEvents.current]);setStatus('Played '+note)}
  function keyboardDown(e){if(e.repeat||['INPUT','TEXTAREA'].includes(document.activeElement?.tagName))return;const n=KEYMAP[e.key.toLowerCase()];if(n){e.preventDefault();pressKey(n)}}
  useEffect(()=>{window.addEventListener('keydown',keyboardDown);return()=>window.removeEventListener('keydown',keyboardDown)});
  const allKeys=Array.from({length:88},(_,i)=>({midi:i+21,note:midiToNote(i+21),black:[1,3,6,8,10].includes((i+21)%12)}));
