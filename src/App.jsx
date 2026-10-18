@@ -145,13 +145,41 @@ export default function App(){
   return bestOffset>0&&bestCorrelation>.55?sampleRate/bestOffset:null
  }
  async function analyseRecording(){
-  if(!recording||isAnalyzing)return;setIsAnalyzing(true);setAudioError('');let ctx;
-  try{ctx=new AudioContext();const decoded=await ctx.decodeAudioData(await recording.arrayBuffer());const mono=new Float32Array(decoded.length);
+  if(!recording||isAnalyzing)return;
+  setIsAnalyzing(true);setAudioError('');setStatus('Preparing polyphonic note analysis…');
+  let ctx;
+  try{
+   // Spotify Basic Pitch detects overlapping notes/chords, unlike the live monophonic tracker.
+   const mod=await import('https://esm.sh/@spotify/basic-pitch@1.0.1?bundle');
+   if(!mod.BasicPitch||!mod.outputToNotesPoly||!mod.noteFramesToTime)throw new Error('The polyphonic transcription model could not load.');
+   ctx=new AudioContext();
+   const decoded=await ctx.decodeAudioData(await recording.arrayBuffer());
+   const mono=new Float32Array(decoded.length);
    for(let ch=0;ch<decoded.numberOfChannels;ch++){const channel=decoded.getChannelData(ch);for(let i=0;i<channel.length;i++)mono[i]+=channel[i]/decoded.numberOfChannels}
-   const windowSize=Math.min(decoded.sampleRate,8192),hop=Math.max(1,Math.floor(decoded.sampleRate*.18)),detected=[];
-   for(let start=0;start+windowSize<=mono.length;start+=hop){const frequency=detectRecordedPitch(mono.slice(start,start+windowSize),decoded.sampleRate);if(frequency&&frequency>27.5&&frequency<4200){const midi=Math.round(69+12*Math.log2(frequency/440));if(midi>=21&&midi<=108){const note=midiToNote(midi),time=start/decoded.sampleRate,last=detected[detected.length-1];if(!last||last.midi!==midi||time-last.time>.45)detected.push({id:String(Date.now()+start),note,midi,time:time.toFixed(2),timeMs:Date.now(),source:'recording',confidence:null})}}}
-   sessionEvents.current=detected;setEvents(detected);setStatus(detected.length?'Analysis complete · '+detected.length+' note events':'No clear notes found');if(!detected.length)setAudioError('No clear single-note pitches were found. Try a cleaner, louder recording. Chords may be missed by this monophonic detector.')
-  }catch(e){setAudioError('Could not analyse this recording: '+e.message)}finally{if(ctx)await ctx.close().catch(()=>{});setIsAnalyzing(false)}
+   const targetRate=22050;
+   let resampled=mono;
+   if(decoded.sampleRate!==targetRate){
+    const offline=new OfflineAudioContext(1,Math.ceil(mono.length*targetRate/decoded.sampleRate),targetRate);
+    const source=offline.createBufferSource(),buffer=offline.createBuffer(1,mono.length,decoded.sampleRate);
+    buffer.copyToChannel(mono,0);source.buffer=buffer;source.connect(offline.destination);source.start();
+    resampled=(await offline.startRendering()).getChannelData(0);
+   }
+   const bp=new mod.BasicPitch('https://cdn.jsdelivr.net/npm/@spotify/basic-pitch@1.0.1/model/model.json');
+   const frames=[],onsets=[],contours=[];
+   await bp.evaluateModel(resampled,(f,o,c)=>{if(f?.length)frames.push(...f);if(o?.length)onsets.push(...o);if(c?.length)contours.push(...c)},p=>setStatus('Transcribing notes · '+Math.round((p||0)*100)+'%'));
+   const raw=mod.outputToNotesPoly(frames,onsets,.25,.25,5);
+   const pitched=contours.length&&typeof mod.addPitchBendsToNoteEvents==='function'?mod.addPitchBendsToNoteEvents(contours,raw):raw;
+   const events=mod.noteFramesToTime(pitched)
+    .filter(n=>Number.isFinite(Number(n.pitchMidi))&&Number(n.pitchMidi)>=21&&Number(n.pitchMidi)<=108&&Number(n.startTimeSeconds)>=0&&Number(n.durationSeconds||0)>.07)
+    .sort((a,b)=>Number(a.startTimeSeconds)-Number(b.startTimeSeconds)||Number(a.pitchMidi)-Number(b.pitchMidi))
+    .map((n,i)=>{const midi=Math.round(Number(n.pitchMidi));return{id:'rec-'+Date.now()+'-'+i,note:midiToNote(midi),midi,time:Number(n.startTimeSeconds).toFixed(2),timeMs:Date.now()+Math.round(Number(n.startTimeSeconds)*1000),duration:Number(n.durationSeconds)||0,source:'recording',confidence:Number(n.amplitude)||null}});
+   sessionEvents.current=events;setEvents(events);
+   setStatus(events.length?'Polyphonic analysis complete · '+events.length+' note events':'No clear notes found in the recording');
+   if(!events.length)setAudioError('No notes were detected. Try a clearer recording with the piano closer to the microphone and less background noise.');
+  }catch(e){
+   setAudioError('Could not analyse this recording: '+(e?.message||String(e))+' Check your connection if the transcription model could not download.');
+   setStatus('Recording analysis failed');
+  }finally{if(ctx)await ctx.close().catch(()=>{});setIsAnalyzing(false)}
  }
  function playRecording(){if(!recording)return;const url=URL.createObjectURL(recording),audio=new Audio(url);audio.onended=()=>URL.revokeObjectURL(url);audio.onerror=()=>{URL.revokeObjectURL(url);setAudioError('Recording playback failed.')};audio.play().catch(()=>{URL.revokeObjectURL(url);setAudioError('Recording playback was blocked by the browser.')})}
  function autoCorrelate(buf,sampleRate){
