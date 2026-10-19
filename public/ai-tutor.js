@@ -43,7 +43,34 @@
       .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
       .slice(-8).map(m => ({ role: m.role, content: m.content.slice(0, 1800) })) : [];
     const messages = [{ role: 'system', content: system }, ...history, { role: 'user', content: prompt }];
-    const out = await pipe(messages, { max_new_tokens: options.max_new_tokens || 220, do_sample: false, repetition_penalty: 1.08, return_full_text: false });
+    const generationOptions = { max_new_tokens: options.max_new_tokens || 160, do_sample: false, repetition_penalty: 1.08, return_full_text: false };
+    let out;
+    try {
+      out = await pipe(messages, generationOptions);
+    } catch (executionError) {
+      // WebGPU can initialize successfully yet fail during ONNX inference on some
+      // browsers/GPUs. Retry once with the compatible WASM model instead of leaving
+      // the user with repeated ONNX execution errors.
+      if (deviceUsed !== 'WebGPU') throw executionError;
+      emit(options.onProgress, 'This device could not run the AI on its GPU. Switching to compatibility mode…', 0);
+      try { if (generator && typeof generator.dispose === 'function') await generator.dispose(); } catch {}
+      generator = null;
+      loading = null;
+      deviceUsed = null;
+      const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2');
+      env.allowLocalModels = false;
+      env.useBrowserCache = true;
+      generator = await pipeline('text-generation', CPU_MODEL, {
+        device: 'wasm',
+        dtype: 'q4',
+        progress_callback: p => {
+          if (p.status === 'progress') emit(options.onProgress, 'Loading compatibility model…', p.progress);
+          else if (p.status === 'initiate') emit(options.onProgress, 'Preparing compatibility model…', 0);
+        }
+      });
+      deviceUsed = 'CPU/WASM';
+      out = await generator(messages, generationOptions);
+    }
     let answer = out?.[0]?.generated_text;
     if (Array.isArray(answer)) answer = answer.filter(m => m.role === 'assistant').map(m => m.content).join('\n');
     if (typeof answer !== 'string') answer = String(answer || '');
