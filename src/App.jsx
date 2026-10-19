@@ -32,6 +32,8 @@ function Staff({notes,expanded}) {
  return <div className="staff-wrap"><div className="staff" ref={ref}/>{!notes.length&&<div className="staff-empty">Your detected notes will appear on the staff here.</div>}</div>
 }
 function requireVexFormatter(){return (globalThis.VexFlow&&globalThis.VexFlow.Formatter)||class {joinVoices(v){return this} format(){} };}
+// Sequence tokens support note durations and rests: C4/q D4/h R/q E4/e. Plain notes default to quarters.
+function parseMusicSequence(input){const lengths={w:4,whole:4,h:2,half:2,q:1,quarter:1,e:.5,eighth:.5,s:.25,sixteenth:.25};return String(input).trim().split(/[\\s,;]+/).filter(Boolean).map((token,index)=>{const m=token.match(/^([A-Ga-g][#b♯♭]?[-]?\\d+|r|rest)(?:[/:=](whole|half|quarter|eighth|sixteenth|w|h|q|e|s))?$/i);if(!m)return null;const rest=/^(r|rest)$/i.test(m[1]),midi=rest?null:noteToMidi(m[1]),beats=lengths[(m[2]||'q').toLowerCase()]||1;return {token,note:rest?'rest':m[1],midi,rest,beats,index};}).filter(Boolean)}
 export default function App(){
  const [page,setPage]=useState('Dashboard');
  const [practiceStarted,setPracticeStarted]=useState(false),[songTitle,setSongTitle]=useState(''),[practiceMinutes,setPracticeMinutes]=useState('15'),[reflection,setReflection]=useState(''),[practiceFeedback,setPracticeFeedback]=useState(''),[remainingSeconds,setRemainingSeconds]=useState(0);
@@ -72,7 +74,7 @@ export default function App(){
  const synth=useRef(null), mic=useRef(null), analyser=useRef(null), micStream=useRef(null), raf=useRef(null), beatLoop=useRef(null), sequenceLoop=useRef(null), startTime=useRef(0), sessionEvents=useRef([]), recorderRef=useRef(null), chunksRef=useRef([]), recordingTimer=useRef(null), autoAnalyzeRef=useRef(false), analyseBlobRef=useRef(null), practiceTimerRef=useRef(null);
  const [targetIndex,setTargetIndex]=useState(0);
  const heldKeysRef=useRef({});
- const targets=useMemo(()=>parseSequence(expected).filter(x=>x.midi!==null),[expected]);
+ const targets=useMemo(()=>parseMusicSequence(expected),[expected]);
  const actual=events;
  const comparison=useMemo(()=>compareSequences(expected,actual),[expected,actual]);
  useEffect(()=>{Tone.getDestination().volume.value=20*Math.log10(Math.max(.01,volume/100));},[volume]);
@@ -93,11 +95,12 @@ export default function App(){
   s.triggerAttackRelease(n,duration);
  }
  async function playSequence(){
-  stopPlayback(); if(!targets.length){setStatus('Enter notes such as C4 D4 E4 first.');return}
-  await ensureSynth();setPlaying(true);setStatus('Playing reference sequence');
-  const step=60/bpm;let i=0;
-  sequenceLoop.current= new Tone.Loop((time)=>{if(i>=targets.length){Tone.Transport.stop();Tone.Transport.cancel();setPlaying(false);setStatus('Reference sequence finished');return} synth.current?.triggerAttackRelease(midiToNote(targets[i].midi),'8n',time);Tone.Draw.schedule(()=>setTargetIndex(i),time);i++;},step);
-  Tone.Transport.bpm.value=bpm;Tone.Transport.start();sequenceLoop.current.start(0);
+  stopPlayback(); if(!targets.length){setStatus('Enter notes such as C4/q D4/h R/q first.');return}
+  await ensureSynth();setPlaying(true);setStatus('Playing score with note values and rests');
+  let elapsed=0;const beat=60/bpm;const scheduled=[];
+  targets.forEach((item,index)=>{const at=elapsed*beat;if(!item.rest&&item.midi!==null)scheduled.push(Tone.Transport.scheduleOnce(time=>{synth.current?.triggerAttackRelease(midiToNote(item.midi),Math.max(.08,item.beats*beat*.88),time);Tone.Draw.schedule(()=>setTargetIndex(index),time)},'+'+at));elapsed+=item.beats;});
+  scheduled.push(Tone.Transport.scheduleOnce(()=>{Tone.Transport.stop();Tone.Transport.cancel();setPlaying(false);setStatus('Score playback finished')},'+'+(elapsed*beat+.05)));
+  Tone.Transport.bpm.value=bpm;Tone.Transport.start();sequenceLoop.current={dispose:()=>{scheduled.forEach(id=>{try{Tone.Transport.clear(id)}catch{}})}};
  }
  function stopPlayback(){try{sequenceLoop.current?.dispose();sequenceLoop.current=null;Tone.Transport.stop();Tone.Transport.cancel()}catch{}setPlaying(false)}
  async function toggleMetro(){
