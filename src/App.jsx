@@ -64,6 +64,8 @@ export default function App(){
  const [scoreImageUrl,setScoreImageUrl]=useState('');
  const [scoreImageName,setScoreImageName]=useState('');
  const [scoreIsPdf,setScoreIsPdf]=useState(false);
+ const [scoreOcrStatus,setScoreOcrStatus]=useState('No score loaded yet. Upload a PDF/image or import MusicXML to begin.');
+ const [scoreOcrWarning,setScoreOcrWarning]=useState('');
  const [sessions,setSessions]=useState(()=>{try{return JSON.parse(localStorage.getItem('pc_sessions')||'[]')}catch{return[]}});
  const [editingSessionId,setEditingSessionId]=useState(null),[libraryTab,setLibraryTab]=useState('recordings');
  const [saved,setSaved]=useState(()=>{try{return JSON.parse(localStorage.getItem('pc_studies')||'[]')}catch{return[]}});
