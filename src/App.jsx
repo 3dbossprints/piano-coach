@@ -65,7 +65,8 @@ export default function App(){
  const [events,setEvents]=useState([]);
  const [expected,setExpected]=useState('C4 D4 E4 G4');
  const [mode,setMode]=useState('Free practice');
- const [bpm,setBpm]=useState(84);\n const [timeSignature,setTimeSignature]=useState('4/4');
+ const [bpm,setBpm]=useState(84);
+  const [timeSignature,setTimeSignature]=useState('4/4');
  const [sheetPianoOpen,setSheetPianoOpen]=useState(false),[learnListenMode,setLearnListenMode]=useState(false),[learnBarProgress,setLearnBarProgress]=useState(0),[learnMessage,setLearnMessage]=useState('Turn on Learn & Listen to practise two bars at a time.');
  const [activeScoreId,setActiveScoreId]=useState(null);
  const [volume,setVolume]=useState(65);
