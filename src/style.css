@@ -348,3 +348,18 @@ input[type=range]{accent-color:#8068b8}
 .notation-guide-item span{display:flex;flex-direction:column;gap:4px}
 .notation-guide-item strong{font-size:.9rem}
 .notation-guide-item small{font-size:.82rem;line-height:1.4;color:var(--muted,#666)}
+
+/* Unified .musiccoach workflow */
+.dashboard-converter{border:1px solid #cddfd0;background:linear-gradient(135deg,#ffffff 0%,#f1f8f0 100%)}
+.dashboard-converter .upload-score{margin:12px 0 6px}
+.practice-score-bottom{margin-top:24px;scroll-margin-top:24px}
+.practice-source-preview{max-height:75vh;overflow:auto;border:1px solid var(--line);border-radius:14px;background:#fff;padding:10px}
+.practice-source-preview img{display:block;width:100%;height:auto;object-fit:contain}
+.musiccoach-converter{scroll-margin-top:24px}
+@media(max-width:760px){.dashboard-converter .panel-head{align-items:flex-start;flex-direction:column}.practice-source-preview{max-height:60vh}}
+
+.musicxml-preview{margin:16px 0;padding:14px;border:1px solid var(--line);border-radius:14px;background:#fff;color:#222;overflow:hidden}
+.musicxml-preview .muted{margin:0 0 10px}
+.musicxml-rendered{max-width:100%;max-height:75vh;overflow:auto;background:#fff;color:#111}
+.musicxml-rendered svg{max-width:100%;height:auto}
+.musicxml-rendered img{max-width:100%}
