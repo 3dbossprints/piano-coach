@@ -68,6 +68,39 @@ function Staff({notes,expanded,bpm=84,timeSignature='4/4'}) {
  return <div className="staff-wrap"><div className="staff" ref={ref}/>{!notes.length&&<div className="staff-empty">Your detected notes will appear on the staff here.</div>}</div>
 }
 function requireVexFormatter(){return (globalThis.VexFlow&&globalThis.VexFlow.Formatter)||class {joinVoices(v){return this} format(){} };}
+function MusicXMLPreview({xml,title='Sheet music'}) {
+ const ref=useRef(null);
+ const [status,setStatus]=useState('Loading full sheet music…');
+ useEffect(()=>{
+  let cancelled=false,renderer=null;
+  async function render(){
+   try{
+    let OSMD=window.opensheetmusicdisplay?.OpenSheetMusicDisplay;
+    if(!OSMD){
+     await new Promise((resolve,reject)=>{
+      const existing=document.querySelector('script[data-osmd="true"]');
+      if(existing){
+       if(window.opensheetmusicdisplay?.OpenSheetMusicDisplay){resolve();return}
+       existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',reject,{once:true});return;
+      }
+      const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@1.9.2/build/opensheetmusicdisplay.min.js';script.dataset.osmd='true';script.onload=resolve;script.onerror=()=>reject(new Error('The notation renderer could not be loaded'));document.head.appendChild(script);
+     });
+     OSMD=window.opensheetmusicdisplay?.OpenSheetMusicDisplay;
+    }
+    if(!OSMD)throw new Error('The notation renderer is unavailable');
+    if(cancelled||!ref.current)return;
+    renderer=new OSMD(ref.current,{autoResize:true,drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:false,backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false});
+    await renderer.load(xml);
+    if(cancelled)return;
+    renderer.render();setStatus(title+' · full notation rendered from MusicXML');
+   }catch(e){if(!cancelled)setStatus('Could not render the full notation here. The original MusicXML is still preserved for export. '+e.message)}
+  }
+  render();
+  return()=>{cancelled=true;if(ref.current)ref.current.innerHTML='';renderer=null};
+ },[xml,title]);
+ return <section className="musicxml-preview"><p className="muted small" role="status">{status}</p><div ref={ref} className="musicxml-rendered"/></section>
+}
+
 // Sequence tokens support note durations and rests: C4/q D4/h R/q E4/e. Plain notes default to quarters.
 function parseMusicSequence(input){const lengths={w:4,whole:4,h:2,half:2,q:1,quarter:1,e:.5,eighth:.5,s:.25,sixteenth:.25};return String(input).trim().split(/[\s,;]+/).filter(Boolean).map((token,index)=>{const m=token.match(/^([A-Ga-g][#b♯♭]?[-]?\d+|r|rest)(?:[/:=](whole|half|quarter|eighth|sixteenth|w|h|q|e|s))?$/i);if(!m)return null;const rest=/^(r|rest)$/i.test(m[1]),midi=rest?null:noteToMidi(m[1]),beats=lengths[(m[2]||'q').toLowerCase()]||1;return {token,note:rest?'rest':m[1],midi,rest,beats,index};}).filter(Boolean)}
 export default function App(){
