@@ -338,3 +338,13 @@ input[type=range]{accent-color:#8068b8}
 .musiccoach-notes span{padding:6px 10px;border:1px solid var(--line,#e2e8f0);border-radius:9px;background:var(--panel-soft,#f8fafc);font-weight:650;font-size:.9rem}
 @keyframes musiccoach-loading{from{transform:translateX(-35%)}to{transform:translateX(155%)}}
 @media(max-width:700px){.musiccoach-upload{align-items:stretch;flex-direction:column;padding:14px}.musiccoach-upload input{width:100%;font-size:14px}.musiccoach-notes{gap:5px}.musiccoach-notes span{padding:5px 8px}}
+
+/* Learner-assisted score notation guide */
+.notation-guide{margin:18px 0;padding:16px;border:1px solid var(--border,#dedede);border-radius:12px;background:var(--panel,#fafafa)}
+.notation-guide h3{margin:0 0 8px}
+.notation-guide-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:8px;margin:14px 0}
+.notation-guide-item{display:flex;align-items:flex-start;gap:10px;padding:11px;border:1px solid var(--border,#dedede);border-radius:9px;background:var(--card,#fff);cursor:pointer}
+.notation-guide-item input{width:17px;height:17px;flex:0 0 auto;margin-top:3px;accent-color:var(--accent,#5b61d6)}
+.notation-guide-item span{display:flex;flex-direction:column;gap:4px}
+.notation-guide-item strong{font-size:.9rem}
+.notation-guide-item small{font-size:.82rem;line-height:1.4;color:var(--muted,#666)}
