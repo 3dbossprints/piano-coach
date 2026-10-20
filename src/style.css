@@ -327,3 +327,14 @@ input[type=range]{accent-color:#8068b8}
   .stats-grid { gap: 6px !important; }
   .stat-card { padding: 10px 7px !important; }
 }
+
+/* AI score-to-MusicCoach converter */
+.musiccoach-converter{min-width:0}
+.musiccoach-upload{display:flex;align-items:center;justify-content:center;gap:12px;min-height:94px;border:1px dashed var(--line,#cbd5e1);border-radius:16px;padding:18px;text-align:center;background:var(--panel-soft,#f8fafc);cursor:pointer}
+.musiccoach-upload input{max-width:100%;font:inherit}
+.musiccoach-progress{height:6px;overflow:hidden;border-radius:999px;background:#e2e8f0;margin:14px 0}
+.musiccoach-progress span{display:block;width:45%;height:100%;border-radius:inherit;background:var(--accent,#6d5dfc);animation:musiccoach-loading 1.2s ease-in-out infinite alternate}
+.musiccoach-notes{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0 18px}
+.musiccoach-notes span{padding:6px 10px;border:1px solid var(--line,#e2e8f0);border-radius:9px;background:var(--panel-soft,#f8fafc);font-weight:650;font-size:.9rem}
+@keyframes musiccoach-loading{from{transform:translateX(-35%)}to{transform:translateX(155%)}}
+@media(max-width:700px){.musiccoach-upload{align-items:stretch;flex-direction:column;padding:14px}.musiccoach-upload input{width:100%;font-size:14px}.musiccoach-notes{gap:5px}.musiccoach-notes span{padding:5px 8px}}
