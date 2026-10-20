@@ -357,3 +357,9 @@ input[type=range]{accent-color:#8068b8}
 .practice-source-preview img{display:block;width:100%;height:auto;object-fit:contain}
 .musiccoach-converter{scroll-margin-top:24px}
 @media(max-width:760px){.dashboard-converter .panel-head{align-items:flex-start;flex-direction:column}.practice-source-preview{max-height:60vh}}
+
+.musicxml-preview{margin:16px 0;padding:14px;border:1px solid var(--line);border-radius:14px;background:#fff;color:#222;overflow:hidden}
+.musicxml-preview .muted{margin:0 0 10px}
+.musicxml-rendered{max-width:100%;max-height:75vh;overflow:auto;background:#fff;color:#111}
+.musicxml-rendered svg{max-width:100%;height:auto}
+.musicxml-rendered img{max-width:100%}
