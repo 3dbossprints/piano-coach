@@ -656,3 +656,16 @@ input,select,textarea{font-size:17px!important;min-height:48px}
  .toolbar,.sheet-toolbar{grid-template-columns:1fr}
  .library-tabs{grid-template-columns:1fr 1fr}
 }
+
+.learn-launch-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:20px;padding:24px 28px;margin:20px 0 28px;border-radius:25px;background:linear-gradient(115deg,#eef9ef 0%,#f1edff 100%);border:2px solid #dfe9dd}
+.learn-launch-icon{width:66px;height:66px;display:grid;place-items:center;border-radius:21px;background:#fff;font-size:36px;color:#654b9c;box-shadow:0 3px 0 #e0e5dc}
+.learn-launch-copy h2{font-size:25px;margin:7px 0}
+.learn-launch-copy p{margin:0;color:#5d6b60;line-height:1.55}
+.learn-launch-card>.btn{min-height:54px;white-space:nowrap}
+@media(max-width:760px){
+ .learn-launch-card{grid-template-columns:54px minmax(0,1fr);gap:13px;padding:19px 16px;margin:18px 0 24px;border-radius:22px}
+ .learn-launch-icon{width:52px;height:52px;border-radius:16px;font-size:29px}
+ .learn-launch-copy h2{font-size:22px;line-height:1.2}
+ .learn-launch-copy p{font-size:14px;line-height:1.5}
+ .learn-launch-card>.btn{grid-column:1/-1;width:100%;min-height:56px;white-space:normal}
+}
