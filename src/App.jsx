@@ -159,8 +159,8 @@ export default function App(){
  const actual=events;
  const comparison=useMemo(()=>compareSequences(expected,actual),[expected,actual]);
  useEffect(()=>{Tone.getDestination().volume.value=20*Math.log10(Math.max(.01,volume/100));},[volume]);
- useEffect(()=>{localStorage.setItem('pc_sessions',JSON.stringify(sessions));},[sessions]);
- useEffect(()=>{localStorage.setItem('pc_studies',JSON.stringify(saved));},[saved]);
+ useEffect(()=>{if(cookieChoice?.choice!=='accept')return;try{localStorage.setItem('pc_sessions',JSON.stringify(sessions))}catch{}},[sessions,cookieChoice]);
+ useEffect(()=>{if(cookieChoice?.choice!=='accept')return;try{localStorage.setItem('pc_studies',JSON.stringify(saved))}catch{}},[saved,cookieChoice]);
  useEffect(()=>{if(cookieChoice?.choice!=='accept')return;try{localStorage.setItem('pc_files',JSON.stringify(libraryFiles))}catch{}},[libraryFiles,cookieChoice]);
  useEffect(()=>{if(!practiceStarted||remainingSeconds<=0)return;practiceTimerRef.current=setInterval(()=>setRemainingSeconds(v=>{if(v<=1){clearInterval(practiceTimerRef.current);practiceTimerRef.current=null;stopRecording();stopMic();setStatus('Practice time is up · reviewing your recording');return 0}return v-1}),1000);return()=>{if(practiceTimerRef.current)clearInterval(practiceTimerRef.current)}},[practiceStarted,remainingSeconds>0]);
  useEffect(()=>{if(!learnListenMode)return;const id=setInterval(()=>setLearnSeconds(v=>v+1),1000);return()=>clearInterval(id)},[learnListenMode]);
