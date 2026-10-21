@@ -561,3 +561,98 @@ input,select,textarea{font-size:17px!important;min-height:48px}
  .cookie-actions .btn{width:100%}
 }
 @media(max-width:380px){.brand{font-size:13px}.brand img{width:30px;height:30px}.nav-item,.nav-item.active,.nav-item:not(.active){padding:9px!important;font-size:12px!important}.main{padding-inline:12px}.panel{padding:17px}}
+
+
+/* Mobile-first, friendly study flow: clearer actions, calmer cards, no cramped controls */
+.audio-library-item{align-items:center;gap:16px}
+.audio-library-item audio{width:min(100%,360px);min-width:220px}
+.learn-panel{border:2px solid #dce9dc;background:linear-gradient(135deg,#f3fbf4,#f5f1ff);border-radius:22px;padding:22px;margin:18px 0;display:grid;gap:12px}
+.learn-panel strong{font-size:21px}
+.learn-progress{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.learn-progress>strong{font-size:18px}
+.learn-clock{font-weight:800;color:#5d4799;background:#fff;border:1px solid #e4dcf4;border-radius:999px;padding:7px 12px}
+.sheet-toolbar{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}
+.sheet-toolbar .btn{min-height:52px}
+.practice-setup{max-width:850px;margin-inline:auto}
+.practice-setup .btn-dark{min-height:58px;font-size:18px;width:100%;justify-content:center}
+.sequence-label{display:grid;gap:8px;margin:18px 0;font-weight:750;font-size:16px}
+.sequence-label input,.sequence-label select,.sequence-label textarea{width:100%;border:2px solid #e1e6df;border-radius:15px;padding:13px 15px;background:#fff;color:#26372d}
+.sequence-label input:focus,.sequence-label select:focus,.sequence-label textarea:focus{outline:3px solid #cdebd4;border-color:#5b9b6b}
+.empty-state{padding:28px 18px;border:2px dashed #dce6da;border-radius:22px;text-align:center;background:#fbfdfb}
+.empty-state strong{font-size:19px}
+.empty-state p{max-width:480px;margin:8px auto 16px;line-height:1.6}
+@media(max-width:760px){
+ body{font-size:16px;line-height:1.5}
+ .sidebar{padding:8px 8px;gap:4px;box-shadow:0 3px 12px rgba(28,42,32,.04)}
+ .brand{font-size:15px}
+ .nav-item,.nav-item.active,.nav-item:not(.active){min-height:46px!important;padding:10px 12px!important;border-radius:14px;font-weight:750}
+ .main{padding:18px 14px calc(30px + env(safe-area-inset-bottom,0px))}
+ .topbar{margin-bottom:20px}
+ .topbar h1{font-size:clamp(28px,8vw,36px);letter-spacing:-.7px}
+ .top-actions{align-items:stretch}
+ .top-actions .status-chip{max-width:100%;white-space:normal}
+ .top-actions .btn{min-height:48px}
+ .welcome{padding:24px 21px;border-radius:24px}
+ .welcome .tag{display:inline-flex;margin-bottom:8px}
+ .welcome h2{font-size:29px;line-height:1.15}
+ .welcome p{font-size:16px}
+ .dashboard-primary{min-height:58px;width:100%}
+ .dashboard-overview{margin:22px 0}
+ .dashboard-section-title{align-items:flex-start;gap:12px}
+ .dashboard-section-title h2{font-size:24px}
+ .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px}
+ .stat-card{padding:15px 13px;border-radius:19px;min-height:108px}
+ .stat-card span,.stat-card small{font-size:13px;line-height:1.35}
+ .stat-card strong{font-size:29px}
+ .panel{padding:19px 16px;border-radius:22px;margin-bottom:16px}
+ .panel h2{font-size:25px;line-height:1.2}
+ .panel h3{font-size:20px}
+ .panel p{font-size:15px;line-height:1.55}
+ .panel-head{display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px}
+ .panel-head>div{min-width:0;flex:1 1 100%}
+ .toolbar,.sheet-toolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .toolbar .btn,.sheet-toolbar .btn{width:100%;min-width:0;min-height:52px;padding:11px 10px;white-space:normal;line-height:1.25}
+ .practice-grid{display:flex;flex-direction:column;gap:14px}
+ .studio-panel,.notes-panel{min-width:0}
+ .practice-metronome{display:grid;grid-template-columns:1fr}
+ .mic-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+ .mic-row .meter{flex:1 1 100%;min-width:0}
+ .session-timer{display:flex;align-items:center;justify-content:space-between;padding:13px 15px;background:#f3f8f2;border-radius:15px;font-size:15px}
+ .session-timer strong{font-size:25px}
+ .learn-panel{padding:18px 15px;border-radius:20px}
+ .learn-panel strong{font-size:19px}
+ .learn-progress{align-items:flex-start;flex-direction:column}
+ .learn-clock{align-self:flex-start}
+ .library-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .library-tabs button{min-height:48px;border-radius:14px;font-size:14px;padding:10px 8px;line-height:1.25}
+ .search-input{width:100%;min-height:50px;border-radius:15px;padding:12px 14px}
+ .list-item{padding:17px 0;align-items:flex-start;gap:11px}
+ .list-item>div{min-width:0;flex:1 1 100%;overflow-wrap:anywhere}
+ .list-item audio,.audio-library-item audio{width:100%;min-width:0;max-width:100%;flex:1 1 100%;height:44px}
+ .audio-library-item{display:grid;grid-template-columns:32px minmax(0,1fr);gap:10px}
+ .audio-library-item .list-icon{grid-row:span 2}
+ .audio-library-item>div{grid-column:2}
+ .audio-library-item audio,.audio-library-item .btn{grid-column:1/-1;width:100%}
+ .upload-score{display:block;padding:16px;border-radius:16px;line-height:1.5}
+ .upload-score input{max-width:100%;font-size:14px!important}
+ .practice-setup{padding:21px 17px}
+ .practice-setup .btn-dark{font-size:17px}
+ .score-preview img{max-width:100%;height:auto}
+ .piano-modal{width:100%;max-height:calc(100dvh - 24px);overflow:auto}
+ .virtual-piano{overflow-x:auto;max-width:100%}
+ .app-footer{flex-wrap:wrap;gap:10px}
+}
+@media(max-width:390px){
+ .main{padding-inline:11px}
+ .sidebar{padding-inline:5px}
+ .brand{padding-right:5px;font-size:13px}
+ .brand img{width:29px;height:29px}
+ .nav-item,.nav-item.active,.nav-item:not(.active){padding:9px 8px!important;font-size:12px!important}
+ .nav-item span{font-size:16px!important}
+ .welcome h2{font-size:26px}
+ .panel{padding:16px 13px}
+ .stats-grid{gap:8px}
+ .stat-card{padding:13px 10px}
+ .toolbar,.sheet-toolbar{grid-template-columns:1fr}
+ .library-tabs{grid-template-columns:1fr 1fr}
+}
