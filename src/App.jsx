@@ -107,7 +107,7 @@ function encodeMusicCoach(score){return 'PIANOCOACH-MIX/1\n'+JSON.stringify(scor
 function decodeMusicCoach(text){const source=String(text||'');const payload=source.startsWith('PIANOCOACH-MIX/1\n')?source.slice('PIANOCOACH-MIX/1\n'.length):source;return JSON.parse(payload)}
 export default function App(){
  const [page,setPage]=useState('Dashboard');
- const [cookieChoice,setCookieChoice]=useState(()=>{try{return JSON.parse(localStorage.getItem('pc_cookie_consent')||'null')}catch{return null}});
+ const [cookieChoice,setCookieChoice]=useState(()=>{try{const v=JSON.parse(localStorage.getItem('pc_cookie_consent')||'null');return v?.choice==='accept'||v?.choice==='decline'?v:null}catch{return null}});
  const [cookiePrefs,setCookiePrefs]=useState(()=>{try{return JSON.parse(localStorage.getItem('pc_cookie_prefs')||'{"essential":true,"preferences":false,"analytics":false}')}catch{return {essential:true,preferences:false,analytics:false}}});
  const [cookieSettingsOpen,setCookieSettingsOpen]=useState(false);
  const [practiceStarted,setPracticeStarted]=useState(false),[songTitle,setSongTitle]=useState(''),[practiceMinutes,setPracticeMinutes]=useState('15'),[reflection,setReflection]=useState(''),[practiceFeedback,setPracticeFeedback]=useState(''),[remainingSeconds,setRemainingSeconds]=useState(0);
