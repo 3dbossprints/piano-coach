@@ -2,6 +2,15 @@ import * as pdfjsLib from 'pdfjs-dist';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
 
+export function getScoreFileKind(file) {
+  const name = String(file?.name || '').toLowerCase();
+  const type = String(file?.type || '').toLowerCase();
+  if (type === 'application/pdf' || name.endsWith('.pdf')) return 'pdf';
+  if (type === 'image/svg+xml' || name.endsWith('.svg')) return 'svg';
+  if (['image/png','image/jpeg','image/webp'].includes(type) || /\.(png|jpe?g|webp)$/i.test(name)) return 'image';
+  return null;
+}
+
 const MODEL_BYTES = 157482318;
 let worker;
 let workerReady;
@@ -96,10 +105,10 @@ function combineMusicXml(pages) {
   return serializer.serializeToString(first);
 }
 export async function recognizeScoreFile(file, onProgress = () => {}) {
-  const name = file.name.toLowerCase();
+  const kind = getScoreFileKind(file);
+  if (!kind) throw new Error('Choose a PDF, PNG, JPEG, WebP or SVG score.');
   let canvases;
-  if (file.type === 'application/pdf' || name.endsWith('.pdf')) canvases = await pdfCanvases(file, onProgress);
-  else if (file.type === 'image/svg+xml' || name.endsWith('.svg')) canvases = [await imageCanvas(file)];
+  if (kind === 'pdf') canvases = await pdfCanvases(file, onProgress);
   else canvases = [await imageCanvas(file)];
   if (!canvases.length) throw new Error('No pages were found in this file.');
   const engine = await getWorker(onProgress);
