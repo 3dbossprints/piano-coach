@@ -26,6 +26,31 @@ _stub("requests", exceptions=types.SimpleNamespace(RequestException=Exception))
 import xml.etree.ElementTree as ET  # noqa: E402
 
 from homr import music_xml_generator  # noqa: E402
+
+# HOMR's staff detector can occasionally produce a zero-pixel resize target
+# for a tiny/degenerate staff crop. OpenCV raises an assertion in that case,
+# aborting recognition for the entire page. Keep normal resize behaviour
+# unchanged, but make every target dimension at least one pixel and surface a
+# useful error if an upstream crop is actually empty.
+import cv2  # noqa: E402
+
+_cv2_resize = cv2.resize
+
+
+def _resize_with_valid_dimensions(image, dsize, *args, **kwargs):
+    if image is None or not getattr(image, "size", 0):
+        shape = getattr(image, "shape", None)
+        raise ValueError(f"Music recognition produced an empty image crop before resize (shape={shape}). Try a scan with the full staff visible and margins.")
+    if dsize is not None:
+        try:
+            width, height = dsize
+            dsize = (max(1, int(width)), max(1, int(height)))
+        except (TypeError, ValueError, OverflowError):
+            raise ValueError(f"Music recognition produced an invalid resize target: {dsize!r}.")
+    return _cv2_resize(image, dsize, *args, **kwargs)
+
+
+cv2.resize = _resize_with_valid_dimensions
 from homr.debug import Debug  # noqa: E402
 from homr.main import ProcessingConfig, process_image  # noqa: E402
 from homr.music_xml_generator import XmlGeneratorArguments  # noqa: E402
