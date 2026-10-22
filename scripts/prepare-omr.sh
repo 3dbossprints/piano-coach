@@ -33,5 +33,5 @@ for m in "${MODELS[@]}"; do
   fi
 done
 cp public/vendor/HOMR-LICENSE public/omr/HOMR-LICENSE
-echo "Prepared HOMR source and model files for browser OMR."
+for m in "${MODELS[@]}"; do test -s "public/models/$m.onnx" || { echo "Missing OMR model: $m.onnx"; exit 1; }; done\ntest -s public/omr/runner.py\ntest -s public/omr/onnxruntime.py\ntest -s public/vendor/homr.zip\necho "Prepared HOMR source and model files for browser OMR."
 du -sh public/models public/vendor/homr.zip
