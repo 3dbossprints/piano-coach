@@ -48,28 +48,14 @@
     try {
       out = await pipe(messages, generationOptions);
     } catch (executionError) {
-      // WebGPU can initialize successfully yet fail during ONNX inference on some
-      // browsers/GPUs. Retry once with the compatible WASM model instead of leaving
-      // the user with repeated ONNX execution errors.
-      if (deviceUsed !== 'WebGPU') throw executionError;
-      emit(options.onProgress, 'This device could not run the AI on its GPU. Switching to compatibility mode…', 0);
+      // Do not silently switch to a much heavier CPU model after a WebGPU
+      // allocation failure. That fallback can exhaust system RAM and freeze the tab.
       try { if (generator && typeof generator.dispose === 'function') await generator.dispose(); } catch {}
       generator = null;
       loading = null;
       deviceUsed = null;
-      const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2');
-      env.allowLocalModels = false;
-      env.useBrowserCache = true;
-      generator = await pipeline('text-generation', CPU_MODEL, {
-        device: 'wasm',
-        dtype: 'q4',
-        progress_callback: p => {
-          if (p.status === 'progress') emit(options.onProgress, 'Loading compatibility model…', p.progress);
-          else if (p.status === 'initiate') emit(options.onProgress, 'Preparing compatibility model…', 0);
-        }
-      });
-      deviceUsed = 'CPU/WASM';
-      out = await generator(messages, generationOptions);
+      throw new Error('The local AI model ran out of available GPU memory. Close other AI tabs and reload Piano Coach before trying again. The app stopped instead of loading a heavier CPU model.');
+
     }
     let answer = out?.[0]?.generated_text;
     if (Array.isArray(answer)) answer = answer.filter(m => m.role === 'assistant').map(m => m.content).join('\n');
