@@ -52,17 +52,23 @@ function canvasForImage(image) {
   const sourceWidth = Number(image.naturalWidth || image.width) || 0;
   const sourceHeight = Number(image.naturalHeight || image.height) || 0;
   if (sourceWidth < 1 || sourceHeight < 1) throw new Error('This image has no readable dimensions. Export it as a PNG or JPEG and try again.');
-  // Keep inputs within the recogniser's supported image size and avoid zero-sized
-  // OpenCV resize targets for malformed or unusually large source images.
-  const scale = Math.min(1, 2480 / sourceWidth, 4200 / sourceHeight);
+  // Normalise oversized inputs and add a white border. HOMR's staff-cropping
+  // stage can produce empty crops when the score touches the image edge; a
+  // modest margin gives it room to find the page and avoids pathological resize
+  // targets for tightly cropped scans.
+  const scale = Math.min(1, 2380 / sourceWidth, 3980 / sourceHeight);
+  const contentWidth = Math.max(1, Math.round(sourceWidth * scale));
+  const contentHeight = Math.max(1, Math.round(sourceHeight * scale));
+  const margin = Math.max(24, Math.round(Math.min(contentWidth, contentHeight) * 0.025));
   const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(sourceWidth * scale));
-  canvas.height = Math.max(1, Math.round(sourceHeight * scale));
+  canvas.width = contentWidth + margin * 2;
+  canvas.height = contentHeight + margin * 2;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) throw new Error('Your browser could not prepare the score image.');
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(image, margin, margin, contentWidth, contentHeight);
+  if (canvas.width < 1 || canvas.height < 1) throw new Error('The score image could not be prepared. Export a fresh PNG or JPEG and try again.');
   return canvas;
 }
 async function imageCanvas(file) {
