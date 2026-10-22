@@ -1,5 +1,8 @@
 """Minimal stand-in for the `onnxruntime` package inside Pyodide.
 
+Adapted from Partsong by Paul Fremantle (AGPL-3.0-or-later). See OMR-LICENSES.md.
+
+
 homr only uses InferenceSession + IOBinding + OrtValue. Each call is forwarded
 to onnxruntime-web through `self.omrOrt` (defined in omr-worker.js) and blocks
 on the JS promise via JSPI (`run_sync`).
