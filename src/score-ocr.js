@@ -160,3 +160,51 @@ export async function recognizeScoreFile(file, onProgress = () => {}) {
   if (!all.length) throw new Error('Staff lines were found, but noteheads could not be separated confidently. This score may need a trained OMR model or manual correction.');
   return { notes: all, pages: canvases.length, staffs: staffCount, experimental: true };
 }
+
+export function readTrebleStaffImage({ data, width, height }) {
+  const rowHits = [];
+  for (let y = 0; y < height; y++) {
+    let count = 0;
+    for (let x = 0; x < width; x++) {
+      const p = (y * width + x) * 4;
+      if ((data[p] + data[p + 1] + data[p + 2]) / 3 < 100) count++;
+    }
+    if (count > width * .65) rowHits.push(y);
+  }
+  const staffLines = [];
+  for (const y of rowHits) {
+    if (!staffLines.length || y - staffLines[staffLines.length - 1] > 1) staffLines.push(y);
+  }
+  if (staffLines.length < 5) throw new Error('Could not find five clear staff lines.');
+  const lines = staffLines.slice(0, 5);
+  const spacing = (lines[4] - lines[0]) / 4;
+  const visited = new Uint8Array(width * height);
+  const notes = [];
+  for (let y = Math.max(0, lines[0] - spacing); y < Math.min(height, lines[4] + spacing); y++) {
+    for (let x = 0; x < width; x++) {
+      const start = y * width + x;
+      const p = start * 4;
+      if (visited[start] || (data[p] + data[p + 1] + data[p + 2]) / 3 >= 100) continue;
+      const stack = [start], pixels = []; visited[start] = 1;
+      while (stack.length) {
+        const at = stack.pop(), px = at % width, py = Math.floor(at / width);
+        pixels.push([px, py]);
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+          const nx = px + dx, ny = py + dy, ni = ny * width + nx;
+          if (nx < 0 || nx >= width || ny < 0 || ny >= height || visited[ni]) continue;
+          const q = ni * 4;
+          if ((data[q] + data[q + 1] + data[q + 2]) / 3 < 100) { visited[ni] = 1; stack.push(ni); }
+        }
+      }
+      const xs = pixels.map(v => v[0]), ys = pixels.map(v => v[1]);
+      const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+      const w = maxX - minX + 1, h = maxY - minY + 1;
+      if (pixels.length < 15 || pixels.length > spacing * spacing * 3.5 || w / h < 1.2 || w / h > 2.2) continue;
+      const cy = ys.reduce((a, b) => a + b, 0) / ys.length;
+      const pitch = Math.round((lines[4] - cy) / (spacing / 2));
+      const map = ['E4','F4','G4','A4','B4','C5','D5','E5','F5','G5','A5','B5','C6'];
+      if (map[pitch]) notes.push({ note: map[pitch], x: (minX + maxX) / 2, y: cy });
+    }
+  }
+  return { staffLines: lines, notes, warning: 'Experimental: treble staff only.' };
+}
