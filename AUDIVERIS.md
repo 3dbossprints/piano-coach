@@ -12,6 +12,10 @@ VITE_AUDIVERIS_API_URL=https://YOUR-OMR-SERVICE.example/api/recognize
 
 The browser sends the original PDF/PNG/JPEG/WebP file as a multipart/form-data field named `file`. The service must allow CORS from the Piano Coach site and return **uncompressed MusicXML XML text** (`application/vnd.recordare.musicxml+xml`, `application/xml` or `text/xml`). A JSON response shaped as `{"musicxml":"<score-partwise>...</score-partwise>"}` is also accepted. Do not return the zipped `.mxl` file unless your adapter unpacks it first.
 
+## Included service
+
+A Docker-based FastAPI adapter is included in `omr-service/`. It installs the official Audiveris Linux release, accepts PDF/PNG/JPEG/WebP uploads, runs batch transcription, unpacks MusicXML when Audiveris exports `.mxl`, and returns uncompressed XML. See `omr-service/README.md` for deployment steps.
+
 ## Audiveris adapter contract
 
 The service should:
@@ -27,4 +31,4 @@ Official references:
 - https://github.com/Audiveris/audiveris
 - https://audiveris.github.io/audiveris/_pages/guides/advanced/cli/
 
-**Important:** The frontend integration is committed, but the recognition service URL is intentionally not fabricated. Until a real Audiveris adapter is deployed and `VITE_AUDIVERIS_API_URL` is configured, image/PDF recognition will display a setup error. MusicXML import continues to work without the service.
+**Important:** The frontend and deployable service code are committed, but I cannot deploy the service or set your hosting environment variables from this repository edit. Until you deploy `omr-service/` and configure `VITE_AUDIVERIS_API_URL`, image/PDF recognition will show a setup error. MusicXML import continues to work without the service.
