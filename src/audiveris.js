@@ -1,4 +1,4 @@
-const endpoint = (import.meta.env.VITE_AUDIVERIS_API_URL || '').trim();
+const endpoint = (import.meta.env.VITE_AUDIVERIS_API_URL || '/api/recognize').trim();
 
 /**
  * Sends the original score file to a self-hosted Audiveris HTTP adapter.
@@ -8,7 +8,7 @@ const endpoint = (import.meta.env.VITE_AUDIVERIS_API_URL || '').trim();
 export async function recognizeWithAudiveris(file) {
   if (!endpoint) {
     throw new Error(
-      'The Audiveris service is not connected yet. Configure VITE_AUDIVERIS_API_URL with the URL of an Audiveris OMR service, then redeploy. The old single-staff guesser has been removed.'
+      'Audiveris is not configured. Deploy Piano Coach using the repository Dockerfile so the built-in /api/recognize endpoint is available, or set VITE_AUDIVERIS_API_URL to an existing OMR endpoint.'
     );
   }
 
