@@ -13,6 +13,7 @@ MODELS=(
 mkdir -p vendor public/vendor public/models public/omr
 cp omr/runner.py public/omr/runner.py
 cp omr/onnxruntime.py public/omr/onnxruntime.py
+cp OMR-LICENSES.md public/omr/THIRD-PARTY-NOTICES.txt
 if [ ! -d vendor/homr-src/.git ]; then
   git init -q vendor/homr-src
   git -C vendor/homr-src remote add origin https://github.com/liebharc/homr.git
