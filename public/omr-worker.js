@@ -1,3 +1,4 @@
+// Portions of this worker are derived from Partsong by Paul Fremantle, licensed AGPL-3.0-or-later. See OMR-LICENSES.md and public/omr/HOMR-LICENSE.
 // Module worker. Runs homr (Python, via Pyodide) with its ONNX models on onnxruntime-web.
 // Python blocks on model calls through JSPI, so this needs a JSPI-capable
 // browser (Chrome/Edge 137+).
