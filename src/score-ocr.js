@@ -206,5 +206,5 @@ export function readTrebleStaffImage({ data, width, height }) {
       if (map[pitch]) notes.push({ note: map[pitch], x: (minX + maxX) / 2, y: cy });
     }
   }
-  return { staffLines: lines, notes, warning: 'Experimental: treble staff only.' };
+  notes.sort((a, b) => a.x - b.x);\n  return { staffLines: lines, notes, warning: 'Experimental: treble staff only.' };
 }
