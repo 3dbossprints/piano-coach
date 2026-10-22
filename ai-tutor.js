@@ -43,7 +43,7 @@
       .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
       .slice(-8).map(m => ({ role: m.role, content: m.content.slice(0, 1800) })) : [];
     const messages = [{ role: 'system', content: system }, ...history, { role: 'user', content: prompt }];
-    const out = await pipe(messages, { max_new_tokens: options.max_new_tokens || 220, do_sample: false, repetition_penalty: 1.08, return_full_text: false });
+    const out = await pipe(messages, { max_new_tokens: Math.min(160, options.max_new_tokens || 160), do_sample: false, repetition_penalty: 1.08, return_full_text: false });
     let answer = out?.[0]?.generated_text;
     if (Array.isArray(answer)) answer = answer.filter(m => m.role === 'assistant').map(m => m.content).join('\n');
     if (typeof answer !== 'string') answer = String(answer || '');
