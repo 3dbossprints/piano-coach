@@ -49,10 +49,17 @@ function getWorker(onProgress) {
 }
 
 function canvasForImage(image) {
+  const sourceWidth = Number(image.naturalWidth || image.width) || 0;
+  const sourceHeight = Number(image.naturalHeight || image.height) || 0;
+  if (sourceWidth < 1 || sourceHeight < 1) throw new Error('This image has no readable dimensions. Export it as a PNG or JPEG and try again.');
+  // Keep inputs within the recogniser's supported image size and avoid zero-sized
+  // OpenCV resize targets for malformed or unusually large source images.
+  const scale = Math.min(1, 2480 / sourceWidth, 4200 / sourceHeight);
   const canvas = document.createElement('canvas');
-  canvas.width = image.naturalWidth || image.width;
-  canvas.height = image.naturalHeight || image.height;
+  canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+  canvas.height = Math.max(1, Math.round(sourceHeight * scale));
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) throw new Error('Your browser could not prepare the score image.');
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
@@ -71,7 +78,8 @@ async function pdfCanvases(file, onProgress) {
       onProgress?.('Preparing PDF page ' + pageNo + ' of ' + pdf.numPages + '…');
       const page = await pdf.getPage(pageNo);
       const base = page.getViewport({ scale: 1 });
-      const viewport = page.getViewport({ scale: Math.min(2480 / base.width, 4200 / Math.max(base.width, base.height)) });
+      const scale = Math.min(1.5, 2480 / Math.max(1, base.width), 4200 / Math.max(1, base.height));
+      const viewport = page.getViewport({ scale: Math.max(0.1, scale) });
       const canvas = document.createElement('canvas');
       canvas.width = Math.round(viewport.width); canvas.height = Math.round(viewport.height);
       await page.render({ canvas, viewport, background: '#ffffff' }).promise;
@@ -81,6 +89,7 @@ async function pdfCanvases(file, onProgress) {
   return canvases;
 }
 async function canvasBlob(canvas) {
+  if (!canvas || canvas.width < 1 || canvas.height < 1) throw new Error('The score page could not be prepared as an image. Try exporting a fresh PNG or PDF.');
   return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not encode the page image.')), 'image/png'));
 }
 function combineMusicXml(pages) {
