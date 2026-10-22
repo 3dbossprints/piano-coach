@@ -46,14 +46,14 @@ async def recognize(file: UploadFile = File(...)):
         input_path.write_bytes(payload)
         try:
             result = subprocess.run(
-                ["audiveris", "-batch", "-export", "-output", str(output_dir), str(input_path)],
+                [os.getenv("AUDIVERIS_BIN", "/opt/audiveris/bin/Audiveris"), "-batch", "-export", "-output", str(output_dir), "--", str(input_path)],
                 capture_output=True, text=True, timeout=180, check=False,
                 env={**os.environ, "HOME": str(root)},
             )
         except subprocess.TimeoutExpired:
             raise HTTPException(504, "Audiveris timed out after 180 seconds. Try a smaller score.")
         except FileNotFoundError:
-            raise HTTPException(500, "Audiveris executable was not found in the service image.")
+            raise HTTPException(500, "Audiveris executable was not found at /opt/audiveris/bin/Audiveris. Check the service image installation.")
 
         if result.returncode != 0:
             detail = (result.stderr or result.stdout or "Audiveris could not recognise this score.")[-1200:]
