@@ -7,7 +7,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse, Response
 
 app = FastAPI(title="Piano Coach Audiveris OMR", version="1.0.0")
 
@@ -83,3 +83,20 @@ async def recognize(file: UploadFile = File(...)):
             except (OSError, UnicodeDecodeError, zipfile.BadZipFile):
                 continue
         raise HTTPException(422, "Audiveris finished but did not produce a readable MusicXML score.")
+
+@app.get("/{asset_path:path}", include_in_schema=False)
+def serve_site(asset_path: str):
+    # Serve the built Vite frontend from the same origin as the OMR API.
+    dist = Path("/app/dist").resolve()
+    if not dist.is_dir():
+        raise HTTPException(503, "The Piano Coach frontend build is missing.")
+    requested = (dist / asset_path).resolve() if asset_path else dist / "index.html"
+    if requested != dist and dist not in requested.parents:
+        raise HTTPException(404, "Not found.")
+    if requested.is_file():
+        return FileResponse(requested)
+    # SPA route fallback: let React handle browser routes.
+    index = dist / "index.html"
+    if index.is_file():
+        return FileResponse(index)
+    raise HTTPException(404, "Not found.")
