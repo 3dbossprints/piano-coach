@@ -1,4 +1,8 @@
-"""Runs homr on one page image inside Pyodide and returns its MusicXML."""
+"""Runs HOMR on one page image inside Pyodide and returns MusicXML.
+
+Browser runner adapted from Partsong by Paul Fremantle (AGPL-3.0-or-later).
+See OMR-LICENSES.md for notices and upstream links.
+"""
 
 VERSION = "dev"  # the deploy's version, set by scripts/stamp-version.mjs
 
