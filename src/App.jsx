@@ -327,24 +327,21 @@ async function convertScoreToMusicCoach(file,options={}){
   if(file.size>25*1024*1024){setMusicCoachStatus('Choose a file smaller than 25 MB.');return}
   setMusicCoachBusy(true);setMusicCoachAnalysis('');setMusicCoachNotes([]);
   try{
+   setMusicCoachStatus('Starting on-device music recognition. First use downloads about 157 MB of model files, cached for later scans…');
    const {recognizeScoreFile}=await import('./score-ocr.js');
    const result=await recognizeScoreFile(file,message=>setMusicCoachStatus(message));
-   const ordered=[...result.notes].sort((a,b)=>a.page-b.page||a.staff-b.staff||a.x-b.x);
-   const tempo=Math.max(30,Number(bpm)||84);
-   const notes=ordered.map((n,i)=>({...n,id:'ocr-'+Date.now()+'-'+i,midi:noteToMidi(n.note),rest:false,beats:.5,duration:30/tempo,time:i*30/tempo,measure:Math.floor(i/8)+1,voice:'1',type:'eighth',confidence:'experimental'}));
    const title=file.name.replace(/\.[^.]+$/,'')||'Recognised score';
-   const sourceAsset={name:file.name,type:file.type,size:file.size};
-   const notation={sourceFormat:isPdf?'PDF':ext.endsWith('.svg')?'SVG':'image',notationEvents:[],technicalSupport:['approximate staff pitch mapping'],recognition:{pages:result.pages,staffs:result.staffs,warning:'Experimental baseline: treble pitch mapping and notehead detection only. Rhythm, bass clef, key signatures, accidentals, rests, chords/voices and notation markings are not reliably transcribed.'}};
-   const score={format:'musiccoach',version:2,title,bpm:tempo,timeSignature,created:new Date().toISOString(),source:'Experimental browser-only staff/notehead recognition',sourceAsset,notes,notation};
-   setSongTitle(title);setScoreNotation(notation);setScoreSourceAsset(sourceAsset);setLoadedScoreNotes(notes);setMusicCoachNotes(notes);setEvents(notes);setExpected(notes.map(n=>n.note).join(' '));setActiveScoreId(Date.now());
-   const json=encodeMusicCoach(score),blob=new Blob([json],{type:'application/vnd.piano-coach.musiccoach'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=title.replace(/[^a-z0-9-_ ]/gi,'').trim()+'.musiccoach';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-   const data='data:application/vnd.piano-coach.musiccoach;base64,'+btoa(unescape(encodeURIComponent(json)));
-   setLibraryFiles(v=>[{id:Date.now(),name:title+'.musiccoach',type:'application/vnd.piano-coach.musiccoach',size:json.length,data,added:new Date().toISOString(),kind:'score',score},...v.filter(x=>x.name!==title+'.musiccoach')]);setLibraryTab('scores');
-   setMusicCoachStatus('Created '+title+'.musiccoach from '+result.pages+' page(s). Experimental result: '+notes.length+' notehead candidates across '+result.staffs+' staff systems.');
-   setMusicCoachAnalysis('Important: this is an experimental baseline, not full optical music recognition. It estimates treble pitches from detected noteheads; it does not reliably recover bass clef, key signatures, accidentals, exact rhythms, rests, chords/voices, repeats, dynamics or other markings. Check and correct every note before relying on the file.');
-   setStatus('Experimental .musiccoach created locally · review detected notes');
-  }catch(e){setMusicCoachStatus('Local recognition failed: '+e.message);setMusicCoachAnalysis('Your file was processed only in this browser. Try a clearer, straight scan with visible staff lines. No server or Vercel Function was used.');setStatus('Local score recognition failed')}
-  finally{setMusicCoachBusy(false)}
+   const xmlFile=new File([result.musicXML],title+'.musicxml',{type:'application/vnd.recordare.musicxml+xml'});
+   setMusicCoachStatus('Recognition complete. Importing '+result.pages+' page(s) and building the .musiccoach file…');
+   setMusicCoachAnalysis('Recognised with HOMR optical music recognition running locally in your browser. As with all OMR, review the generated notation against the source score; low-quality scans and complex engraving can still cause recognition errors.');
+   importMusicXML(xmlFile,{target:options.target||'Score converter',download:true});
+   setMusicCoachStatus('Recognised '+result.pages+' page(s) with on-device HOMR. Preparing .musiccoach download…');
+   setStatus('On-device OMR completed · review the converted score');
+  }catch(e){
+   setMusicCoachStatus('Local music recognition failed: '+e.message);
+   setMusicCoachAnalysis('The score was processed in your browser; no recognition server or Vercel Function was used. On first use, use a current Chrome or Edge browser and allow time for the approximately 157 MB model download. The downloaded models are cached by your browser for later scans.');
+   setStatus('Local music recognition failed');
+  }finally{setMusicCoachBusy(false)}
  }
  function exportMusicXml(){if(scoreNotation?.sourceMusicXML){const u=URL.createObjectURL(new Blob([scoreNotation.sourceMusicXML],{type:'application/vnd.recordare.musicxml+xml'})),a=document.createElement('a');a.href=u;a.download=(songTitle||'piano-coach-score')+'.musicxml';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);setStatus('Exported original MusicXML with technical notation intact');return}const notes=events.length?events:parseMusicSequence(expected);if(!notes.length){setStatus('Enter notes such as C4/q D4/h R/q before exporting.');return}const body=notes.map(n=>{const beats=Math.max(.125,Number(n.beats)||1),dur=Math.round(beats*8),type=beats>=4?'whole':beats>=2?'half':beats>=1?'quarter':beats>=.5?'eighth':'16th';if(n.rest)return '<note><rest/><duration>'+dur+'</duration><type>'+type+'</type></note>';const name=midiToNote(n.midi),m=name.match(/^([A-G])(#?)(-?\d+)$/);return '<note><pitch><step>'+m[1]+'</step>'+(m[2]?'<alter>1</alter>':'')+'<octave>'+m[3]+'</octave></pitch><duration>'+dur+'</duration><type>'+type+'</type></note>'}).join('');const parts=timeSignature.split('/'),xml='<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><work><work-title>'+String(songTitle||'Piano Coach score').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</work-title></work><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>8</divisions><time><beats>'+parts[0]+'</beats><beat-type>'+parts[1]+'</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>'+body+'</measure></part></score-partwise>';const u=URL.createObjectURL(new Blob([xml],{type:'application/vnd.recordare.musicxml+xml'})),a=document.createElement('a');a.href=u;a.download='piano-coach-score.musicxml';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);setStatus('Exported MusicXML; original technical notation is preserved when importing MusicXML first.')}function clearNotes(){sessionEvents.current=[];setEvents([]);setStatus('Detected notes cleared')}
  function undoNote(){sessionEvents.current.pop();setEvents([...sessionEvents.current]);setStatus('Last note removed')}
