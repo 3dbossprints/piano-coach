@@ -760,3 +760,21 @@ html{scroll-behavior:smooth;scroll-padding-top:22px}
 
 /* Refined upload surfaces: replace the browser's harsh square file control with a calm, clear drop-zone treatment. */
 .upload-score{display:flex;flex-direction:column;gap:10px;padding:16px 18px;border:1px dashed #a9c6b3;border-radius:18px;background:linear-gradient(145deg,#f8fcf8,#edf5ee);color:var(--ink);transition:border-color .18s ease,background .18s ease,transform .18s ease}.upload-score:hover{border-color:var(--green);background:#edf7ef}.upload-score input[type=file]{width:100%;min-width:0;padding:14px;border:1px solid #d9e6dc;border-radius:13px;background:rgba(255,255,255,.8);color:var(--ink);font-size:14px}.upload-score input[type=file]::file-selector-button{border:0;border-radius:10px;background:var(--green);color:#fff;font:600 13px 'DM Sans',sans-serif;padding:10px 14px;margin-right:12px;cursor:pointer;transition:filter .15s ease}.upload-score input[type=file]::file-selector-button:hover{filter:brightness(1.12)}input[type=file]:focus-visible,button:focus-visible{outline:3px solid #9bc9aa;outline-offset:3px}.panel-head{gap:16px}.panel-head>div{min-width:0}.panel h2,.panel h3{letter-spacing:-.025em}.panel{box-shadow:0 5px 22px rgba(31,70,48,.035)}.toolbar{flex-wrap:wrap;gap:10px}.btn{transition:transform .15s ease,box-shadow .15s ease,background .15s ease}.btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 5px 14px rgba(32,92,67,.12)}
+
+
+/* Practice modes and microphone composition */
+.practice-mode-picker,
+.composer-record-controls {
+  margin: 1.25rem 0;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-soft, rgba(120, 150, 130, .07));
+}
+.practice-mode-picker > strong,
+.composer-record-controls > strong { display: block; margin-bottom: .5rem; }
+.practice-mode-picker .toolbar,
+.composer-record-controls .toolbar { margin-top: .75rem; flex-wrap: wrap; }
+.practice-mode-picker .btn,
+.composer-record-controls .btn { min-height: 42px; }
+.composer-record-controls p { margin: .35rem 0; }
