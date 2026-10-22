@@ -11,13 +11,22 @@ A mobile-friendly piano practice companion.
 - An audible Web Audio mini keyboard plus experimental live spectral pitch-group estimation across A0–C8
 
 ## Run locally
-Open `index.html` in a browser. Microphone access generally requires HTTPS or localhost.
+Use Node.js 20+ and run:
+
+```sh
+npm install
+npm run dev
+```
+
+The first start downloads the HOMR optical music recognition source and three model checkpoints (about 157 MB total) into generated local assets. Later starts reuse those files. Open the local Vite URL printed in the terminal; use current Chrome or Edge (137+) for the OMR engine's WebAssembly JSPI support.
 
 ## Deploy to Vercel
-1. Import this repository at https://vercel.com/new
-2. Keep the framework preset as **Other** (static site).
-3. Leave the build command and output directory empty, or use the repository root as the output directory.
-4. Deploy. Vercel will provide a public URL.
+1. Import this repository at https://vercel.com/new.
+2. Keep the repository root as the project root.
+3. Use `npm install` for install and `npm run build` for the build command; the output directory is `dist`. The included `vercel.json` sets these automatically.
+4. The build downloads the OMR engine and model assets and includes them as static files. No Vercel Function or separate recognition server is used.
+
+The first scan downloads the models to the browser cache (about 157 MB). Score pages are processed on-device. Recognition quality still depends on scan quality and engraving; inspect the resulting score before relying on it.
 
 ## Important limitations
 This is an early prototype. The live pitch detector estimates multiple spectral peaks and groups them as chord-like events, then can compare those groups with an entered target sequence. It is still a spectrum-based prototype rather than a trained polyphonic transcription model; piano overtones may be mistaken for notes, and it does not reliably score timing, rhythm, fingering, dynamics, or exam readiness. Progress is stored in the current browser only; it is not synchronised between devices. Grade syllabuses vary by exam board, so confirm exam requirements with your chosen board and teacher.
