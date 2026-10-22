@@ -778,3 +778,10 @@ html{scroll-behavior:smooth;scroll-padding-top:22px}
 .practice-mode-picker .btn,
 .composer-record-controls .btn { min-height: 42px; }
 .composer-record-controls p { margin: .35rem 0; }
+
+
+/* Give the converter action strip a clear visual break from its heading, and keep Extras controls airy. */
+.musiccoach-converter>.converter-actions{margin:0 0 30px;padding:13px 14px;gap:10px;border:1px solid rgba(224,216,237,.9);border-radius:16px;background:linear-gradient(120deg,rgba(246,241,253,.92),rgba(255,247,251,.9));box-shadow:0 5px 18px rgba(66,48,92,.045)}
+.musiccoach-converter>.converter-actions+.eyebrow{margin-top:0}
+.extras-toolbar{margin-top:22px;padding-top:17px;border-top:1px solid var(--line);gap:10px}
+@media(max-width:700px){.musiccoach-converter>.converter-actions{margin-bottom:24px;padding:11px}.extras-toolbar{margin-top:18px;padding-top:14px}}
