@@ -492,7 +492,53 @@ async function convertScoreToMusicCoach(file,options={}){
  function getLearnPhrase(){const seq=parseMusicSequence(expected),goal=Math.max(1,Number(timeSignature.split('/')[0])*2),offset=learnPhraseOffsetRef.current;let cursor=0;return seq.filter(n=>{const start=cursor;cursor+=n.beats||1;return start>=offset&&start<offset+goal})}
  async function playLearnPhrase(){const phrase=getLearnPhrase();if(!phrase.length){setLearnMessage('You completed this score. Finish the lesson to save your practice.');return}await ensureSynth();stopPlayback();let elapsed=0;setLearnMessage('Listen to the phrase, then play it on your real piano.');phrase.forEach(n=>{if(!n.rest&&n.midi!==null)synth.current?.triggerAttackRelease(midiToNote(n.midi),Math.max(.12,n.beats*60/bpm*.86),Tone.now()+elapsed*60/bpm);elapsed+=n.beats||1});setStatus('Playing the lesson phrase');}
  async function toggleLearnSession(){if(learnListenMode){finishLearnSession();return}if(!parseMusicSequence(expected).length){setLearnMessage('Add notes or import a MusicXML score before starting.');return}learnModeRef.current=true;learnProgressRef.current=0;learnPhraseOffsetRef.current=0;learnNoteLockRef.current=0;setLearnBarProgress(0);setLearnPhraseOffset(0);setLearnSeconds(0);sessionEvents.current=[];setEvents([]);setSheetPianoOpen(true);setLearnListenMode(true);setLearnMessage('Requesting microphone access…');setStatus('Starting Learn & Listen');try{await startMic();if(micStream.current){setLearnMessage('Listen to the phrase, then play the notes on your piano. The lesson only advances on a correct note.');await playLearnPhrase()}else{setLearnMessage('Microphone access is needed to check your playing. Allow access, then press Connect microphone.')}}catch(e){setLearnMessage('Could not start the microphone. Allow microphone access, then try again.')}}
- async function recordComposerHand(hand){if(composerRecording)return;setComposerRecording(hand);setStatus('Recording '+hand+' hand · play a clear phrase for up to 30 seconds');let stream=null;try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});const chunks=[];const mime=['audio/webm;codecs=opus','audio/webm','audio/mp4'].find(t=>MediaRecorder.isTypeSupported?.(t));const rec=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);const blobPromise=new Promise((resolve,reject)=>{rec.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data)};rec.onerror=()=>reject(new Error('Microphone recording failed'));rec.onstop=()=>resolve(new Blob(chunks,{type:rec.mimeType||'audio/webm'}))});rec.start();await new Promise(resolve=>setTimeout(resolve,30000));if(rec.state!=='inactive')rec.stop();const blob=await blobPromise;setStatus('Transcribing '+hand+' hand…');const notes=await transcribeAudioBlob(blob);if(!notes.length)throw new Error('No clear notes were detected. Try closer to the piano and record one hand at a time.');const sequence=notes.map(n=>{const sec=Number(n.duration)||60/bpm;const beats=sec/(60/bpm);return n.note+'/'+(beats>=3.5?'w':beats>=1.5?'h':beats>=.7?'q':'e')}).join(' ');if(hand==='right')setComposerRight(sequence);else setComposerLeft(sequence);setSongTitle(composerTitle);setStatus('Added '+notes.length+' detected notes to the '+hand+' hand. Review the transcription before exporting.')}catch(e){setAudioError('Could not record '+hand+' hand: '+e.message);setStatus('Microphone recording unavailable')}finally{stream?.getTracks().forEach(t=>t.stop());setComposerRecording('')}}
+ async function recordComposerHand(hand){
+  if(composerRecording)return;
+  setComposerRecording(hand);
+  setAudioError('');
+  setStatus('Recording '+hand+' hand · play clearly; silence and note lengths are analysed too');
+  let stream=null,rec=null,timer=null;
+  try{
+   stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+   const chunks=[];
+   const mime=['audio/webm;codecs=opus','audio/webm','audio/mp4'].find(t=>MediaRecorder.isTypeSupported?.(t));
+   rec=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);
+   const blobPromise=new Promise((resolve,reject)=>{rec.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data)};rec.onerror=()=>reject(new Error('Microphone recording failed'));rec.onstop=()=>resolve(new Blob(chunks,{type:rec.mimeType||'audio/webm'}))});
+   rec.start();
+   await new Promise(resolve=>{timer=setTimeout(resolve,30000)});
+   if(rec.state!=='inactive')rec.stop();
+   const blob=await blobPromise;
+   setStatus('Analysing pitches, durations, overlaps and rests…');
+   const notes=await transcribeAudioBlob(blob);
+   if(!notes.length)throw new Error('No clear notes were detected. Try a quieter room and record one hand at a time.');
+   const beat=60/Math.max(30,Number(composerTempo)||84);
+   const sorted=notes.map(n=>({...n,time:Number(n.time)||0,duration:Math.max(.08,Number(n.duration)||.1),midi:Number(n.midi),note:midiToNote(Math.round(Number(n.midi)))})).sort((a,b)=>a.time-b.time);
+   // Preserve sustained values and silent gaps. Use a compact, editable notation vocabulary.
+   const valueFor=seconds=>{
+    const beats=seconds/beat;
+    const choices=[['w',4],['h',2],['q',1],['e',.5],['s',.25]];
+    let best=choices[choices.length-1];
+    for(const choice of choices)if(Math.abs(choice[1]-beats)<Math.abs(best[1]-beats))best=choice;
+    return best[0];
+   };
+   const tokens=[];let cursor=0;
+   for(const n of sorted){
+    if(n.time-cursor>beat*.42){
+     const gap=n.time-cursor;
+     // Break longer silence into valid rests rather than dropping it.
+     let remaining=gap;
+     while(remaining>beat*.18){const rest=Math.min(4,remaining/beat);const code=valueFor(rest*beat);tokens.push('R/'+code);const beats={w:4,h:2,q:1,e:.5,s:.25}[code];remaining-=beats*beat;}
+    }
+    tokens.push(n.note+'/'+valueFor(n.duration));
+    cursor=Math.max(cursor,n.time+n.duration);
+   }
+   const sequence=tokens.join(' ');
+   if(hand==='right')setComposerRight(sequence);else setComposerLeft(sequence);
+   setSongTitle(composerTitle);
+   setStatus('Added '+sorted.length+' detected note events, with estimated durations and rests, to the '+hand+' hand. Review against the recording; overlapping chords may need manual correction.');
+  }catch(e){setAudioError('Could not record '+hand+' hand: '+e.message);setStatus('Microphone transcription failed')}
+  finally{if(timer)clearTimeout(timer);if(rec&&rec.state!=='inactive'){try{rec.stop()}catch{}}stream?.getTracks().forEach(t=>t.stop());setComposerRecording('')}
+}
  function isMidiLibraryFile(x){return /\.(mid|midi)$/i.test(x?.name||'')||x?.type==='audio/midi'}
  function isAudioLibraryFile(x){return !!(x?.type?.startsWith('audio/')||/\.(mp3|m4a|aac|wav|ogg|oga|opus|flac|aiff?|mid|midi|weba|webm)$/i.test(x?.name||''))}
  async function playScoreLibraryFile(item){try{if(midiPlaybackRef.current)stopMidiLibraryPlayback();await Tone.start();let score=null;if(/\.musiccoach$/i.test(item.name)){const raw=atob(item.data.split(',')[1]);score=decodeMusicCoach(new TextDecoder().decode(Uint8Array.from(raw,c=>c.charCodeAt(0))));}else{const raw=atob(item.data.split(',')[1]);const xml=new DOMParser().parseFromString(new TextDecoder().decode(Uint8Array.from(raw,c=>c.charCodeAt(0))),'application/xml');if(xml.querySelector('parsererror'))throw new Error('Invalid XML');let divisions=Number(xml.querySelector('part measure attributes divisions')?.textContent)||1,tempo=Number(xml.querySelector('sound[tempo]')?.getAttribute('tempo'))||bpm,cursor=0;const notes=[...xml.querySelectorAll('part:first-of-type measure note')].map(n=>{const p=n.querySelector('pitch'),dur=Number(n.querySelector('duration')?.textContent)||divisions,rest=!!n.querySelector('rest');const name=p? p.querySelector('step')?.textContent+(Number(p.querySelector('alter')?.textContent)===1?'#':Number(p.querySelector('alter')?.textContent)===-1?'b':'')+p.querySelector('octave')?.textContent:null;const ev={note:name,time:cursor*60/tempo,duration:dur/divisions*60/tempo,rest};cursor+=dur/divisions;return ev}).filter(n=>n.note&&!n.rest);score={title:item.name,bpm:tempo,notes};}const notes=(score.notes||[]).filter(n=>n.note&&!n.rest).map(n=>({time:Math.max(0,Number(n.time)||0),name:n.note,duration:Math.max(.08,Number(n.duration)||60/(score.bpm||bpm)),velocity:.8}));if(!notes.length)throw new Error('No playable notes were found in this score.');const player=new Tone.PolySynth(Tone.Synth).toDestination(),part=new Tone.Part((time,n)=>player.triggerAttackRelease(n.name,n.duration,time,n.velocity),notes);Tone.Transport.stop();Tone.Transport.cancel();Tone.Transport.position=0;part.start(0);Tone.Transport.start();const end= Math.max(...notes.map(n=>n.time+n.duration))+.25;const endId=Tone.Transport.scheduleOnce(()=>{part.dispose();player.dispose();midiPlaybackRef.current=null;setStatus('Score playback finished')},end);midiPlaybackRef.current={part,player,endId};setStatus('Playing '+item.name);}catch(e){setAudioError('Could not play score: '+e.message)}}
