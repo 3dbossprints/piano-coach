@@ -125,5 +125,10 @@ export async function recognizeScoreFile(file, onProgress = () => {}) {
     xmlPages.push(xml);
     canvases[i].width = 1; canvases[i].height = 1;
   }
-  return { musicXML: combineMusicXml(xmlPages), pages: canvases.length, engine: 'HOMR on-device OMR' };
+  const musicXML = combineMusicXml(xmlPages);
+  const parsed = new DOMParser().parseFromString(musicXML, 'application/xml');
+  if (parsed.querySelector('parsererror') || !parsed.querySelector('score-partwise part measure note')) {
+    throw new Error('The OMR model did not recognise any notes in this score. Try a clearer, straight scan with visible notation.');
+  }
+  return { musicXML, pages: canvases.length, engine: 'HOMR on-device OMR' };
 }
