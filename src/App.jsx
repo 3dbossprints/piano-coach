@@ -322,7 +322,7 @@ export default function App(){
     const parts=[...(root?.children||[])].filter(el=>el.localName==='part');
     if(!parts.length)throw new Error('No part was found in the MusicXML file.');
     const firstPart=parts[0];
-    const getText=(node,selector,fallback='')=>node.querySelector(selector)?.textContent??fallback;
+    const getText=(node,selector,fallback='')=>node?.querySelector(selector)?.textContent??fallback;
     const firstAttributes=firstPart.querySelector(':scope > measure > attributes');
     const beats=getText(firstAttributes,'time > beats','4'),beatType=getText(firstAttributes,'time > beat-type','4');
     const tempo=Number(xml.querySelector('sound[tempo]')?.getAttribute('tempo')||firstPart.querySelector('metronome per-minute')?.textContent)||bpm;
@@ -385,7 +385,7 @@ export default function App(){
    }
    setScoreNotation(score.notation||null);setScoreSourceAsset(score.sourceAsset||null);setSongTitle(score.title||file.name.slice(0,file.name.lastIndexOf('.')>0?file.name.lastIndexOf('.'):file.name.length));setBpm(Number(score.bpm)||bpm);setTimeSignature(score.timeSignature||'4/4');
    const notes=(score.notes||[]).map((n,i)=>({...n,id:n.id||'score-'+i,midi:n.midi??(n.rest?null:noteToMidi(n.note)),source:'score'}));
-   setLoadedScoreNotes(notes);setMusicCoachNotes(notes);setMusicCoachAnalysis(score.analysis||'');setEvents(notes);sessionEvents.current=notes);
+   setLoadedScoreNotes(notes);setMusicCoachNotes(notes);setMusicCoachAnalysis(score.analysis||'');setEvents(notes);sessionEvents.current=notes;
    setExpected(notes.map(n=>n.rest?'R/'+(n.beats>=4?'w':n.beats>=2?'h':n.beats>=1?'q':'e'):n.note+'/'+(n.beats>=4?'w':n.beats>=2?'h':n.beats>=1?'q':'e')).join(' '));
    if(score.sourceAsset?.data){setScoreImageUrl(score.sourceAsset.data);setScoreImageName(score.sourceAsset.name||file.name);setScoreIsPdf(score.sourceAsset.mimeType==='application/pdf')}else{setScoreImageUrl('');setScoreImageName('');setScoreIsPdf(false)}
    const json=encodeMusicCoach(score),data='data:application/vnd.piano-coach.musiccoach;base64,'+btoa(unescape(encodeURIComponent(json)));
