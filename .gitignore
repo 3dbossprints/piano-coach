@@ -1,0 +1,10 @@
+# Generated browser OMR assets (downloaded by scripts/prepare-omr.sh)
+vendor/
+models/
+models-*.zip
+public/models/
+public/vendor/
+public/omr/runner.py
+public/omr/onnxruntime.py
+public/omr/HOMR-LICENSE
+public/omr/THIRD-PARTY-NOTICES.txt
