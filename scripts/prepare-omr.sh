@@ -29,7 +29,6 @@ for m in "${MODELS[@]}"; do
     rm "models-$m.zip"
   fi
 done
-cp vendor/homr-src/homr/../LICENSE public/vendor/HOMR-LICENSE
 cp public/vendor/HOMR-LICENSE public/omr/HOMR-LICENSE
 echo "Prepared HOMR source and model files for browser OMR."
 du -sh public/models public/vendor/homr.zip
