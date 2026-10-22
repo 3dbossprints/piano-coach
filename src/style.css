@@ -669,3 +669,36 @@ input,select,textarea{font-size:17px!important;min-height:48px}
  .learn-launch-copy p{font-size:14px;line-height:1.5}
  .learn-launch-card>.btn{grid-column:1/-1;width:100%;min-height:56px;white-space:normal}
 }
+
+/* Extras song composer */
+.composer-panel{display:grid;gap:22px}
+.composer-panel>h2{margin:0}
+.composer-settings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.composer-settings label{display:grid;gap:7px;font-weight:750}
+.composer-settings input,.composer-settings select,.composer-hand textarea{width:100%;min-width:0;border:2px solid #dce6dc;border-radius:14px;background:#fff;color:#27342b;padding:12px 14px;font:inherit}
+.composer-symbols{padding:18px;border:1px solid #e1e8df;border-radius:19px;background:#fafcf9}
+.composer-symbols>strong{font-size:18px}
+.composer-symbol-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.composer-symbol{min-height:45px;padding:9px 10px;border:2px solid #e0e7dd;border-radius:12px;background:#fff;color:#39463b;font:inherit;font-weight:700;cursor:pointer;text-align:center}
+.composer-symbol.selected{background:#eee8ff;border-color:#7860ac;color:#4d3783}
+.composer-hands{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.composer-hand{min-width:0;padding:17px;border:1px solid #e0e8df;border-radius:19px;background:#fbfdfb}
+.composer-hand h3{margin:0 0 8px;font-size:19px}
+.composer-hand textarea{resize:vertical;line-height:1.6}
+.composer-insert{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.composer-insert button{min-width:40px;min-height:39px;padding:6px 9px;border:1px solid #dce5d9;border-radius:10px;background:#fff;font-weight:750;color:#344335;cursor:pointer}
+.composer-preview{padding:18px;border:2px solid #e0e8df;border-radius:18px;overflow:hidden}
+.composer-preview h3{margin-top:0}
+@media(max-width:760px){
+ .composer-panel{gap:17px}
+ .composer-settings{grid-template-columns:1fr;gap:10px}
+ .composer-settings label{font-size:15px}
+ .composer-symbols{padding:13px}
+ .composer-symbol-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .composer-symbol{min-height:46px;font-size:13px;overflow-wrap:anywhere}
+ .composer-hands{grid-template-columns:1fr;gap:12px}
+ .composer-hand{padding:14px}
+ .composer-hand h3{font-size:18px}
+ .composer-insert button{min-height:43px}
+ .composer-preview{padding:10px}
+}
