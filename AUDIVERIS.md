@@ -2,13 +2,13 @@
 
 Piano Coach now routes score-image recognition through Audiveris instead of the old single-treble-staff notehead heuristic. Audiveris is a separate Java application, so it must run as a server-side service; it is not bundled into the browser app.
 
-## Frontend configuration
+## Run it as part of the website (same origin)
 
-Set this Vite build-time environment variable to the public HTTPS URL of your Audiveris adapter, then rebuild/redeploy the site:
+The repository root now has a `Dockerfile` that builds the Vite frontend and runs the Audiveris API in the same container. Deploy the repository as a Docker web service and point the website domain at that service. The browser calls `/api/recognize` on the same domain by default, so there is no separate OMR URL or CORS configuration to set. The service code lives in `omr-service/`.
 
-```env
-VITE_AUDIVERIS_API_URL=https://YOUR-OMR-SERVICE.example/api/recognize
-```
+This requires a host that supports Docker containers and enough memory/CPU for Audiveris. A static-only deployment (for example, a plain Vite static site) cannot execute the Java-based Audiveris engine in the browser; deploy the root Dockerfile to enable the integrated API.
+
+For an existing separate OMR host only, you can optionally set `VITE_AUDIVERIS_API_URL` to its full HTTPS `/api/recognize` URL and rebuild.
 
 The browser sends the original PDF/PNG/JPEG/WebP file as a multipart/form-data field named `file`. The service must allow CORS from the Piano Coach site and return **uncompressed MusicXML XML text** (`application/vnd.recordare.musicxml+xml`, `application/xml` or `text/xml`). A JSON response shaped as `{"musicxml":"<score-partwise>...</score-partwise>"}` is also accepted. Do not return the zipped `.mxl` file unless your adapter unpacks it first.
 
@@ -31,4 +31,4 @@ Official references:
 - https://github.com/Audiveris/audiveris
 - https://audiveris.github.io/audiveris/_pages/guides/advanced/cli/
 
-**Important:** The frontend and deployable service code are committed, but I cannot deploy the service or set your hosting environment variables from this repository edit. Until you deploy `omr-service/` and configure `VITE_AUDIVERIS_API_URL`, image/PDF recognition will show a setup error. MusicXML import continues to work without the service.
+**Important:** The integrated Docker deployment is committed, but I have not deployed it to your live hosting provider or verified a production conversion. If the current live site is still deployed as static files, its image/PDF recognition will not work until the site is redeployed using the root Dockerfile. MusicXML import continues to work.
