@@ -318,46 +318,19 @@ async function convertScoreToMusicCoach(file,options={}){
   if(!isPdf&&!['image/png','image/jpeg','image/webp'].includes(file.type)){setMusicCoachStatus('Choose a PDF, PNG, JPEG or WebP image.');return}
   if(file.size>25*1024*1024){setMusicCoachStatus('Choose a file smaller than 25 MB.');return}
   setMusicCoachBusy(true);setMusicCoachAnalysis('');setMusicCoachNotes([]);
-  let canvasUrl='';
   try{
-   setMusicCoachStatus(isPdf?'Opening PDF and rendering its first page…':'Preparing score image…');
-   const canvas=document.createElement('canvas');
-   if(isPdf){
-    const pdfjs=await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs');
-    pdfjs.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
-    const pdf=await pdfjs.getDocument({data:await file.arrayBuffer()}).promise;
-    const page=await pdf.getPage(1),base=page.getViewport({scale:1}),viewport=page.getViewport({scale:Math.min(2,1800/base.width)});
-    canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
-    await page.render({canvas,canvasContext:canvas.getContext('2d',{willReadFrequently:true}),viewport}).promise;
-    setMusicCoachStatus('PDF page 1 rendered. Detecting noteheads…');
-   }else{
-    canvasUrl=URL.createObjectURL(file);const img=new Image();img.src=canvasUrl;await img.decode();
-    const scale=Math.min(1,1800/img.naturalWidth);canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
-    canvas.getContext('2d',{willReadFrequently:true}).drawImage(img,0,0,canvas.width,canvas.height);
-   }
-   const ctx=canvas.getContext('2d',{willReadFrequently:true}),imageData=ctx.getImageData(0,0,canvas.width,canvas.height);let result;try{result=readTrebleStaffImage(imageData)}catch(e){result={notes:[],warning:e.message||'Could not detect a clear staff; source image preserved for visual practice.'}}
-   const detected=(result.notes||[]).map((n,i)=>({id:'scan-'+i,note:n.note,midi:noteToMidi(n.note),rest:false,beats:1,duration:60/Math.max(30,bpm),time:i*60/Math.max(30,bpm),measure:Math.floor(i/Math.max(1,Number(timeSignature.split('/')[0])))+1,index:i})).filter(n=>n.midi!==null);
-   setMusicCoachNotes(detected);
-   const title=file.name.replace(/\.(png|jpe?g|webp|pdf)$/i,''),sequence=detected.map(n=>n.note).join(' ');let sourceAsset={kind:'image',mimeType:'image/jpeg',data:canvas.toDataURL('image/jpeg',0.78),name:file.name,page:1,description:isPdf?'First-page preview rendered from the uploaded PDF':'Compressed preview of the uploaded score image',warning:isPdf?'Only the first PDF page is embedded because the original file is too large to safely store in browser library storage.':undefined};if(isPdf&&file.size<=500000){sourceAsset={kind:'pdf',mimeType:'application/pdf',data:await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('Could not preserve the PDF source'));reader.readAsDataURL(file)}),previewData:canvas.toDataURL('image/jpeg',0.78),name:file.name,page:1,description:'Original PDF embedded; all pages remain available for practice'};}
-   setMusicCoachStatus(detected.length?'Detected '+detected.length+' possible notes. Asking the local AI to analyse the extracted sequence…':'No reliable notes were detected. Keeping the score image so you can still practise from it.');
-   let analysis=detected.length?'AI analysis unavailable. The detected notes are saved, but please verify them against the original score.':'No reliable note sequence was detected from this image. The source score is preserved for visual practice; import MusicXML for structured notes.';
-   try{
-    if(!detected.length)throw new Error('No reliable noteheads to analyse; source score retained for visual practice.');
-    if(!window.PianoCoachAI)await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='/ai-tutor.js';script.onload=resolve;script.onerror=()=>reject(new Error('Could not load the local AI tutor'));document.head.appendChild(script)});
-    const guideText=musicCoachMarkings.length?musicCoachMarkings.map(id=>{const item=NOTATION_GUIDE.find(g=>g.id===id);return item?item.label+': '+item.help:id}).join('\n'):'The learner has not identified any additional markings.';
-    const response=await window.PianoCoachAI.ask('You are helping identify and understand piano notation from a score scan. IMPORTANT: you cannot see the original image; the computer-vision step only extracted a rough sequence of possible treble-clef noteheads. Never claim to have visually detected any symbol. Explain the selected markings using the learner checklist below, and distinguish what the learner reported from what is actually known. Do not invent exact dynamics, pedal timing, rhythm, key, bass notes, or measures. Give concise, practical guidance and tell the learner what to verify in the original score. Score title: '+title+'. Rough extracted noteheads (possibly wrong): '+sequence+'. Learner-identified markings:\n'+guideText+'. Analyse only what is supported; suggest checking clef, key signature/accidentals, note values/rests, dynamics, hairpins, pedal, articulation, ties/slurs, tempo, and both staves where applicable.',{max_new_tokens:320});
-    analysis=response.answer||analysis;
-   }catch(e){analysis+=' AI note: '+e.message}
-   const score={format:'musiccoach',version:2,title,bpm,timeSignature,created:new Date().toISOString(),source:'PNG/PDF score scan + AI sequence analysis',sourceFile:file.name,sourceAsset,analysis,ocrWarning:result.warning||'Automated note recognition can misread accidentals, octave, rhythm and multiple voices; verify against the original score.',notation:{sourceFormat:'PNG/PDF heuristic OCR',notationEvents:[],manualObservations:musicCoachMarkings.map(id=>{const item=NOTATION_GUIDE.find(g=>g.id===id);return item?{id:item.id,label:item.label,help:item.help}:null}).filter(Boolean),warning:'The image reader detects likely noteheads only. It does NOT reliably read dynamics (p/f), crescendos, pedal markings, articulations, ties, slurs, rests or full rhythm. Manual observations below were selected by the learner, not automatically detected. Use MusicXML import to preserve complete notation.',technicalSupport:['notation event schema supports dynamics, crescendo/diminuendo, pedal, articulations, ornaments, ties, slurs, rests, tempo, key/time signatures, voices and staves when supplied as MusicXML']},notes:detected};
-   const json=encodeMusicCoach(score),blob=new Blob([json],{type:'application/vnd.piano-coach.musiccoach'});
-   if(options.download){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=title.replace(/[^a-z0-9-_ ]/gi,'').trim()+'.musiccoach';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-   const data='data:application/vnd.piano-coach.musiccoach;base64,'+btoa(unescape(encodeURIComponent(json)));
-   setLibraryFiles(v=>[{id:Date.now(),name:title+'.musiccoach',type:'application/vnd.piano-coach.musiccoach',size:blob.size,data,added:new Date().toISOString(),kind:'score',score},...v.filter(x=>x.name!==title+'.musiccoach')]);if(options.target==='Library')setLibraryTab('scores');
-   setMusicCoachAnalysis(analysis);setLoadedScoreNotes(detected);setScoreNotation(score.notation);setScoreSourceAsset(sourceAsset);setScoreImageUrl(sourceAsset.data);setScoreImageName(file.name);setScoreIsPdf(sourceAsset.mimeType==='application/pdf');setSongTitle(title);setEvents(detected);sessionEvents.current=detected;setExpected(detected.map(n=>n.note+'/q').join(' '));setPage(options.target||'Score converter');
-   setScoreOcrStatus(detected.length?'Detected '+detected.length+' possible noteheads. Review the embedded score image before practising.':'No reliable notes detected; the source image is embedded so you can practise visually.');setScoreOcrWarning(sourceAsset.warning||result.warning||'Image recognition is experimental; verify all notes and markings against the source score.');
-   setMusicCoachStatus('Created '+title+'.musiccoach with an embedded score preview and saved it in Library → Sheet music. '+(detected.length?'Detected '+detected.length+' possible notes.':'No notes were confidently detected; you can still practise from the source image.'));
-  }catch(e){setMusicCoachStatus('Conversion stopped: '+e.message)}
-  finally{if(canvasUrl)URL.revokeObjectURL(canvasUrl);setMusicCoachBusy(false)}
+   setMusicCoachStatus('Sending the complete score to Audiveris for optical music recognition…');
+   const { recognizeWithAudiveris } = await import('./audiveris.js');
+   const result=await recognizeWithAudiveris(file);
+   const xmlFile=new File([result.musicxml],file.name.replace(/\.(png|jpe?g|webp|pdf)$/i,'')+'.musicxml',{type:'application/vnd.recordare.musicxml+xml'});
+   setMusicCoachStatus('Audiveris returned MusicXML. Importing notes, rhythms, staves and notation…');
+   importMusicXML(xmlFile,{target:options.target||'Score converter',download:options.download??true});
+   setMusicCoachAnalysis('Recognised by Audiveris. Please review the score: optical music recognition can still make mistakes.');
+   setMusicCoachStatus('Audiveris conversion complete. Review the imported score before practising.');
+  }catch(e){
+   setMusicCoachStatus('Audiveris could not process this score: '+e.message);
+   setMusicCoachAnalysis('');
+  }finally{setMusicCoachBusy(false)}
  }
  function exportMusicXml(){if(scoreNotation?.sourceMusicXML){const u=URL.createObjectURL(new Blob([scoreNotation.sourceMusicXML],{type:'application/vnd.recordare.musicxml+xml'})),a=document.createElement('a');a.href=u;a.download=(songTitle||'piano-coach-score')+'.musicxml';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);setStatus('Exported original MusicXML with technical notation intact');return}const notes=events.length?events:parseMusicSequence(expected);if(!notes.length){setStatus('Enter notes such as C4/q D4/h R/q before exporting.');return}const body=notes.map(n=>{const beats=Math.max(.125,Number(n.beats)||1),dur=Math.round(beats*8),type=beats>=4?'whole':beats>=2?'half':beats>=1?'quarter':beats>=.5?'eighth':'16th';if(n.rest)return '<note><rest/><duration>'+dur+'</duration><type>'+type+'</type></note>';const name=midiToNote(n.midi),m=name.match(/^([A-G])(#?)(-?\d+)$/);return '<note><pitch><step>'+m[1]+'</step>'+(m[2]?'<alter>1</alter>':'')+'<octave>'+m[3]+'</octave></pitch><duration>'+dur+'</duration><type>'+type+'</type></note>'}).join('');const parts=timeSignature.split('/'),xml='<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><work><work-title>'+String(songTitle||'Piano Coach score').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</work-title></work><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>8</divisions><time><beats>'+parts[0]+'</beats><beat-type>'+parts[1]+'</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>'+body+'</measure></part></score-partwise>';const u=URL.createObjectURL(new Blob([xml],{type:'application/vnd.recordare.musicxml+xml'})),a=document.createElement('a');a.href=u;a.download='piano-coach-score.musicxml';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);setStatus('Exported MusicXML; original technical notation is preserved when importing MusicXML first.')}function clearNotes(){sessionEvents.current=[];setEvents([]);setStatus('Detected notes cleared')}
  function undoNote(){sessionEvents.current.pop();setEvents([...sessionEvents.current]);setStatus('Last note removed')}
