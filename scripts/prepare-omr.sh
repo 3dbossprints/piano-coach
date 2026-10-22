@@ -10,7 +10,9 @@ MODELS=(
   encoder_pytorch_model_465-597144cab54c8f6d0f6c9619df5c5312694eadd6
   decoder_pytorch_model_465-597144cab54c8f6d0f6c9619df5c5312694eadd6
 )
-mkdir -p vendor public/vendor public/models public/omr\ncp omr/runner.py public/omr/runner.py\ncp omr/onnxruntime.py public/omr/onnxruntime.py
+mkdir -p vendor public/vendor public/models public/omr
+cp omr/runner.py public/omr/runner.py
+cp omr/onnxruntime.py public/omr/onnxruntime.py
 if [ ! -d vendor/homr-src/.git ]; then
   git init -q vendor/homr-src
   git -C vendor/homr-src remote add origin https://github.com/liebharc/homr.git
