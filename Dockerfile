@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Audiveris release package includes the runtime required by the CLI.
 RUN set -eux; \
-    url="$(curl -fsSL https://api.github.com/repos/Audiveris/audiveris/releases/latest | jq -r '.assets[] | select(.name | endswith(".deb")) | .browser_download_url' | head -n 1)"; \
+    url="$(curl -fsSL https://api.github.com/repos/Audiveris/audiveris/releases/latest | jq -r '.assets[] | select(.name | contains("ubuntu24.04-x86_64.deb")) | .browser_download_url' | head -n 1)"; \
     test -n "$url"; \
     curl -fL "$url" -o /tmp/audiveris.deb; \
     apt-get update; apt-get install -y /tmp/audiveris.deb || (apt-get install -f -y && apt-get install -y /tmp/audiveris.deb); \
