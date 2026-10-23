@@ -56,7 +56,9 @@ function canvasForImage(image) {
   // stage can produce empty crops when the score touches the image edge; a
   // modest margin gives it room to find the page and avoids pathological resize
   // targets for tightly cropped scans.
-  const scale = Math.min(1, 2380 / sourceWidth, 3980 / sourceHeight);
+  // Keep more staff-line and notehead detail for HOMR than the previous
+  // 2380px cap, while bounding memory use on browser-only recognition.
+  const scale = Math.min(1, 2700 / sourceWidth, 4600 / sourceHeight);
   const contentWidth = Math.max(1, Math.round(sourceWidth * scale));
   const contentHeight = Math.max(1, Math.round(sourceHeight * scale));
   const margin = Math.max(24, Math.round(Math.min(contentWidth, contentHeight) * 0.025));
@@ -84,7 +86,9 @@ async function pdfCanvases(file, onProgress) {
       onProgress?.('Preparing PDF page ' + pageNo + ' of ' + pdf.numPages + '…');
       const page = await pdf.getPage(pageNo);
       const base = page.getViewport({ scale: 1 });
-      const scale = Math.min(1.5, 2480 / Math.max(1, base.width), 4200 / Math.max(1, base.height));
+      // Render vector PDFs at a higher resolution so thin staff lines, dots and
+      // ledger lines survive rasterisation before the OMR model sees them.
+      const scale = Math.min(2, 3000 / Math.max(1, base.width), 5000 / Math.max(1, base.height));
       const viewport = page.getViewport({ scale: Math.max(0.1, scale) });
       const canvas = document.createElement('canvas');
       canvas.width = Math.round(viewport.width); canvas.height = Math.round(viewport.height);
