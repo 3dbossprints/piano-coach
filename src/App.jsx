@@ -164,7 +164,7 @@ export default function App(){
  useEffect(()=>{Tone.getDestination().volume.value=20*Math.log10(Math.max(.01,volume/100));},[volume]);
  useEffect(()=>{if(cookieChoice?.choice!=='accept')return;try{localStorage.setItem('pc_sessions',JSON.stringify(sessions))}catch{}},[sessions,cookieChoice]);
  useEffect(()=>{if(cookieChoice?.choice!=='accept')return;try{localStorage.setItem('pc_studies',JSON.stringify(saved))}catch{}},[saved,cookieChoice]);
- useEffect(()=>{if(cookieChoice?.choice!=='accept')return;try{localStorage.setItem('pc_files',JSON.stringify(libraryFiles))}catch{}},[libraryFiles,cookieChoice]);
+ useEffect(()=>{if(cookieChoice?.choice!=='accept')return;try{localStorage.setItem('pc_files',JSON.stringify(libraryFiles))}catch(e){setStatus('Library could not save all files because this browser storage is full. Download important files and remove large items, then try again.');}},[libraryFiles,cookieChoice]);
  // A declined choice must not leave old personal practice data available in storage or memory.
  useEffect(()=>{if(cookieChoice?.choice!=='decline')return;setSessions([]);setSaved([]);setLibraryFiles([]);try{for(const k of ['pc_sessions','pc_studies','pc_files','pc_cookie_prefs','pc_cookie_storage_enabled'])localStorage.removeItem(k)}catch{}},[cookieChoice]);
  useEffect(()=>{if(!practiceStarted||remainingSeconds<=0)return;practiceTimerRef.current=setInterval(()=>setRemainingSeconds(v=>{if(v<=1){clearInterval(practiceTimerRef.current);practiceTimerRef.current=null;stopRecording();stopMic();setStatus('Practice time is up · reviewing your recording');return 0}return v-1}),1000);return()=>{if(practiceTimerRef.current)clearInterval(practiceTimerRef.current)}},[practiceStarted,remainingSeconds>0]);
