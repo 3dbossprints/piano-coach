@@ -51,7 +51,7 @@ function Staff({notes,expanded,bpm=84,timeSignature='4/4'}) {
      const restCode=restBeats>=1.65?'h':restBeats>=.78?'q':restBeats>=.36?'8':'16';
      tickables.push(new StaveNote({keys:['b/4'],duration:restCode+'r'}));
     }
-    const mm=String(n.note||'').match(/^([A-G])(#|b)?(-?\\d)$/);
+    const mm=String(n.note||'').match(/^([A-G])(#|b)?(-?\d)$/);
     const key=mm?mm[1].toLowerCase()+(mm[2]||'')+'/'+mm[3]:'c/4';
     const duration=durationCode(Number(n.duration)>0?Number(n.duration):(Math.max(.12,((Number(visible[i+1]?.time)||t+beatSeconds)-t))*.9));
     tickables.push(new StaveNote({keys:[key],duration}));
