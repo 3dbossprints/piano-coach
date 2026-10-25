@@ -73,9 +73,58 @@ function canvasForImage(image) {
   if (canvas.width < 1 || canvas.height < 1) throw new Error('The score image could not be prepared. Export a fresh PNG or JPEG and try again.');
   return canvas;
 }
+// Conservative, low-cost contrast correction for faded scans. Sample a tiny
+// thumbnail first so normal high-contrast scores remain byte-for-byte visually
+// untouched; only low-contrast pages get a mild browser-native contrast boost.
+// This keeps staff lines and noteheads anti-aliased instead of hard-thresholding
+// the page, which can erase thin notation.
+function improveLowContrast(canvas) {
+  if (!canvas || canvas.width < 2 || canvas.height < 2) return canvas;
+  const sample = document.createElement('canvas');
+  sample.width = 128;
+  sample.height = Math.max(32, Math.min(128, Math.round(128 * canvas.height / canvas.width)));
+  const sampleCtx = sample.getContext('2d', { willReadFrequently: true });
+  if (!sampleCtx) return canvas;
+  sampleCtx.drawImage(canvas, 0, 0, sample.width, sample.height);
+  const pixels = sampleCtx.getImageData(0, 0, sample.width, sample.height).data;
+  const histogram = new Uint32Array(256);
+  let count = 0;
+  for (let i = 0; i < pixels.length; i += 16) {
+    const y = Math.round(0.2126 * pixels[i] + 0.7152 * pixels[i + 1] + 0.0722 * pixels[i + 2]);
+    histogram[y]++;
+    count++;
+  }
+  if (!count) return canvas;
+  const percentile = target => {
+    let total = 0;
+    for (let value = 0; value < 256; value++) {
+      total += histogram[value];
+      if (total >= target * count) return value;
+    }
+    return 255;
+  };
+  const low = percentile(0.03);
+  const high = percentile(0.97);
+  sample.width = 1;
+  sample.height = 1;
+  // Most clean scores span nearly the whole luminance range. Only intervene
+  // when the ink/background contrast is unusually compressed.
+  if (high - low >= 170 || high <= low) return canvas;
+  const enhanced = document.createElement('canvas');
+  enhanced.width = canvas.width;
+  enhanced.height = canvas.height;
+  const ctx = enhanced.getContext('2d');
+  if (!ctx) return canvas;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, enhanced.width, enhanced.height);
+  ctx.filter = 'contrast(1.22) brightness(1.02)';
+  ctx.drawImage(canvas, 0, 0);
+  ctx.filter = 'none';
+  return enhanced;
+}
 async function imageCanvas(file) {
   const url = URL.createObjectURL(file);
-  try { const image = new Image(); image.src = url; await image.decode(); return canvasForImage(image); }
+  try { const image = new Image(); image.src = url; await image.decode(); return improveLowContrast(canvasForImage(image)); }
   finally { URL.revokeObjectURL(url); }
 }
 async function pdfCanvases(file, onProgress) {
@@ -93,7 +142,7 @@ async function pdfCanvases(file, onProgress) {
       const canvas = document.createElement('canvas');
       canvas.width = Math.round(viewport.width); canvas.height = Math.round(viewport.height);
       await page.render({ canvas, viewport, background: '#ffffff' }).promise;
-      page.cleanup(); canvases.push(canvas);
+      page.cleanup(); canvases.push(improveLowContrast(canvas));
     }
   } finally { await pdf.destroy(); }
   return canvases;
