@@ -919,7 +919,7 @@ input[type=file]:focus-visible,button:focus-visible{outline-color:#f3a18f}
 .keyboard-range-controls label{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:700;color:var(--muted)}
 .keyboard-range-controls input,.keyboard-range-controls select{min-width:82px;width:100px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:#fff;color:var(--ink);font:inherit}
 .keyboard-range-controls .btn{min-height:36px;padding:8px 12px}
-.piano-scroll{overflow-x:hidden;padding:8px 0 2px}
+.piano-scroll{overflow-x:auto;padding:8px 0 2px;-webkit-overflow-scrolling:touch}
 .piano{min-width:0!important;width:max-content;height:164px}
 .white-key{flex:0 0 23.5px}
 .white-key span{opacity:1;font-size:8px}
@@ -1095,3 +1095,14 @@ img,iframe,video{max-width:100%}
  .virtual-piano{margin:0;width:max-content!important}
 }
 @media(max-width:390px){.personal-score-grid{grid-template-columns:1fr}.personal-score-art{min-height:78px}.personal-score-actions .btn{font-size:11px}}
+
+/* Keep the selectable keyboard fully reachable at intermediate widths. */
+.piano-scroll{overflow-x:auto!important;overflow-y:hidden;scrollbar-width:thin;overscroll-behavior-x:contain}
+.personal-score-grid{align-items:stretch}
+.personal-score-card{height:100%}
+.personal-score-art{flex-shrink:0}
+.score-review-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;align-items:start}
+.score-review-card{min-width:0;overflow:hidden}
+.score-review-card .score-preview{display:flex;flex-direction:column;align-items:stretch}
+.score-review-card .score-preview img{max-width:100%;width:auto;max-height:68vh;margin:0 auto}
+@media(max-width:900px){.score-review-grid{grid-template-columns:minmax(0,1fr)}}
