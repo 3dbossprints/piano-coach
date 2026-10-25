@@ -1,1 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffc5c8"/><stop offset=".34" stop-color="#ffe9a9"/><stop offset=".67" stop-color="#bdebd0"/><stop offset="1" stop-color="#b9ddff"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#4a4265" flood-opacity=".18"/></filter></defs><rect x="8" y="8" width="144" height="144" rx="42" fill="url(#g)" filter="url(#s)"/><rect x="24" y="43" width="112" height="73" rx="12" fill="#ffffff" fill-opacity=".88" stroke="#ffffff" stroke-width="3"/><g fill="#454057"><rect x="35" y="47" width="13" height="39" rx="3"/><rect x="55" y="47" width="13" height="39" rx="3"/><rect x="92" y="47" width="13" height="39" rx="3"/><rect x="112" y="47" width="13" height="39" rx="3"/></g><g stroke="#e9e1ee" stroke-width="2"><path d="M49 48v64M69 48v64M89 48v64M109 48v64"/></g><circle cx="80" cy="96" r="12" fill="#8e7bc7"/><path d="m74 96 5 5 9-11" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title">
+  <title id="title">Piano Coach music mark</title>
+  <g fill="none" stroke="#263831" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M91 25v75"/>
+    <path d="M91 35c-19 4-33 7-39 18"/>
+    <path d="M91 66c-13 3-22 6-28 13"/>
+  </g>
+  <ellipse cx="69" cy="104" rx="20" ry="13" transform="rotate(-24 69 104)" fill="#F2765D"/>
+  <g fill="#263831">
+    <rect x="35" y="128" width="15" height="7" rx="3.5"/>
+    <rect x="57" y="128" width="15" height="7" rx="3.5"/>
+    <rect x="79" y="128" width="15" height="7" rx="3.5"/>
+  </g>
+</svg>

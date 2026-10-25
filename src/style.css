@@ -919,7 +919,7 @@ input[type=file]:focus-visible,button:focus-visible{outline-color:#f3a18f}
 .keyboard-range-controls label{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:700;color:var(--muted)}
 .keyboard-range-controls input,.keyboard-range-controls select{min-width:82px;width:100px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:#fff;color:var(--ink);font:inherit}
 .keyboard-range-controls .btn{min-height:36px;padding:8px 12px}
-.piano-scroll{overflow-x:hidden;padding:8px 0 2px}
+.piano-scroll{overflow-x:auto;padding:8px 0 2px;-webkit-overflow-scrolling:touch}
 .piano{min-width:0!important;width:max-content;height:164px}
 .white-key{flex:0 0 23.5px}
 .white-key span{opacity:1;font-size:8px}
@@ -998,3 +998,111 @@ input[type=file]:focus-visible,button:focus-visible{outline-color:#f3a18f}
 .score-review-card .musicxml-preview>p{margin:0 0 10px}
 .score-review-card .musicxml-rendered{max-height:72vh;overflow:auto}
 @media(max-width:600px){.score-review-card{padding:10px}.score-review-card .score-preview iframe{min-height:280px}.score-review-card .musicxml-rendered{max-height:60vh}}
+
+
+/* Final responsive reliability fixes: controls remain available on phones and
+   content is prevented from widening cards beyond the viewport. */
+img,iframe,video{max-width:100%}
+.main,.panel,.sheet-music-workspace,.dashboard-overview,.score-review-grid,.score-review-card{min-width:0;max-width:100%}
+.score-preview{max-width:100%;min-width:0;overflow:hidden;border-radius:14px}
+.score-preview img{display:block;width:auto;max-width:100%;max-height:72vh;height:auto;object-fit:contain;margin:0 auto}
+.score-preview iframe{display:block;max-width:100%;background:#fff}
+.musiccoach-notes{display:flex;flex-wrap:wrap;gap:7px}
+.musiccoach-notes span{max-width:100%;overflow-wrap:anywhere}
+.brand img.brand-logo-mark{width:42px;height:42px;display:block;object-fit:contain;background:transparent!important;border:0!important;border-radius:0!important;padding:0!important;box-shadow:none!important;filter:none!important}
+.topbar{min-width:0}
+.topbar>div:first-child{min-width:0}
+.topbar h1{overflow-wrap:anywhere}
+.composer-tool-palette{min-width:0}
+.composer-tool{max-width:100%;white-space:normal;text-align:left}
+.composer-staff-canvas{width:100%;min-width:0}
+@media(max-width:700px){
+  .sidebar{position:relative!important}
+  .sidebar .brand{padding-right:104px!important}
+  .sidebar .brand small{display:none!important}
+  .sidebar .brand img.brand-logo-mark{width:34px!important;height:34px!important}
+  .sidebar-tools{display:flex!important;position:absolute!important;top:14px!important;right:12px!important;margin:0!important;padding:0!important;gap:5px!important}
+  .sidebar-tools button{width:30px!important;height:30px!important;min-width:30px!important;padding:5px!important;border-radius:9px!important}
+  .sidebar-tools button svg{width:16px!important;height:16px!important}
+  .sidebar>.brand{flex:0 0 100%!important}
+  .sidebar>.nav-item{max-width:100%;flex:0 0 auto}
+  .main{width:100%;overflow-x:clip}
+  .topbar{flex-wrap:wrap;gap:12px}
+  .top-actions{width:100%;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}
+  .piano-scroll{width:100%!important;max-width:100%!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch!important}
+  .piano{min-width:0!important;width:max-content!important}
+  .white-key{flex:0 0 23.5px!important}
+  .composer-staff-canvas{height:190px}
+  .score-preview img{max-height:58vh}
+}
+@media(max-width:390px){
+  .sidebar .brand{font-size:19px!important;padding-right:102px!important}
+  .sidebar .brand img.brand-logo-mark{width:30px!important;height:30px!important}
+  .sidebar-tools{right:8px!important;gap:4px!important}
+  .sidebar-tools button{width:28px!important;height:28px!important;min-width:28px!important}
+  .topbar h1{font-size:31px!important}
+  .status-chip{white-space:normal;overflow-wrap:anywhere;max-width:100%}
+  .top-actions .btn{white-space:nowrap}
+  .keyboard-range-controls{align-items:stretch}
+  .keyboard-range-controls .btn{flex:0 0 auto}
+  .keyboard-range-controls label{min-width:0}
+}
+
+
+/* Sheet Music collection cards */
+.personal-scores-panel{margin-bottom:18px}
+.personal-score-upload{margin:16px 0 20px}
+.personal-score-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;min-width:0}
+.personal-score-card{min-width:0;display:flex;flex-direction:column;gap:12px;padding:11px;border:1px solid #f0ebe3;border-radius:17px;background:#fff}
+.personal-score-art{position:relative;display:flex;align-items:center;justify-content:center;min-height:105px;overflow:hidden;border-radius:12px;background:#e9e0d3;color:#39473d}
+.personal-score-card:nth-child(3n+2) .personal-score-art{background:#dce8df}
+.personal-score-card:nth-child(3n) .personal-score-art{background:#e5e0f0}
+.personal-score-art>span{position:relative;z-index:1;display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:rgba(255,255,255,.82);font-size:15px;font-weight:700;box-shadow:0 3px 10px rgba(40,50,40,.06)}
+.personal-score-staff{position:absolute;left:12px;right:12px;top:20px;height:64px;display:flex;flex-direction:column;justify-content:space-between;opacity:.35}
+.personal-score-staff i{height:1px;background:#536458;display:block}
+.personal-score-meta{display:flex;flex-direction:column;gap:5px;min-width:0}
+.personal-score-meta strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700}
+.personal-score-meta>span{color:var(--muted);font-size:10px;overflow-wrap:anywhere}
+.personal-score-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto}
+.personal-score-actions .btn{min-height:34px;padding:7px 10px;font-size:10px}
+.personal-score-actions .btn-dark{flex:1 1 100%}
+.personal-score-empty{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:180px;border:1px dashed #eee3d7;border-radius:16px;padding:24px;background:#fffaf5}
+.personal-score-empty p{max-width:360px;margin:7px auto 14px}
+.practice-upload-success,.practice-upload-error{display:block;margin-top:8px;font-size:12px;line-height:1.45;overflow-wrap:anywhere}
+.practice-upload-success{color:#477456}
+.practice-upload-error{color:#b44e41}
+.analysis-progress{padding:10px 13px;background:#fff6ef;border:1px solid #f2e0d4;border-radius:12px;color:#96644e;font-size:12px}
+.editable-score{min-width:0;width:100%;margin-top:14px;overflow:hidden;border:1px solid #eee8df;border-radius:15px;background:#fffdfa;padding:10px}
+.learn-tempo-control{display:flex;flex-direction:column;gap:8px;min-width:min(260px,100%);font-size:12px;font-weight:700;color:#536257}
+.learn-tempo-control input{width:100%;min-width:180px}
+.piano-modal-backdrop{position:fixed;inset:0;z-index:9998;display:grid;place-items:center;padding:18px;background:rgba(24,35,28,.62);overflow:auto;overscroll-behavior:contain}
+.piano-modal{width:min(100%,1040px);max-height:calc(100dvh - 36px);overflow:auto;padding:clamp(18px,3vw,30px);box-shadow:0 24px 80px rgba(20,35,26,.25)}
+.virtual-piano-scroll{width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden;padding:12px 0 4px;border:1px solid #eee7de;border-radius:14px;background:#fffdfa;-webkit-overflow-scrolling:touch}
+.virtual-piano{position:relative;min-width:0!important;width:max-content!important;margin:0 auto;height:164px}
+.virtual-piano .white-key span{font-size:9px}
+.virtual-piano .black-key{height:92px}
+@media(max-width:1000px){.personal-score-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){
+ .personal-score-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .personal-score-card{padding:8px;gap:9px}
+ .personal-score-art{min-height:88px}
+ .personal-score-staff{top:13px;height:56px}
+ .personal-score-actions{gap:5px}
+ .personal-score-actions .btn{font-size:10px;padding:7px 8px}
+ .personal-score-meta strong{font-size:12px}
+ .piano-modal-backdrop{padding:8px}
+ .piano-modal{max-height:calc(100dvh - 16px);padding:16px}
+ .virtual-piano{margin:0;width:max-content!important}
+}
+@media(max-width:390px){.personal-score-grid{grid-template-columns:1fr}.personal-score-art{min-height:78px}.personal-score-actions .btn{font-size:11px}}
+
+/* Keep the selectable keyboard fully reachable at intermediate widths. */
+.piano-scroll{overflow-x:auto!important;overflow-y:hidden;scrollbar-width:thin;overscroll-behavior-x:contain}
+.personal-score-grid{align-items:stretch}
+.personal-score-card{height:100%}
+.personal-score-art{flex-shrink:0}
+.score-review-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;align-items:start}
+.score-review-card{min-width:0;overflow:hidden}
+.score-review-card .score-preview{display:flex;flex-direction:column;align-items:stretch}
+.score-review-card .score-preview img{max-width:100%;width:auto;max-height:68vh;margin:0 auto}
+@media(max-width:900px){.score-review-grid{grid-template-columns:minmax(0,1fr)}}
