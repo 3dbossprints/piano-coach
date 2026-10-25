@@ -427,7 +427,7 @@ async function convertScoreToMusicCoach(file,options={}){
    const title=file.name.replace(/\.[^.]+$/,'')||'Recognised score';
    const xmlFile=new File([result.musicXML],title+'.musicxml',{type:'application/vnd.recordare.musicxml+xml'});
    const sourceData=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('Could not preserve the original score file in the backup.'));reader.readAsDataURL(file)});
-   const sourceAsset={name:file.name,mimeType:file.type||(isPdf?'application/pdf':'image/'+(file.name.split('.').pop()||'png')),size:file.size,data:sourceData};
+   const sourceExt=(file.name.split('.').pop()||'png').toLowerCase();const sourceMime=file.type||(isPdf?'application/pdf':({jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',svg:'image/svg+xml'}[sourceExt]||'application/octet-stream'));const sourceAsset={name:file.name,mimeType:sourceMime,size:file.size,data:sourceData};
    setMusicCoachStatus('Recognition complete. Importing '+result.pages+' page(s) and building the .musiccoach file…');
    setMusicCoachAnalysis('Recognised with HOMR optical music recognition running locally in your browser. Review the rendered notation against the original score before relying on it. OMR can misread notes, rhythms, accidentals, rests and multiple voices; the original source is embedded so you can compare them.');
    importMusicXML(xmlFile,{target:options.target||'Score converter',download:true,sourceAsset});
