@@ -1106,3 +1106,57 @@ img,iframe,video{max-width:100%}
 .score-review-card .score-preview{display:flex;flex-direction:column;align-items:stretch}
 .score-review-card .score-preview img{max-width:100%;width:auto;max-height:68vh;margin:0 auto}
 @media(max-width:900px){.score-review-grid{grid-template-columns:minmax(0,1fr)}}
+
+
+/* Recording-review fixes: consistent playback controls, searchable results and readable plan states. */
+.library-playback-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:0 0 auto}
+.library-playback-controls .btn{white-space:nowrap;min-height:38px}
+.search-result-item{align-items:center;gap:12px;flex-wrap:wrap;padding:14px 0}
+.search-result-copy{display:flex;flex:1 1 240px;min-width:180px;flex-direction:column;gap:4px;overflow-wrap:anywhere}
+.search-result-copy strong{font-size:13px;line-height:1.4;overflow-wrap:anywhere}
+.search-result-copy small{display:block;font-size:11px;line-height:1.45;white-space:normal;overflow-wrap:anywhere}
+.search-result-source{font-weight:800;color:#355d4a!important}
+.search-result-rights{color:#626a64!important}
+.search-result-audio{width:100%;max-width:270px;min-width:190px;flex:0 1 270px}
+.search-result-item>a.btn,.search-result-item>button.btn{flex:0 0 auto;white-space:normal;line-height:1.3}
+.song-source-status{margin:12px 0;padding:13px 15px;border:1px solid var(--line,#e7e5df);border-radius:12px;background:rgba(247,248,243,.82);min-width:0}
+.song-source-status>p{font-size:12px;line-height:1.55;color:var(--ink,#25392f);margin:0 0 8px}
+.song-source-status-list{display:flex;gap:7px;flex-wrap:wrap}
+.source-result-status{display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border-radius:8px;border:1px solid #dddcd4;background:#fff;color:#39443d;font-size:10px;line-height:1.35}
+.source-result-status strong{font-size:10px}
+.source-result-status.ok{border-color:#b9d6c1;background:#f0f8f1}
+.source-result-status.no-results{border-color:#d8d5cb;background:#f8f7f2}
+.source-result-status.unavailable{border-color:#e4c9c4;background:#fff5f2;color:#774b44}
+.gp-official-links{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:10px}
+.gp-official-links a{font-size:12px;font-weight:750;color:#365f4b;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.gp-notice{padding:13px 15px;margin:14px 0 0;border:1px solid var(--line,#e4e5dd);border-radius:12px;background:#f7f8f3;color:var(--ink,#25392f);font-size:12px;line-height:1.6}
+.gp-notice>strong{display:block;font-size:12px;margin-bottom:5px}
+.gp-notice p{margin:5px 0;color:#505a53}
+.gp-warning{margin:12px 0 0;padding:11px 13px;border-left:3px solid #b87a3d;background:#fff8ed;color:#6b4929;font-size:12px;line-height:1.55}
+.gp-requirement-done{border-color:#b8d8c1!important;background:#f0f8f1!important}
+.gp-requirement-done>strong{color:#2e6345!important}
+.gp-requirements>div .gp-check{margin-top:7px;padding:7px 0 0;border-top:1px solid rgba(60,80,60,.12);border-bottom:0;font-weight:700}
+.gp-repertoire-count{font-size:12px;color:var(--muted,#686d65);margin:12px 0}
+.gp-good{font-weight:800;color:#276443}
+.gp-repertoire-item{align-items:flex-start;flex-wrap:wrap;gap:12px;margin-top:5px}
+.gp-repertoire-main{display:flex;flex:1 1 280px;min-width:0;flex-direction:column;gap:6px}
+.gp-repertoire-main>strong{font-size:13px;line-height:1.45;overflow-wrap:anywhere}
+.gp-repertoire-main>small{font-size:11px;color:var(--muted,#686d65);line-height:1.45;overflow-wrap:anywhere}
+.gp-piece-progress{font-size:11px;color:#46554b;line-height:1.5}
+.gp-file-change{display:flex;flex-direction:column;gap:6px;margin-top:4px;font-size:11px;font-weight:700;color:#4b5c50}
+.gp-file-change input{display:block;max-width:100%;font-size:11px}
+.gp-repertoire-actions{margin-top:0!important;gap:7px;flex-wrap:wrap}
+.gp-repertoire-actions .btn{white-space:normal;line-height:1.35}
+.gp-stat strong{font-variant-numeric:tabular-nums}
+button:disabled{opacity:.58;cursor:not-allowed}
+.score-source-links a{line-height:1.45;min-height:42px}
+@media(max-width:700px){
+ .library-playback-controls{width:100%}
+ .search-result-item{align-items:flex-start}
+ .search-result-copy{flex-basis:100%;min-width:0}
+ .search-result-audio{max-width:100%;min-width:0;flex-basis:100%}
+ .song-source-status-list{display:grid;grid-template-columns:1fr}
+ .gp-official-links{align-items:flex-start;flex-direction:column}
+ .gp-repertoire-actions{width:100%}
+ .gp-repertoire-actions .btn{flex:1 1 130px}
+}
