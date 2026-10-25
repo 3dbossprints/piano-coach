@@ -1230,3 +1230,48 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 /* Falling notes are tied to the current phrase and must not loop after completion. */
 .falling-note { animation-name: learn-note-drop; animation-timing-function: linear; animation-iteration-count: 1; animation-fill-mode: both; will-change: transform, opacity; }
 .falling-note-field { min-width: 0; }
+
+/* Responsive keyboard: distribute the selected octaves across the whole usable panel. */
+#extras-keyboard .piano-scroll { width:100%; max-width:100%; overflow-x:hidden!important; }
+#extras-keyboard .piano-scroll > .piano {
+  display:flex;
+  position:relative;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%;
+  height:164px;
+  margin:0;
+}
+#extras-keyboard .piano-scroll > .piano .white-key {
+  position:relative;
+  flex:0 0 var(--keyboard-white-key-width)!important;
+  width:var(--keyboard-white-key-width)!important;
+  min-width:0!important;
+  max-width:var(--keyboard-white-key-width)!important;
+  padding:0 1px;
+  border-radius:0 0 5px 5px;
+}
+#extras-keyboard .piano-scroll > .piano .white-key span {
+  position:absolute;
+  left:0;right:0;bottom:7px;
+  display:block;
+  white-space:nowrap;
+  font-size:clamp(7px, .7vw, 10px);
+  line-height:1;
+  pointer-events:none;
+}
+#extras-keyboard .piano-scroll > .piano .black-key {
+  position:absolute;
+  z-index:2;
+  top:0;
+  height:94px;
+  min-width:0;
+  padding:0;
+  border-radius:0 0 4px 4px;
+  font-size:9px;
+}
+@media(max-width:700px) {
+  #extras-keyboard .piano-scroll { overflow-x:hidden!important; }
+  #extras-keyboard .piano-scroll > .piano { height:150px; }
+  #extras-keyboard .piano-scroll > .piano .black-key { height:80px; }
+}
