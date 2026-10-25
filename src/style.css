@@ -785,3 +785,122 @@ html{scroll-behavior:smooth;scroll-padding-top:22px}
 .musiccoach-converter>.converter-actions+.eyebrow{margin-top:0}
 .extras-toolbar{margin-top:22px;padding-top:17px;border-top:1px solid var(--line);gap:10px}
 @media(max-width:700px){.musiccoach-converter>.converter-actions{margin-bottom:24px;padding:11px}.extras-toolbar{margin-top:18px;padding-top:14px}}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Keynote-inspired editorial redesign — warm paper, forest, and coral.
+   Appended intentionally so the existing application layout and behaviours
+   remain intact while the visual system is refreshed.
+   ────────────────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap');
+:root{
+  font-family:'DM Sans',system-ui,sans-serif;
+  color:#293832;
+  --ink:#293832;
+  --muted:#858d86;
+  --green:#263831;
+  --mint:#dce8df;
+  --line:#eee9e1;
+  --paper:#faf9f5;
+  --card:#fff;
+  --coral:#f2765d;
+  --radius:19px;
+  --surface-soft:#fffaf5;
+}
+body{background:var(--paper);color:var(--ink)}
+.shell{grid-template-columns:272px minmax(0,1fr);background:var(--paper)}
+.sidebar{background:#faf9f5;border-right:1px solid #f0ece5;padding:24px 20px 18px;gap:9px}
+.brand{padding:0 0 34px 2px;font:700 23px 'DM Serif Display',Georgia,serif;letter-spacing:-.45px;color:#293832}
+.brand img{width:42px;height:42px;border-radius:14px;background:var(--coral);padding:7px;filter:none}
+.brand small{font:500 11px 'DM Sans',sans-serif;letter-spacing:0;color:#8a938b}
+.nav-label,.eyebrow{font-size:10px;letter-spacing:1.2px;color:#8b938b}
+.nav-item{border-radius:15px;padding:14px 13px;gap:12px;color:#858d86;font-weight:600;transition:background .18s,color .18s}
+.nav-item span{font-size:18px}
+.nav-item:hover{background:#f0ece4;color:#293832}
+.nav-item.active{background:#eee9df;color:#293832}
+.sidebar-note{background:#fffaf5;border-color:#f0e5da;border-radius:17px}
+.corner-brand{color:#9a9d96}
+.main{max-width:1660px;padding:30px clamp(22px,3vw,52px) 24px}
+.topbar{margin-bottom:30px;align-items:flex-end}
+.topbar h1{font:400 clamp(34px,3.3vw,52px)/1.08 'DM Serif Display',Georgia,serif;letter-spacing:-1.7px;color:#293832;margin:9px 0 0}
+.topbar .eyebrow{color:var(--coral);font-size:13px;letter-spacing:.1px;font-weight:500}
+.status-chip{border:0;background:#fff7f1;padding:10px 15px;color:#8c6c59;font-size:12px}
+.status-chip i{background:var(--coral)}
+.panel{border:1px solid #f0ebe3;border-radius:20px;box-shadow:none;padding:25px;background:#fff}
+.panel h2{font:400 27px/1.2 'DM Serif Display',Georgia,serif;letter-spacing:-.4px;color:#293832}
+.panel h3{font:700 15px 'DM Sans',sans-serif;letter-spacing:-.2px}
+.muted{color:#89918a}
+.btn{border:1px solid #eee5db;background:#fff;color:#34443b;border-radius:999px;padding:11px 17px;min-height:42px;font-size:12px;font-weight:600;box-shadow:none}
+.btn-dark{background:var(--coral);border-color:var(--coral);color:#fff}
+.btn-dark:hover:not(:disabled){background:#e96850;border-color:#e96850;box-shadow:0 5px 16px #f2765d25}
+.btn-tint{background:#f9e6df;border-color:#f4d5cb;color:#a54f3c}
+.btn-danger{background:#fff7f4;border-color:#f5d9d0;color:#bc5d4b}
+.btn-quiet{color:#89918a}
+input,select,textarea{accent-color:var(--coral)}
+.sequence-label input,.search-input,.tutor-form input,.composer-hand textarea{border-color:#eee7de;background:#fdfcf9;border-radius:12px}
+.sequence-label input:focus,.search-input:focus{border-color:#f2a18f;box-shadow:0 0 0 3px #f2765d18}
+.upload-score{border-color:#f1d8cd;background:#fffaf6;border-radius:17px}
+.upload-score:hover{border-color:var(--coral);background:#fff7f1}
+.upload-score input[type=file]{border-color:#f0e4da;background:white}
+.upload-score input[type=file]::file-selector-button{background:var(--coral)}
+input[type=file]:focus-visible,button:focus-visible{outline-color:#f3a18f}
+.tag{background:#f3f0ea;color:#777f77;border-radius:999px;font-size:9px;letter-spacing:.45px}
+.tag-live{background:#e4eee6;color:#416d52}
+.count,.note-dot,.music-icon{background:#e2ece4;color:#456a53}
+.staff-wrap{background:#fffdf9;border-color:#f0ebe4;border-radius:15px}
+.welcome{background:var(--green);color:#fff;border:0;border-radius:20px;padding:clamp(28px,4vw,48px);min-height:280px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.welcome:after{content:'';position:absolute;width:300px;height:300px;border:1px solid #ffffff12;border-radius:50%;right:-60px;top:-120px;pointer-events:none}
+.welcome>div:first-child{position:relative;z-index:1;max-width:600px}
+.welcome .tag{background:#ffffff19;color:#f4b2a0}
+.welcome h2{font:400 clamp(36px,3.7vw,52px)/1.08 'DM Serif Display',Georgia,serif;letter-spacing:-.6px;color:#fff;margin:18px 0 13px;max-width:500px}
+.welcome .muted{color:#b8c1ba;font-size:14px;max-width:450px}
+.welcome-mark{width:140px;height:140px;flex:0 0 140px;border-radius:50%;display:grid;place-items:center;color:#f7a18e;font-size:78px;background:#ffffff08;border:1px solid #ffffff12}
+.streak-card{background:#fff;border:1px solid #f0ebe3;border-radius:20px;padding:22px 25px;gap:18px}
+.streak-flame{background:#fff5ef;color:var(--coral);border-radius:15px}
+.streak-copy h2{font:400 26px 'DM Serif Display',Georgia,serif;letter-spacing:-.4px}
+.streak-week .streak-day.done{background:#dce8df;color:#456b52}
+.learn-launch-card{border:1px solid #f0e8de;background:#fffaf5;border-radius:20px;padding:22px 25px}
+.learn-launch-icon{background:#f9e0d7;color:var(--coral);border-radius:15px}
+.learn-launch-copy h2{font:400 26px 'DM Serif Display',Georgia,serif;letter-spacing:-.35px}
+.dashboard-overview{gap:18px}
+.stat-card,.dashboard-sessions,.sheet-music-workspace{border:1px solid #f0ebe3;border-radius:19px;background:#fff;box-shadow:none}
+.stat-card{padding:20px}
+.stat-card strong{color:#293832}
+.song-art{border-radius:14px;background:#eee4d7}
+.musiccoach-converter>.converter-actions{border-color:#f0e4da;background:#fffaf5;box-shadow:none;border-radius:16px}
+.converter-actions .btn-dark{background:var(--coral);border-color:var(--coral)}
+.practice-mode-picker,.composer-record-controls{background:#fffaf5;border-color:#f0e8de;border-radius:16px}
+.piano-scroll{scrollbar-color:#eadfd5 transparent}
+.white-key{background:linear-gradient(180deg,#fff 0%,#fdfbf7 80%,#eee8de 100%);border-color:#d9d0c4}
+.white-key:hover,.white-key:active{background:#f8dfd7}
+.black-key{background:linear-gradient(110deg,#35483e,#1e2c25);border-color:#1e2c25}
+.notes-panel .analysis-summary,.tutor-answer{background:#fffaf5;border-color:#f0e8de;border-radius:14px}
+.app-footer{color:#969d95}
+.cookie-dialog{border:1px solid #f0e8de;border-radius:22px}
+@media(max-width:980px){
+ .shell{grid-template-columns:224px minmax(0,1fr)}
+ .sidebar{padding:20px 14px}
+ .main{padding:24px 20px}
+}
+@media(max-width:700px){
+ .shell{grid-template-columns:minmax(0,1fr)}
+ .sidebar{position:relative;top:auto;width:100%;height:auto;padding:12px 14px 10px;border-right:0;border-bottom:1px solid #f0ece5;display:block}
+ .brand{padding:0 4px 12px;font-size:20px}
+ .brand img{width:36px;height:36px}
+ .sidebar .nav-label,.sidebar-note,.corner-brand{display:none}
+ .sidebar nav,.sidebar .sidebar-nav{display:flex;gap:5px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+ .sidebar nav::-webkit-scrollbar,.sidebar .sidebar-nav::-webkit-scrollbar{display:none}
+ .nav-item{flex:0 0 auto;padding:10px 12px;font-size:12px;white-space:nowrap}
+ .main{padding:22px 14px 18px}
+ .topbar{align-items:flex-start;margin-bottom:20px}
+ .topbar h1{font-size:35px}
+ .top-actions{flex-wrap:wrap;justify-content:flex-end}
+ .welcome{padding:25px 22px;min-height:250px}
+ .welcome-mark{width:72px;height:72px;flex-basis:72px;font-size:42px}
+ .welcome h2{font-size:36px}
+ .panel{padding:18px;border-radius:17px}
+ .streak-card{padding:18px;grid-template-columns:auto minmax(0,1fr)}
+ .streak-cta{grid-column:1/-1;width:100%}
+ .learn-launch-card{padding:18px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
