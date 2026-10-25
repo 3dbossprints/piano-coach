@@ -1,57 +1,51 @@
 # Piano Coach
 
-A mobile-friendly piano practice companion.
+A local-first piano practice and sheet-music workspace.
 
 ## Features
-- Set a target grade and a 6-, 9-, or 12-month learning horizon
-- Customise weekly practice frequency, session length, target grade, and practice focus
-- A short daily checklist and focus timer that follows your session goal
-- Weekly practice-day/minute totals and a recent 14-day session history
-- Progress, practice history, reflections, and uploaded scores saved locally with IndexedDB (localStorage fallback)
-- An audible Web Audio mini keyboard plus experimental live spectral pitch-group estimation across A0–C8
 
-## Run locally
-Use Node.js 20+ and run:
+- Practice sessions, target grades, weekly goals, history and reflections.
+- A virtual piano keyboard with selectable starting note and 2–5 octave viewing range.
+- Experimental microphone pitch tracking for played notes and practice feedback.
+- Sheet Music collection for saved scores, PDFs, images, MusicXML and native `.musiccoach` files.
+- On-device HOMR optical music recognition (OMR) for supported PDF and image scores. Recognition is best-effort; compare every result with the original.
+- MusicXML/XML parsing into editable score data, score preview, and `.musiccoach` export.
+- A composition canvas and notation tools for drafting notes, rests and common markings.
+- A local music assistant that runs in the browser without an OpenAI API key.
+- `.musicdata` export/import for backing up and restoring saved sessions, score files, composer state, preferences and grade-plan data.
+
+## Local development
+
+Use Node.js 20+:
 
 ```sh
 npm install
 npm run dev
 ```
 
-The first start downloads the HOMR optical music recognition source and three model checkpoints (about 157 MB total) into generated local assets. Later starts reuse those files. Open the local Vite URL printed in the terminal; use current Chrome or Edge (137+) for the OMR engine's WebAssembly JSPI support.
+The development start/build preparation downloads the HOMR source and three model checkpoints (about 157 MB total) into generated local assets. Later starts reuse those files. Open the Vite URL printed by the terminal. Browser-based OMR currently relies on WebAssembly JSPI support; use a current Chrome or Edge release (137+).
 
 ## Deploy to Vercel
+
 1. Import this repository at https://vercel.com/new.
 2. Keep the repository root as the project root.
-3. Use `npm install` for install and `npm run build` for the build command; the output directory is `dist`. The included `vercel.json` sets these automatically.
-4. The build downloads the OMR engine and model assets and includes them as static files. No Vercel Function or separate recognition server is used.
+3. Use `npm install` for installation and `npm run build` as the build command. The output directory is `dist`; `vercel.json` sets these automatically.
+4. The build downloads the OMR engine and model assets and includes them as static files. Recognition runs on the device; no separate recognition server is used.
 
-The first scan downloads the models to the browser cache (about 157 MB). Score pages are processed on-device. Recognition quality still depends on scan quality and engraving; inspect the resulting score before relying on it.
+The first OMR run downloads roughly 157 MB of model files to the browser cache. Multi-page PDFs can take time and require memory. Keep the original score and review all converted notation before practising or exporting.
+
+## Local music assistant
+
+The assistant uses Transformers.js with a quantized Llama 3.2 1B Instruct model in the browser. It tries WebGPU when available and has a compatible WASM fallback. It does not need an OpenAI API key for chat. Model weights download on first use and may require substantial memory; on constrained devices the model can fail to load or run.
 
 ## Important limitations
-This is an early prototype. The live pitch detector estimates multiple spectral peaks and groups them as chord-like events, then can compare those groups with an entered target sequence. It is still a spectrum-based prototype rather than a trained polyphonic transcription model; piano overtones may be mistaken for notes, and it does not reliably score timing, rhythm, fingering, dynamics, or exam readiness. Progress is stored in the current browser only; it is not synchronised between devices. Grade syllabuses vary by exam board, so confirm exam requirements with your chosen board and teacher.
 
+This is an evolving application. OMR may misread noteheads, pitches, accidentals, rhythm, rests, ties, multiple voices or technical markings—especially in low-quality photographs and complex engraving. Recognition confidence is not a guarantee of correctness. Use the original and generated score side by side, correct errors, and keep backups.
 
-## Local AI piano tutor (experimental)
+The live microphone detector is experimental: piano overtones may be mistaken for notes and it does not reliably provide full-piece alignment, rhythm scoring, fingering or exam readiness. MusicXML is structurally parsed, but unusual or unsupported notation should still be reviewed.
 
-The conversational tutor uses a quantized Llama 3.2 1B Instruct model through WebLLM and WebGPU in the browser. It does not use an OpenAI API key or send chat prompts to an AI inference API. The first use downloads model files (roughly 1 GB, depending on the model build) from the model CDN; subsequent use may reuse the browser cache. A modern browser with WebGPU support and sufficient free memory is required. This can be slow or unavailable on older devices or browsers without WebGPU.
+Practice data is stored in the current browser and is not automatically synchronised between devices. Use the download/upload arrows in the sidebar to export and restore a `.musicdata` backup. Store that backup somewhere outside the browser; clearing site data does not delete an independently saved backup.
 
-The microphone's speech-to-text feature depends on browser support and may use a browser speech-recognition service. The tutor defaults to the Kokoro neural voice worker for spoken replies, with device speech as a fallback. The tutor is text-only with respect to piano playing: it does not yet analyse live performance audio or interpret uploaded score images.
+## Sheet-music search
 
-The separate optional AI practice-feedback feature may still use an OpenAI-key workflow. Its offline note comparison works without a key.
-
-
-## On-device tutor, speech and playing feedback
-
-The conversational tutor uses a quantized Llama 3.2 1B model through WebLLM/WebGPU. It does not require an OpenAI key for chat. A compatible browser and GPU are required, and the first model download is large. The same generated answer is shown as text and spoken aloud using browser speech synthesis.
-
-The speech controls let you choose the natural Kokoro neural voice or an installed browser/operating-system voice and adjust speed. The Kokoro speech model is downloaded on first use; actual audio playback depends on browser support and successful model loading. The tutor uses the same generated answer for text and speech.
-
-For playing feedback, the tutor can use recent grouped pitch estimates and compare them with an expected sequence. MusicXML extraction keeps chord tones together when the file encodes them as simultaneous notes. The live detector is experimental and can confuse harmonics with real notes; it does not yet provide reliable full-piece alignment or score timing, dynamics, fingering, or tone quality.
-
-PDF and image scores remain stored locally and are not automatically interpreted. MusicXML files can be parsed locally into a basic note sequence from the first part; chord tones and rests are skipped, so verify the extracted sequence before using it. Full optical music recognition for scanned pages and robust live piano audio transcription are not yet implemented.
-
-
-## Sheet music search
-
-The Sheet Music Library page previews results from the Internet Archive and Wikimedia Commons when their public search feeds are available in the browser. It also provides direct searches for IMSLP and Mutopia and licensed services such as Scribd, Musicnotes, and Sheet Music Plus. These services host their own content; check the edition, access terms, and copyright/licence for your location. Search previews may be unavailable if a service or browser blocks cross-origin requests.
+The Sheet Music page combines your own saved-score collection with external catalogue/search links. External services host their own content; check the edition, access terms and copyright/licence for your location. Search previews may be unavailable if a service or browser blocks cross-origin requests.
