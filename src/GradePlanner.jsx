@@ -26,7 +26,7 @@ function requirementsFor(plan) {
   const g = gradeNumber(plan.target);
   if (plan.board === 'ABRSM' && plan.route === 'Performance Grades') {
     return [
-      { id: 'set-pieces', title: 'Three set pieces', detail: 'Choose three pieces from the same ABRSM syllabus; for the grade, check the syllabus lists and any list-selection rules.' },
+      { id: 'set-pieces', title: 'Three set pieces', detail: 'For grades using Lists A/B/C, choose one set piece from each list and keep all three in the same syllabus edition.' },
       { id: 'own-choice', title: 'One own-choice piece', detail: 'Prepare a fourth piece of your own choice at an appropriate standard.' },
       { id: 'recording', title: 'Recorded performance', detail: 'Check the current Performance Grades guidance for camera framing, audio, submission and performance requirements.' },
       { id: 'syllabus-version', title: 'One consistent syllabus edition', detail: 'Keep all three set pieces within the same syllabus year; the own-choice piece is separate.' }
@@ -83,8 +83,8 @@ function repertoireCategories(plan) {
     ];
     return [{ value: 'List A', label: 'List A' }, { value: 'List B', label: 'List B' }, { value: 'List C', label: 'List C' }];
   }
-  if (g >= 6) return [{ value: 'Group A', label: 'Group A' }, { value: 'Group B', label: 'Group B' }, { value: 'Other', label: 'Other / third choice' }, ...(plan.route === 'Trinity Digital — Repertoire-only' ? [{ value: 'Own choice', label: 'Own composition / other' }] : [])];
-  return [{ value: 'Repertoire list', label: 'Repertoire list' }, { value: 'Own choice', label: 'Own composition / other' }];
+  if (g >= 6) return [{ value: 'Group A', label: 'Group A' }, { value: 'Group B', label: 'Group B' }, { value: 'Other', label: 'Other / third choice' }, ...(plan.route === 'Trinity Digital — Repertoire-only' ? [{ value: 'Own choice', label: 'Own composition' }] : [])];
+  return [{ value: 'Repertoire list', label: 'Repertoire list' }, { value: 'Own choice', label: 'Own composition' }];
 }
 
 function loadPlan() {
