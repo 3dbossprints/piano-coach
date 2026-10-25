@@ -991,3 +991,10 @@ input[type=file]:focus-visible,button:focus-visible{outline-color:#f3a18f}
 .musiccoach-converter .musiccoach-progress span{display:block;min-height:6px;border-radius:999px}
 .musiccoach-converter .tutor-answer{overflow-wrap:anywhere}
 @media(max-width:900px){.score-review-grid{grid-template-columns:minmax(0,1fr)}.score-review-card .score-preview iframe{height:60vh;min-height:320px}}
+
+.musicxml-preview{min-width:0;max-width:100%}
+.musicxml-rendered{min-width:0;max-width:100%;overflow:auto hidden;overscroll-behavior-x:contain;border-radius:10px;background:#fff}
+.musicxml-rendered svg{display:block;max-width:none;height:auto}
+.score-review-card .musicxml-preview>p{margin:0 0 10px}
+.score-review-card .musicxml-rendered{max-height:72vh;overflow:auto}
+@media(max-width:600px){.score-review-card{padding:10px}.score-review-card .score-preview iframe{min-height:280px}.score-review-card .musicxml-rendered{max-height:60vh}}
