@@ -61,13 +61,18 @@ function requirementsFor(plan) {
       { id: 'recording', title: 'Digital submission', detail: 'Check current requirements for video, audio, framing, programme order and submission.' }
     ];
   }
-  const items = [
-    { id: 'pieces', title: 'Three repertoire pieces', detail: g >= 6 ? 'At Grades 6–8, select at least one piece from each required group in the current Trinity face-to-face syllabus.' : 'Choose three pieces according to the current Trinity face-to-face repertoire rules for this grade.' },
-    { id: 'technical', title: 'Technical work', detail: 'Check the exact grade-specific scales, arpeggios and/or technical exercises in the official syllabus.' },
-    { id: 'supporting', title: 'Supporting tests', detail: 'Prepare the current grade’s supporting tests, including sight-reading and aural/music-awareness work where specified.' },
-    { id: 'performance', title: 'Performance criteria', detail: 'Practise fluency, accuracy, pulse, style, musical communication and a confident exam presentation.' }
+  if (plan.route === 'Trinity Face-to-face') {
+    return [
+      { id: 'pieces', title: 'Three repertoire pieces', detail: g >= 6 ? 'Choose three current-listed pieces, including at least one from each required group (A and B) at Grades 6–8.' : 'Choose three pieces from the current Trinity Piano repertoire list for this grade.' },
+      { id: 'technical', title: 'Technical work', detail: 'Prepare the grade-specific scales/arpeggios or permitted technical exercises exactly as stated in the current Trinity syllabus.' },
+      { id: 'supporting', title: 'Two supporting tests', detail: g >= 6 ? 'Sight-reading is compulsory at Grades 6–8; choose either aural or improvisation as the second supporting test.' : 'At Initial–Grade 5, choose any two of sight-reading, aural, improvisation or musical knowledge, as allowed for this grade.' }
+    ];
+  }
+  return [
+    { id: 'pieces', title: 'Three repertoire pieces', detail: g >= 6 ? 'Select three current-listed pieces, including at least one from each required group (A and B) at Grades 6–8.' : 'Choose three pieces from the current Trinity Piano repertoire list for this grade.' },
+    { id: 'technical', title: 'Technical work', detail: 'Use the exact grade-specific technical-work options in the current Trinity digital syllabus.' },
+    { id: 'performance', title: 'Overall Performance criteria', detail: 'The Digital Technical Work pathway also assesses overall performance: fluency, accuracy, pulse, style and musical communication across the complete programme.' }
   ];
-  return items;
 }
 
 function repertoireCategories(plan) {
