@@ -1184,3 +1184,45 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   .source-result .btn { white-space: normal; }
   .gp-practice-meta { flex-direction: column; }
 }
+
+
+/* Keep long score-detection dumps from swallowing the converter page. */
+.musiccoach-notes {
+  max-height: 240px;
+  overflow: auto;
+  align-content: flex-start;
+  padding: 10px;
+  border: 1px solid #e5dced;
+  border-radius: 13px;
+  background: rgba(250,248,253,.9);
+  overscroll-behavior: contain;
+}
+.musiccoach-notes span {
+  min-width: 42px;
+  text-align: center;
+  padding: 7px 9px;
+  color: #403650;
+  background: #fff;
+  border-color: #dfd5eb;
+  font-size: 12px;
+}
+.musicxml-preview { min-width: 0; }
+.musicxml-rendered {
+  width: 100%;
+  max-width: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.musicxml-rendered svg {
+  display: block;
+  width: auto !important;
+  min-width: 820px;
+  max-width: none !important;
+  height: auto;
+}
+.score-review-card .musicxml-rendered { max-width: 100%; overflow: auto; }
+@media(max-width:700px) {
+  .musiccoach-notes { max-height: 190px; gap: 6px; }
+  .musicxml-rendered svg { min-width: 760px; }
+}
