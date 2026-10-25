@@ -524,7 +524,7 @@ async function convertScoreToMusicCoach(file,options={}){
   if(!loadedScoreNotes?.length){let cursor=0;return targets.map((n,i)=>{const ev={...n,_start:cursor,_index:i,beats:Number(n.beats)||1,rest:!!n.rest,midi:n.midi??(n.rest?null:noteToMidi(n.note))};cursor+=ev.beats;return ev})}
   const source=loadedScoreNotes.slice();
   let selected=source;
-  if(source.some(n=>Number(n.staff)===1))selected=source.filter(n=>Number(n.staff)===1);
+  if(source.some(n=>Number(n.staff)===1)){const firstStaffPart=source.filter(n=>Number(n.staff)===1&&n.part!=null).reduce((min,n)=>Math.min(min,Number(n.part)),Infinity);selected=source.filter(n=>Number(n.staff)===1&&(Number.isFinite(firstStaffPart)?(n.part==null||Number(n.part)===firstStaffPart):true));}
   else if(source.some(n=>n.hand==='right'))selected=source.filter(n=>n.hand==='right');
   else if(source.some(n=>Number(n.part)===1))selected=source.filter(n=>Number(n.part)===1);
   const measures=selected.map(n=>n.measure==null?NaN:Number(n.measure)).filter(Number.isFinite),firstMeasure=measures.length?Math.min(...measures):1;
@@ -688,7 +688,7 @@ function getLearnPhrase(){const meter=String(timeSignature||'4/4').split('/').ma
   const meter=String(timeSignature||'4/4').split('/').map(Number),goal=Math.max(.5,(meter[0]||4)*4/(meter[1]||4))*2,offset=learnPhraseOffsetRef.current;
   const all=getLearnEvents().filter(n=>!n.rest&&n.midi!==null),phrase=all.filter(n=>n._start>=offset-0.0001&&n._start<offset+goal-0.0001),position=offset+learnProgressRef.current;
   const expectedEvent=phrase.find(n=>n._start>=position-0.0001)||phrase[0];
-  if(!expectedEvent){setLearnMessage('No more playable notes in this phrase. Finish the lesson or load a score.');return}
+  if(!expectedEvent){const hasLater=all.some(n=>n._start>=offset+goal-0.0001);if(hasLater){learnPhraseOffsetRef.current=offset+goal;learnProgressRef.current=0;setLearnPhraseOffset(offset+goal);setLearnBarProgress(0);setLearnMessage('This phrase has no playable notes in the selected melody line. Moving to the next phrase…');setTimeout(()=>playLearnPhrase(),400)}else{setLearnMessage('There are no more playable notes in this score line. Finish the lesson to save your practice.')}return}
   if(expectedEvent.midi===midi){
     const nextEvent=phrase.find(n=>n._start>expectedEvent._start+0.0001);
     if(nextEvent){const next=Math.max(0,nextEvent._start-offset);learnProgressRef.current=next;setLearnBarProgress(Math.min(goal,next));setLearnMessage('Correct — '+note+'. Keep going.');setStatus('Learn mode · correct '+note);return}
