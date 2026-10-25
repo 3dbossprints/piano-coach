@@ -998,3 +998,52 @@ input[type=file]:focus-visible,button:focus-visible{outline-color:#f3a18f}
 .score-review-card .musicxml-preview>p{margin:0 0 10px}
 .score-review-card .musicxml-rendered{max-height:72vh;overflow:auto}
 @media(max-width:600px){.score-review-card{padding:10px}.score-review-card .score-preview iframe{min-height:280px}.score-review-card .musicxml-rendered{max-height:60vh}}
+
+
+/* Final responsive reliability fixes: controls remain available on phones and
+   content is prevented from widening cards beyond the viewport. */
+img,iframe,video{max-width:100%}
+.main,.panel,.sheet-music-workspace,.dashboard-overview,.score-review-grid,.score-review-card{min-width:0;max-width:100%}
+.score-preview{max-width:100%;min-width:0;overflow:hidden;border-radius:14px}
+.score-preview img{display:block;width:auto;max-width:100%;max-height:72vh;height:auto;object-fit:contain;margin:0 auto}
+.score-preview iframe{display:block;max-width:100%;background:#fff}
+.musiccoach-notes{display:flex;flex-wrap:wrap;gap:7px}
+.musiccoach-notes span{max-width:100%;overflow-wrap:anywhere}
+.brand img.brand-logo-mark{width:42px;height:42px;display:block;object-fit:contain;background:transparent!important;border:0!important;border-radius:0!important;padding:0!important;box-shadow:none!important;filter:none!important}
+.topbar{min-width:0}
+.topbar>div:first-child{min-width:0}
+.topbar h1{overflow-wrap:anywhere}
+.composer-tool-palette{min-width:0}
+.composer-tool{max-width:100%;white-space:normal;text-align:left}
+.composer-staff-canvas{width:100%;min-width:0}
+@media(max-width:700px){
+  .sidebar{position:relative!important}
+  .sidebar .brand{padding-right:104px!important}
+  .sidebar .brand small{display:none!important}
+  .sidebar .brand img.brand-logo-mark{width:34px!important;height:34px!important}
+  .sidebar-tools{display:flex!important;position:absolute!important;top:14px!important;right:12px!important;margin:0!important;padding:0!important;gap:5px!important}
+  .sidebar-tools button{width:30px!important;height:30px!important;min-width:30px!important;padding:5px!important;border-radius:9px!important}
+  .sidebar-tools button svg{width:16px!important;height:16px!important}
+  .sidebar>.brand{flex:0 0 100%!important}
+  .sidebar>.nav-item{max-width:100%;flex:0 0 auto}
+  .main{width:100%;overflow-x:clip}
+  .topbar{flex-wrap:wrap;gap:12px}
+  .top-actions{width:100%;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}
+  .piano-scroll{width:100%!important;max-width:100%!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch!important}
+  .piano{min-width:0!important;width:max-content!important}
+  .white-key{flex:0 0 23.5px!important}
+  .composer-staff-canvas{height:190px}
+  .score-preview img{max-height:58vh}
+}
+@media(max-width:390px){
+  .sidebar .brand{font-size:19px!important;padding-right:102px!important}
+  .sidebar .brand img.brand-logo-mark{width:30px!important;height:30px!important}
+  .sidebar-tools{right:8px!important;gap:4px!important}
+  .sidebar-tools button{width:28px!important;height:28px!important;min-width:28px!important}
+  .topbar h1{font-size:31px!important}
+  .status-chip{white-space:normal;overflow-wrap:anywhere;max-width:100%}
+  .top-actions .btn{white-space:nowrap}
+  .keyboard-range-controls{align-items:stretch}
+  .keyboard-range-controls .btn{flex:0 0 auto}
+  .keyboard-range-controls label{min-width:0}
+}
