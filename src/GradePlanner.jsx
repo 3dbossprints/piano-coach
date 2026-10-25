@@ -83,8 +83,49 @@ function repertoireCategories(plan) {
     ];
     return [{ value: 'List A', label: 'List A' }, { value: 'List B', label: 'List B' }, { value: 'List C', label: 'List C' }];
   }
-  if (g >= 6) return [{ value: 'Group A', label: 'Group A' }, { value: 'Group B', label: 'Group B' }, { value: 'Other', label: 'Other / third choice' }, ...(plan.route === 'Trinity Digital — Repertoire-only' ? [{ value: 'Own choice', label: 'Own composition' }] : [])];
-  return [{ value: 'Repertoire list', label: 'Repertoire list' }, { value: 'Own choice', label: 'Own composition' }];
+  if (g >= 6) return [
+    { value: 'Group A', label: 'Group A' },
+    { value: 'Group B', label: 'Group B' },
+    { value: 'Own composition', label: 'Own composition (substitutes for one listed piece)' }
+  ];
+  return [
+    { value: 'Repertoire list', label: 'Repertoire list' },
+    { value: 'Own composition', label: 'Own composition (substitutes for one listed piece)' }
+  ];
+}
+function repertoireSelection(plan, piecesTarget) {
+  const counts = plan.pieces.reduce((result, piece) => {
+    result[piece.category] = (result[piece.category] || 0) + 1;
+    return result;
+  }, {});
+  const g = gradeNumber(plan.target);
+  const ownCompositionCount = counts['Own composition'] || 0;
+  const missing = [];
+  let valid = plan.pieces.length >= piecesTarget && ownCompositionCount <= 1;
+  if (plan.board === 'ABRSM') {
+    const required = ['List A', 'List B', 'List C'];
+    required.forEach(category => { if ((counts[category] || 0) < 1) missing.push(category); });
+    if (required.some(category => (counts[category] || 0) > 1)) {
+      valid = false;
+      missing.push('remove duplicate ABRSM list selections');
+    }
+    if (plan.route === 'Performance Grades' && (counts['Own choice'] || 0) < 1) missing.push('own-choice piece');
+    if (plan.route === 'Performance Grades' && (counts['Own choice'] || 0) > 1) {
+      valid = false;
+      missing.push('only one own-choice piece');
+    }
+    valid = valid && missing.length === 0;
+  } else if (g >= 6) {
+    if (!(counts['Group A'] || 0)) missing.push('Group A');
+    if (!(counts['Group B'] || 0)) missing.push('Group B');
+    valid = valid && missing.length === 0;
+  } else {
+    const unknownCategory = plan.pieces.some(piece => !['Repertoire list', 'Own composition'].includes(piece.category));
+    if (unknownCategory) { valid = false; missing.push('re-categorise pieces for the selected Trinity grade'); }
+  }
+  if (ownCompositionCount > 1) { valid = false; missing.push('only one own composition'); }
+  if (plan.pieces.length < piecesTarget) missing.push((piecesTarget - plan.pieces.length) + ' more piece(s)');
+  return { valid, missing, counts };
 }
 
 function loadPlan() {
@@ -116,6 +157,7 @@ export default function GradePlanner({ onPracticePiece = () => {}, sessions = []
   const requirements = useMemo(() => requirementsFor(plan), [plan.board, plan.route, plan.target]);
   const categories = useMemo(() => repertoireCategories(plan), [plan.board, plan.route, plan.target]);
   const piecesTarget = plan.board === 'ABRSM' && plan.route === 'Performance Grades' ? 4 : (plan.board === 'Trinity' && plan.route === 'Trinity Digital — Repertoire-only' ? 4 : 3);
+  const repertoireStatus = useMemo(() => repertoireSelection(plan, piecesTarget), [plan.pieces, plan.board, plan.route, plan.target, piecesTarget]);
   const deadlineDays = plan.targetDate ? Math.max(0, Math.ceil((new Date(plan.targetDate + 'T23:59:59').getTime() - Date.now()) / 86400000)) : null;
   const weeksRemaining = deadlineDays === null ? 12 : Math.max(1, Math.ceil(deadlineDays / 7));
   const expectedHours = Math.max(0, number(plan.weeklyHours) * weeksRemaining);
@@ -127,7 +169,8 @@ export default function GradePlanner({ onPracticePiece = () => {}, sessions = []
   const mocks = Array.isArray(plan.mockScores) ? plan.mockScores : [];
   const averageMock = mocks.length ? Math.round(mocks.reduce((sum, item) => sum + number(item.score), 0) / mocks.length) : null;
   const requirementChecks = requirements.filter(item => plan.checks[item.id]).length;
-  const readyScore = Math.round((requirementChecks / Math.max(1, requirements.length)) * 50 + (plan.pieces.length >= piecesTarget ? 25 : plan.pieces.length / piecesTarget * 25) + Math.min(25, totalHours / Math.max(1, expectedHours) * 25));
+  const repertoirePoints = repertoireStatus.valid ? 25 : Math.min(20, plan.pieces.length / Math.max(1, piecesTarget) * 20);
+  const readyScore = Math.round((requirementChecks / Math.max(1, requirements.length)) * 50 + repertoirePoints + Math.min(25, totalHours / Math.max(1, expectedHours) * 25));
   const hoursByPiece = piece => sessions.filter(session => clean(piece.title) === clean(session.song)).reduce((sum, session) => sum + Math.max(0, number(session.practiceSeconds ?? (number(session.minutes) * 60))) / 3600, 0);
 
   function addPiece() {
@@ -135,8 +178,20 @@ export default function GradePlanner({ onPracticePiece = () => {}, sessions = []
     if (!title) return;
     const validCategories = repertoireCategories(plan);
     const selectedCategory = validCategories.some(option => option.value === category) ? category : validCategories[0].value;
+    if (plan.pieces.length >= piecesTarget) {
+      alert('This exam route plans ' + piecesTarget + ' piece(s). Remove a piece before replacing it, or change the exam route.');
+      return;
+    }
     if (plan.pieces.some(piece => clean(piece.title) === clean(title))) {
       alert('That piece is already in this grade plan.');
+      return;
+    }
+    if (plan.board === 'ABRSM' && plan.pieces.some(piece => piece.category === selectedCategory)) {
+      alert('ABRSM requires one piece from each of Lists A, B and C' + (plan.route === 'Performance Grades' ? ', plus one own-choice piece.' : '.') + ' Edit or remove the existing item in that category first.');
+      return;
+    }
+    if (plan.board === 'Trinity' && selectedCategory === 'Own composition' && plan.pieces.some(piece => piece.category === 'Own composition')) {
+      alert('The Trinity syllabus allows one own composition as a substitute for a listed piece.');
       return;
     }
     setPlan(previous => ({ ...previous, pieces: [...previous.pieces, { id: 'piece-' + Date.now(), title, composer: composer.trim(), category: selectedCategory, scoreData: '', scoreName: '', scoreType: '', addedAt: new Date().toISOString() }] }));
@@ -258,9 +313,12 @@ export default function GradePlanner({ onPracticePiece = () => {}, sessions = []
           </label>
           <div className="gp-add-piece"><button className="btn btn-dark" type="button" disabled={!pieceTitle.trim()} onClick={addPiece}>＋ Add selected piece</button></div>
         </div>
+        <p className={repertoireStatus.valid ? 'gp-selection-status is-valid' : 'gp-selection-status'} role="status">{repertoireStatus.valid ? 'Your planned repertoire categories match the selected board, grade and exam route.' : 'Repertoire checks: ' + (repertoireStatus.missing.length ? repertoireStatus.missing.join(', ') : 'check the current official list rules') + '. Edit each piece’s category below; confirm exact eligibility in the official syllabus.'}</p>
         {plan.pieces.length === 0 ? <div className="empty-state"><strong>No repertoire added yet</strong><p>Use the official repertoire link above to choose eligible pieces, then add their exact titles here.</p></div> : <div className="gp-piece-list">
           {plan.pieces.map(piece => <article className="gp-piece-row" key={piece.id}>
-            <div className="gp-piece-main"><div className="eyebrow">{piece.category}</div><strong>{piece.title}</strong><small>{piece.composer || 'Composer not entered'}</small>
+            <div className="gp-piece-main"><label className="gp-piece-category">List / category
+              <select value={categories.some(option => option.value === piece.category) ? piece.category : categories[0].value} onChange={event => setPlan(previous => ({ ...previous, pieces: previous.pieces.map(existing => existing.id === piece.id ? { ...existing, category: event.target.value } : existing) }))}>{categories.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+            </label><strong>{piece.title}</strong><small>{piece.composer || 'Composer not entered'}</small>
               <div className="gp-piece-stats"><span>{hoursByPiece(piece).toFixed(1)} h practised</span><span>{sessions.filter(session => clean(piece.title) === clean(session.song)).length} linked sessions</span>{piece.scoreName && <span>Score attached: {piece.scoreName}</span>}</div>
               <label className="gp-attach-score">Attach score (PDF / PNG / JPEG / WebP)<input type="file" accept=".pdf,application/pdf,image/png,image/jpeg,image/webp" onChange={event => { attachScore(piece.id, event.target.files && event.target.files[0]); event.target.value = ''; }} /></label>
             </div>
