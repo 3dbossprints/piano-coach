@@ -600,7 +600,7 @@ async function convertScoreToMusicCoach(file,options={}){
   try{
    if(!window.PianoCoachAI){await new Promise((resolve,reject)=>{const old=document.querySelector('script[data-piano-coach-ai]');if(old){old.addEventListener('load',resolve,{once:true});old.addEventListener('error',reject,{once:true});return}const script=document.createElement('script');script.src='/ai-tutor.js';script.dataset.pianoCoachAi='true';script.onload=resolve;script.onerror=()=>reject(new Error('Music assistant could not be loaded'));document.head.appendChild(script)});}
    if(!window.PianoCoachAI?.ask)throw new Error('Music assistant is unavailable');
-   const result=await window.PianoCoachAI.ask(question);setMusicChat(v=>[...v,{role:'assistant',content:result.answer||'I could not produce an answer.'}]);
+   const conversation=[...musicChat,{role:'user',content:question}].map(m=>(m.role==='assistant'?'Assistant':'User')+': '+m.content).join('\n\n');const result=await window.PianoCoachAI.ask(conversation);setMusicChat(v=>[...v,{role:'assistant',content:result.answer||'I could not produce an answer.'}]);
   }catch(e){setMusicChat(v=>[...v,{role:'assistant',content:'Assistant unavailable: '+e.message}])}finally{setMusicChatBusy(false)}
  }
  function startVoiceQuestion(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){setTutorStatus('Voice input is not supported in this browser.');return}const rec=new SR();rec.lang='en-GB';rec.onresult=e=>setTutorQuestion(v=>(v+' '+e.results[0][0].transcript).trim());rec.start()}
