@@ -39,7 +39,7 @@ function requirementsFor(plan) {
       { id: 'sight-reading', title: 'Sight-reading', detail: 'Practise unfamiliar short pieces using the current grade-specific preparation time and assessment criteria.' },
       { id: 'aural', title: 'Aural tests', detail: 'Practise the grade-specific listening, singing/playing-back, pulse/rhythm and musical-feature tasks.' }
     ];
-    if (g >= 6) items.push({ id: 'entry', title: 'Higher-grade entry prerequisite', detail: 'Before booking Practical Grades 6–8, confirm you have an accepted Grade 5-or-above prerequisite under ABRSM’s current entry rules.' });
+    if (g >= 6) items.push({ id: 'entry', title: 'Higher-grade entry prerequisite', detail: 'Before booking Grades 6–8, confirm you meet ABRSM’s current prerequisite rules (normally a qualifying Grade 5-or-above theory, practical musicianship or accepted equivalent qualification).' });
     return items;
   }
   if (plan.route === 'Trinity Digital — Repertoire-only') {
@@ -102,13 +102,14 @@ export default function GradePlanner({ onPracticePiece = () => {}, sessions = []
   const [composer, setComposer] = useState('');
   const [category, setCategory] = useState('List A');
   const [scoreFileError, setScoreFileError] = useState('');
+  const [storageWarning, setStorageWarning] = useState('');
   const [manualInput, setManualInput] = useState('');
   const [mockPiece, setMockPiece] = useState('');
   const [mockScore, setMockScore] = useState('75');
   const [mockNotes, setMockNotes] = useState('');
 
   useEffect(() => {
-    try { localStorage.setItem('pc_grade_plan', JSON.stringify(plan)); } catch { /* Keep the current session usable if browser storage is full. */ }
+    try { localStorage.setItem('pc_grade_plan', JSON.stringify(plan)); setStorageWarning(''); } catch { setStorageWarning('Browser storage is full. Your latest grade-plan changes may not survive a refresh; remove large Library files or score attachments and try again.'); }
   }, [plan]);
 
   const update = (key, value) => setPlan(previous => ({ ...previous, [key]: value }));
@@ -132,11 +133,13 @@ export default function GradePlanner({ onPracticePiece = () => {}, sessions = []
   function addPiece() {
     const title = pieceTitle.trim();
     if (!title) return;
+    const validCategories = repertoireCategories(plan);
+    const selectedCategory = validCategories.some(option => option.value === category) ? category : validCategories[0].value;
     if (plan.pieces.some(piece => clean(piece.title) === clean(title))) {
       alert('That piece is already in this grade plan.');
       return;
     }
-    setPlan(previous => ({ ...previous, pieces: [...previous.pieces, { id: 'piece-' + Date.now(), title, composer: composer.trim(), category, scoreData: '', scoreName: '', scoreType: '', addedAt: new Date().toISOString() }] }));
+    setPlan(previous => ({ ...previous, pieces: [...previous.pieces, { id: 'piece-' + Date.now(), title, composer: composer.trim(), category: selectedCategory, scoreData: '', scoreName: '', scoreType: '', addedAt: new Date().toISOString() }] }));
     setPieceTitle('');
     setComposer('');
     setScoreFileError('');
@@ -153,8 +156,8 @@ export default function GradePlanner({ onPracticePiece = () => {}, sessions = []
       setScoreFileError('Please choose a PDF, PNG, JPEG or WebP score.');
       return;
     }
-    if (file.size > 8 * 1024 * 1024) {
-      setScoreFileError('For reliability, grade-plan attachments are limited to 8 MB. Larger files can be imported in Sheet Music.');
+    if (file.size > 1.5 * 1024 * 1024) {
+      setScoreFileError('Grade-plan attachments are limited to 1.5 MB so the plan can fit more reliably in browser storage. Compress the PDF/image or import it in Sheet Music instead.');
       return;
     }
     const reader = new FileReader();
@@ -189,6 +192,7 @@ export default function GradePlanner({ onPracticePiece = () => {}, sessions = []
       </section>
 
       <section className="panel">
+        {storageWarning && <p className="gp-error" role="alert">{storageWarning}</p>}
         <h3>1. Set your exam goal</h3>
         <div className="gp-grid">
           <label>Exam board
