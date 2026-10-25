@@ -1,29 +1,412 @@
-import React,{useEffect,useMemo,useState} from 'react';
-const LEVELS=['Beginner','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Diploma'];
-const CATALOGUE=[
- {title:'Classical sonatina movement',style:'Classical',level:1,minutes:20},{title:'Baroque dance or invention',style:'Baroque',level:2,minutes:24},{title:'Romantic lyrical character piece',style:'Romantic',level:3,minutes:28},{title:'Contemporary rhythmic study',style:'Contemporary',level:2,minutes:22},{title:'Film or game music arrangement',style:'Film & game',level:1,minutes:22},{title:'Jazz-inspired syncopated piece',style:'Jazz',level:3,minutes:26},{title:'Classical sonata movement',style:'Classical',level:4,minutes:35},{title:'Impressionist colour study',style:'Romantic',level:4,minutes:32},{title:'Modern virtuoso character piece',style:'Contemporary',level:5,minutes:40},{title:'Baroque prelude and fugue',style:'Baroque',level:5,minutes:38}];
-const reqFor=g=>{const n=Math.max(1,LEVELS.indexOf(g));return {pieces:n>=8?4:3,technical:Math.min(20,4+n*2),skills:['Scales, arpeggios and technical fluency','Sight-reading and rhythm consistency','Aural skills, phrasing and musical interpretation']}};
-const initial={current:'Grade 2',target:'Grade 3',date:'',preferences:['Classical','Film & game'],pieces:[],weeklyHours:5,actualHours:0,mockScores:[],checks:{}};
-const num=x=>Number.isFinite(Number(x))?Number(x):0;
-export default function GradePlanner({onPracticePiece=()=>{},sessions=[]}){
- const [p,S]=useState(()=>{try{return {...initial,...JSON.parse(localStorage.getItem('pc_grade_plan')||'{}')}}catch{return initial}});
- const [pieceName,SP]=useState(''),[style,SS]=useState('Classical'),[hours,SH]=useState(''),[mock,SM]=useState(''),[score,SC]=useState(75),[notes,SN]=useState('');
- useEffect(()=>{try{localStorage.setItem('pc_grade_plan',JSON.stringify(p))}catch{}},[p]);
- const set=(k,v)=>S(old=>({...old,[k]:v}));
- const req=reqFor(p.target),days=p.date?Math.max(1,Math.ceil((new Date(p.date+'T12:00:00')-new Date(new Date().toDateString()))/86400000)):84,weeks=Math.max(1,Math.ceil(days/7)),months=Math.max(1,Math.ceil(days/30)),gap=Math.max(1,LEVELS.indexOf(p.target)-LEVELS.indexOf(p.current));
- const weekly=Math.max(num(p.weeklyHours),Math.round((gap*2.5+req.pieces*1.5)/weeks*10)/10),target=weekly*weeks,sessionHours=sessions.reduce((sum,s)=>sum+Math.max(0,Number(s.practiceSeconds??((Number(s.minutes)||0)*60)))/3600,0),actual=num(p.actualHours)+sessionHours,expected=target*Math.min(1,Math.max(0,1-days/(weeks*7))),progress=Math.min(100,Math.round(actual/Math.max(1,target)*100));
- const suggestions=useMemo(()=>CATALOGUE.filter(x=>x.level<=Math.max(1,LEVELS.indexOf(p.target))).map(x=>({...x,rank:(p.preferences.includes(x.style)?4:0)})).sort((a,b)=>b.rank-a.rank).slice(0,6),[p.target,p.preferences]);
- const addMock=()=>{set('mockScores',[...(p.mockScores||[]),{id:Date.now(),piece:mock||'Full mock exam',score:num(score),notes,date:new Date().toISOString()}]);SN('')};
- const avg=p.mockScores.length?Math.round(p.mockScores.reduce((a,x)=>a+num(x.score),0)/p.mockScores.length):null;
- const togglePiece=x=>set('pieces',p.pieces.some(y=>y.id===x.id)?p.pieces.filter(y=>y.id!==x.id):[...p.pieces,{...x}]);
- const monthly=Array.from({length:Math.min(months,12)},(_,i)=>({i,h:Math.round(target/Math.min(months,12)*10)/10,goal:i===0?'Choose repertoire; baseline each piece':i===Math.min(months,12)-1?'Full mock exam and final polish':'Build fluency, technique and reliable memory'}));
- return <div className="grade-planner">
- <section className="panel gp-hero"><div><div className="eyebrow">GRADE JOURNEY</div><h2>Plan your next level</h2><p className="muted">Personalised repertoire, practice schedule and mock exams. Check exact piece and technical requirements against your chosen exam board's current syllabus.</p></div><div className="gp-ring"><strong>{progress}%</strong><span>hours logged</span></div></section>
- <section className="panel"><h3>1. Set your goal</h3><div className="gp-grid"><label>Current grade<select value={p.current} onChange={e=>set('current',e.target.value)}>{LEVELS.slice(0,-1).map(x=><option key={x}>{x}</option>)}</select></label><label>Target grade<select value={p.target} onChange={e=>set('target',e.target.value)}>{LEVELS.slice(1).map(x=><option key={x}>{x}</option>)}</select></label><label>Target date<input type="date" min={new Date().toISOString().slice(0,10)} value={p.date} onChange={e=>set('date',e.target.value)}/></label><label>Practice hours per week<input type="number" min="1" max="40" step=".5" value={p.weeklyHours} onChange={e=>set('weeklyHours',Math.max(1,num(e.target.value)))}/></label></div><p className="muted">{p.date?days+' days · '+weeks+' weeks remaining':'Choose a target date to calculate the plan.'} Suggested starting target: <strong>{weekly} hours/week</strong>.</p></section>
- <section className="panel"><h3>2. Requirements checklist</h3><div className="gp-requirements"><div><strong>{req.pieces} pieces</strong><span>Choose the required number and categories from your exam board's syllabus.</span></div><div><strong>{req.technical} technical patterns</strong><span>Track scales, arpeggios and other technical work.</span></div><div><strong>Supporting skills</strong><span>Sight-reading, aural work and performance preparation.</span></div></div>{req.skills.map(x=><label className="gp-check" key={x}><input type="checkbox" checked={!!p.checks[x]} onChange={e=>set('checks',{...p.checks,[x]:e.target.checked})}/>{x}</label>)}<p className="muted small">This is a generic planning checklist, not an official syllabus. Confirm exact requirements with your exam board.</p></section>
- <section className="panel"><h3>3. Pick your repertoire</h3><p className="muted">Suggestions use your selected style preferences as a simple ranking, not claimed population statistics. Replace pieces whenever you need.</p><div className="gp-chips">{['Classical','Baroque','Romantic','Contemporary','Film & game','Jazz'].map(x=><button className={p.preferences.includes(x)?'active':''} key={x} onClick={()=>set('preferences',p.preferences.includes(x)?p.preferences.filter(y=>y!==x):[...p.preferences,x])}>{x}</button>)}</div><div className="gp-piece-grid">{suggestions.map(x=><article className="gp-piece" key={x.title}><small>{x.style} · {x.minutes} min/session</small><strong>{x.title}</strong><button className="btn btn-dark" onClick={()=>togglePiece({...x,id:x.title})}>{p.pieces.some(y=>y.id===x.title)?'✓ Selected · Remove':'＋ Choose piece'}</button></article>)}</div><div className="gp-custom"><input value={pieceName} onChange={e=>SP(e.target.value)} placeholder="Add a specific piece"/><select value={style} onChange={e=>SS(e.target.value)}>{['Classical','Baroque','Romantic','Contemporary','Film & game','Jazz','Other'].map(x=><option key={x}>{x}</option>)}</select><button className="btn" onClick={()=>{if(pieceName.trim()){set('pieces',[...p.pieces,{id:'custom-'+Date.now(),title:pieceName.trim(),style,minutes:25}]);SP('')}}}>Add piece</button></div><h4>Your chosen pieces ({p.pieces.length}/{req.pieces})</h4>{p.pieces.map(x=><div className="gp-saved gp-saved-piece" key={x.id}><span><strong>{x.title}</strong><small>{x.style} · {x.minutes} min per focused session</small><label className="gp-score-upload">Upload score for this piece<input type="file" accept="application/pdf,.pdf,image/png,image/jpeg,image/webp" onChange={e=>{const file=e.target.files?.[0];if(!file)return;if(file.size>25*1024*1024){alert('Please choose a score smaller than 25 MB.');return}const reader=new FileReader();reader.onload=()=>set('pieces',p.pieces.map(y=>y.id===x.id?{...y,scoreData:reader.result,scoreName:file.name,scoreType:file.type||file.name}:y));reader.readAsDataURL(file)}}/></label>{x.scoreName&&<small>Attached: {x.scoreName}</small>}</span><div className="toolbar"><button className="btn btn-dark" onClick={()=>onPracticePiece(x)}>Practise this piece</button><button className="btn" onClick={()=>set('pieces',p.pieces.filter(y=>y.id!==x.id))}>Remove</button></div></div>)}</section>
- <section className="panel"><h3>4. Training programme</h3><div className="gp-calendar"><div><h4>Weekly split · {weekly} hours</h4>{['Repertoire and difficult passages','Technique / scales / arpeggios','Sight-reading and aural skills','Mock performance and review'].map((x,i)=><div className="gp-week" key={x}><strong>{['40%','25%','15%','20%'][i]}</strong><span>{x}</span><small>{Math.round(weekly*[.4,.25,.15,.2][i]*10)/10} h</small></div>)}</div><div><h4>Monthly milestones</h4>{monthly.map(x=><div className="gp-week" key={x.i}><strong>Month {x.i+1}</strong><span>{x.goal}</span><small>{x.h} h</small></div>)}</div></div></section>
- <section className="panel"><h3>5. Expected vs actual progress</h3><p className="muted">Saved Practice sessions are counted automatically ({sessionHours.toFixed(2)} hours logged from sessions). Manual hours entered below are added separately.</p><div className="gp-stat"><span>Actual</span><strong>{actual.toFixed(1)} / {target.toFixed(1)} hours</strong></div><div className="gp-track"><div style={{width:progress+'%'}}/></div><div className="gp-stat"><span>Expected by now</span><strong>{expected.toFixed(1)} hours</strong></div><div className="gp-track expected"><div style={{width:Math.min(100,expected/Math.max(1,target)*100)+'%'}}/></div><div className="gp-custom"><label>Log completed hours<input type="number" min=".25" step=".25" value={hours} onChange={e=>SH(e.target.value)} placeholder="e.g. 2.5"/></label><button className="btn btn-dark" disabled={!hours||num(hours)<=0} onClick={()=>{set('actualHours',Math.round((actual+num(hours))*100)/100);SH('')}}>Add hours</button></div>{actual<expected-.25?<div className="gp-advice"><strong>Adjustment suggested</strong><p>You're behind the expected curve. Consider about {Math.ceil(Math.max(0,target-actual)/weeks*10)/10} hours per week from here, reducing repertoire scope or moving the target date. Keep rest days and practice quality protected.</p></div>:<div className="gp-advice on-track"><strong>You're on track by hours</strong><p>Also review recordings, accuracy and mock scores—hours alone do not guarantee readiness.</p></div>}</section>
- <section className="panel"><h3>6. Mock piece tests and full mock exams</h3><div className="gp-grid"><label>Test<select value={mock} onChange={e=>SM(e.target.value)}><option value="">Full mock exam</option>{p.pieces.map(x=><option key={x.id} value={x.title}>{x.title}</option>)}</select></label><label>Score (0–100)<input type="number" min="0" max="100" value={score} onChange={e=>SC(Math.max(0,Math.min(100,num(e.target.value))))}/></label></div><label className="gp-notes">Feedback<textarea rows="2" value={notes} onChange={e=>SN(e.target.value)} placeholder="Accuracy, rhythm, memory, expression, nerves…"/></label><button className="btn btn-dark" onClick={addMock}>Save mock score</button>{avg!==null&&<div className="gp-requirements"><div><strong>{avg}/100</strong><span>Average mock score</span></div><div><strong>{p.mockScores.length}</strong><span>Mocks completed</span></div><div><strong>{p.mockScores[p.mockScores.length-1].score}/100</strong><span>Latest score</span></div></div>}{p.mockScores.slice().reverse().map(x=><div className="gp-saved" key={x.id}><span><strong>{x.piece} · {x.score}/100</strong><small>{new Date(x.date).toLocaleDateString()} · {x.notes}</small></span><button className="btn" onClick={()=>set('mockScores',p.mockScores.filter(y=>y.id!==x.id))}>Remove</button></div>)}</section>
- </div>
+import React, { useEffect, useMemo, useState } from 'react';
+
+const GRADES = ['Initial', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8'];
+const OLD_GENERIC_PIECES = new Set([
+  'Classical sonatina movement', 'Baroque dance or invention', 'Romantic lyrical character piece',
+  'Contemporary rhythmic study', 'Film or game music arrangement', 'Jazz-inspired syncopated piece',
+  'Classical sonata movement', 'Impressionist colour study', 'Modern virtuoso character piece',
+  'Baroque prelude and fugue'
+]);
+const INITIAL = {
+  version: 2, board: 'ABRSM', pathway: 'abrsm-practical', syllabus: '2025-2026',
+  current: 'Grade 2', target: 'Grade 3', date: '', weeklyHours: 5, manualHours: 0,
+  pieces: [], checks: {}, mockScores: [], createdAt: new Date().toISOString()
+};
+const ABRSM_URL = 'https://www.abrsm.org/en-gb/piano';
+const TRINITY_URL = 'https://www.trinitycollege.com/qualifications/music/grade-exams/piano';
+const TRINITY_FORMAT_URL = 'https://www.trinitycollege.com/qualifications/music/grade-exams/about';
+const TRINITY_WORK_URL = 'https://support.trinitycollege.com/support/solutions/articles/202000096563-choosing-technical-work-supporting-tests-session-skills';
+const num = value => Number.isFinite(Number(value)) ? Number(value) : 0;
+const round1 = value => Math.round((num(value) + Number.EPSILON) * 10) / 10;
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+const normaliseTitle = value => String(value || '').toLocaleLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const localDate = value => {
+  if (!value) return null;
+  const parts = value.split('-').map(Number);
+  return new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0, 0);
+};
+const dayDiff = (later, earlier) => Math.ceil((later.getTime() - earlier.getTime()) / 86400000);
+
+function pathwayOptions(board) {
+  return board === 'ABRSM'
+    ? [{ value: 'abrsm-practical', label: 'Practical Grade' }, { value: 'abrsm-performance', label: 'Performance Grade' }]
+    : [
+        { value: 'trinity-face', label: 'Face-to-face' },
+        { value: 'trinity-digital-technical', label: 'Digital · Technical Work' },
+        { value: 'trinity-digital-repertoire', label: 'Digital · Repertoire-only' }
+      ];
+}
+
+function examRequirements(board, pathway, grade, syllabus) {
+  const items = [];
+  let pieceCount = 3;
+  let pieceDetail = '';
+  let officialUrl = board === 'ABRSM' ? ABRSM_URL : TRINITY_URL;
+  let officialLabel = board === 'ABRSM' ? 'ABRSM piano specifications and repertoire' : 'Trinity piano syllabus and repertoire lists';
+  let examSummary = '';
+
+  if (board === 'ABRSM' && pathway === 'abrsm-practical') {
+    pieceCount = 3;
+    pieceDetail = 'Choose all three pieces from the same ABRSM Piano syllabus version and follow its list-selection rules.';
+    examSummary = 'Three repertoire pieces, scales and arpeggios, sight-reading, and aural tests.';
+    items.push(
+      { id: 'technical', title: 'Scales and arpeggios', detail: 'Practise the exact grade-specific patterns, keys and articulation in the selected official specification.' },
+      { id: 'sight-reading', title: 'Sight-reading', detail: 'Practise unseen extracts at the level and in the format specified for this grade.' },
+      { id: 'aural', title: 'Aural tests', detail: 'Practise the listening skills and question types listed for this grade.' }
+    );
+  } else if (board === 'ABRSM' && pathway === 'abrsm-performance') {
+    pieceCount = 4;
+    pieceDetail = 'Prepare three set pieces from the selected ABRSM Piano syllabus and one own-choice piece; the own-choice piece follows separate rules.';
+    examSummary = 'Four pieces: three syllabus pieces plus one own-choice piece. Supporting tests are not part of the Performance Grade.';
+    items.push({ id: 'programme', title: 'Performance programme', detail: 'Plan contrast, order, continuity and the overall shape of the four-piece performance.' });
+    items.push({ id: 'run-through', title: 'Complete performance run-through', detail: 'Record full run-throughs and review continuity, communication, accuracy and interpretation.' });
+  } else if (board === 'Trinity' && pathway === 'trinity-face') {
+    pieceCount = 3;
+    pieceDetail = 'Choose three pieces from the current Trinity Classical piano repertoire lists, following the grade-specific selection rules.';
+    examSummary = 'Three repertoire pieces, technical work, and two supporting tests selected from the options allowed for the grade.';
+    officialUrl = TRINITY_FORMAT_URL;
+    items.push(
+      { id: 'technical', title: 'Technical work', detail: 'Prepare the grade-specific scales/arpeggios or permitted technical option, plus the required exercises, exactly as set out in the current piano syllabus.' },
+      { id: 'supporting-tests', title: 'Two supporting tests', detail: 'Choose two tests permitted for this grade (for example sight-reading, aural, improvisation or musical knowledge where offered).' },
+      { id: 'mock', title: 'Mock face-to-face exam', detail: 'Practise presenting the full programme and responding to examiner-selected technical work and supporting tests.' }
+    );
+  } else if (board === 'Trinity' && pathway === 'trinity-digital-technical') {
+    pieceCount = 3;
+    pieceDetail = 'Choose three pieces from the current Trinity Classical piano repertoire lists and follow the grade-specific selection rules.';
+    examSummary = 'Three repertoire pieces, the Digital Technical Work requirements, and assessment of overall performance.';
+    officialUrl = TRINITY_FORMAT_URL;
+    items.push(
+      { id: 'technical', title: 'Digital technical work', detail: 'Prepare the syllabus-prescribed Set A or Set B technical material and the required exercises for this grade.' },
+      { id: 'overall-performance', title: 'Overall performance', detail: 'Record a full run-through and review focus, continuity, communication and awareness throughout the performance.' }
+    );
+  } else {
+    pieceCount = 4;
+    pieceDetail = 'Choose four pieces from the current Trinity Classical piano repertoire lists, following the grade-specific selection rules.';
+    examSummary = 'Four repertoire pieces. The Repertoire-only pathway does not include the Technical Work pathway or supporting tests.';
+    officialUrl = TRINITY_FORMAT_URL;
+    items.push(
+      { id: 'programme', title: 'Four-piece programme', detail: 'Plan a varied, coherent programme and check every choice against the current grade-specific repertoire rules.' },
+      { id: 'run-through', title: 'Complete performance run-through', detail: 'Record the whole programme and review accuracy, continuity, expression and transitions.' }
+    );
+  }
+
+  if (board === 'ABRSM' && ['Grade 6', 'Grade 7', 'Grade 8'].includes(grade)) {
+    items.push({ id: 'entry-requirement', title: 'Confirm Grade 5 prerequisite', detail: 'Before booking Grades 6–8, check the accepted Grade 5 (or higher) theory/musicianship qualification requirements on the official ABRSM page.' });
+  }
+
+  const syllabusLabel = board === 'ABRSM'
+    ? (syllabus === '2027-2028' ? 'ABRSM Piano 2027 & 2028' : 'ABRSM Piano 2025 & 2026')
+    : 'Trinity Piano syllabus (2023) · repertoire list updated January 2025';
+  return { items, pieceCount, pieceDetail, examSummary, officialUrl, officialLabel, syllabusLabel };
+}
+
+function formatDuration(seconds) {
+  const value = Math.max(0, Math.round(num(seconds)));
+  const hours = Math.floor(value / 3600);
+  const minutes = Math.floor((value % 3600) / 60);
+  if (hours) return hours + 'h ' + minutes + 'm';
+  return minutes + ' min';
+}
+
+export default function GradePlanner({ onPracticePiece = () => {}, sessions = [], libraryFiles = [], storageEnabled = true }) {
+  const [p, setP] = useState(() => {
+    let stored = {};
+    try {
+      if (storageEnabled) stored = JSON.parse(localStorage.getItem('pc_grade_plan') || '{}');
+    } catch {}
+    const pieces = Array.isArray(stored.pieces) ? stored.pieces.filter(x => !OLD_GENERIC_PIECES.has(x.title)) : [];
+    const current = GRADES.includes(stored.current) ? stored.current : INITIAL.current;
+    const target = GRADES.includes(stored.target) && GRADES.indexOf(stored.target) > GRADES.indexOf(current)
+      ? stored.target : (GRADES[Math.min(GRADES.length - 1, GRADES.indexOf(current) + 1)]);
+    return {
+      ...INITIAL, ...stored, current, target, pieces,
+      board: stored.board === 'Trinity' ? 'Trinity' : 'ABRSM',
+      pathway: stored.pathway || 'abrsm-practical',
+      syllabus: stored.syllabus || '2025-2026',
+      manualHours: num(stored.manualHours ?? stored.actualHours),
+      checks: stored.checks && typeof stored.checks === 'object' ? stored.checks : {},
+      mockScores: Array.isArray(stored.mockScores) ? stored.mockScores : []
+    };
+  });
+  const [pieceName, setPieceName] = useState('');
+  const [pieceStyle, setPieceStyle] = useState('Classical');
+  const [pieceSource, setPieceSource] = useState('');
+  const [hoursInput, setHoursInput] = useState('');
+  const [mockName, setMockName] = useState('');
+  const [mockScore, setMockScore] = useState('75');
+  const [mockNotes, setMockNotes] = useState('');
+
+  useEffect(() => {
+    if (!storageEnabled) return;
+    try { localStorage.setItem('pc_grade_plan', JSON.stringify(p)); } catch {}
+  }, [p, storageEnabled]);
+
+  const set = (key, value) => setP(old => ({ ...old, [key]: value }));
+  const pathways = pathwayOptions(p.board);
+  const selectedPathway = pathways.some(x => x.value === p.pathway) ? p.pathway : pathways[0].value;
+  const effectivePathway = selectedPathway;
+  const syllabusOptions = p.board === 'ABRSM'
+    ? [{ value: '2025-2026', label: '2025 & 2026 syllabus' }, { value: '2027-2028', label: '2027 & 2028 syllabus' }]
+    : [{ value: 'trinity-current', label: 'Current syllabus / repertoire list' }];
+  const effectiveSyllabus = syllabusOptions.some(x => x.value === p.syllabus) ? p.syllabus : syllabusOptions[0].value;
+  const requirements = useMemo(() => examRequirements(p.board, effectivePathway, p.target, effectiveSyllabus), [p.board, effectivePathway, p.target, effectiveSyllabus]);
+  const today = new Date();
+  const targetDate = localDate(p.date);
+  const daysRemaining = targetDate ? Math.max(0, dayDiff(targetDate, new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12))) : 84;
+  const weeksRemaining = Math.max(1, Math.ceil(daysRemaining / 7));
+  const monthsRemaining = Math.max(1, Math.min(12, Math.ceil(weeksRemaining / 4.345)));
+  const weeklyHours = clamp(num(p.weeklyHours) || 5, 0.5, 40);
+  const targetHours = weeklyHours * weeksRemaining;
+  const sessionSeconds = sessions.reduce((sum, session) => {
+    const value = session.practiceSeconds != null ? num(session.practiceSeconds) : num(session.minutes) * 60;
+    return sum + Math.max(0, value);
+  }, 0);
+  const sessionHours = sessionSeconds / 3600;
+  const manualHours = Math.max(0, num(p.manualHours));
+  const actualHours = round1(sessionHours + manualHours);
+  const elapsedFraction = targetDate ? clamp(1 - daysRemaining / Math.max(1, weeksRemaining * 7), 0, 1) : 0;
+  const expectedHours = round1(targetHours * elapsedFraction);
+  const hoursProgress = clamp(Math.round(actualHours / Math.max(1, targetHours) * 100), 0, 100);
+  const checkKey = id => [p.board, effectivePathway, effectiveSyllabus, p.target, id].join(':');
+  const checklistDone = requirements.items.filter(item => !!p.checks[checkKey(item.id)]).length;
+  const checklistTotal = requirements.items.length + 1;
+  const repertoireDone = p.pieces.length >= requirements.pieceCount;
+  const requirementsProgress = Math.round((checklistDone + (repertoireDone ? 1 : 0)) / Math.max(1, checklistTotal) * 100);
+  const overallProgress = Math.round(requirementsProgress * 0.7 + hoursProgress * 0.3);
+  const targetSyllabusUnavailable = p.board === 'ABRSM' && p.date && p.date < '2027-01-01' && effectiveSyllabus === '2027-2028';
+  const targetSyllabusOverlap = p.board === 'ABRSM' && p.date && p.date > '2027-12-31' && effectiveSyllabus === '2025-2026';
+  const savedScores = libraryFiles.filter(file => file && (file.kind === 'score' || file.kind === 'practice-score' || /\.(musiccoach|musicxml|xml|mid|midi|pdf)$/i.test(file.name || '')));
+  const selectedSavedScore = savedScores.find(file => String(file.id) === pieceSource);
+
+  const findPieceSessions = piece => sessions.filter(session => normaliseTitle(session.song) === normaliseTitle(piece.title));
+  const addPiece = () => {
+    const title = pieceName.trim();
+    if (!title) return;
+    if (p.pieces.some(piece => normaliseTitle(piece.title) === normaliseTitle(title))) return;
+    set('pieces', [...p.pieces, { id: 'piece-' + Date.now(), title, style: pieceStyle, minutes: 25, addedAt: new Date().toISOString() }]);
+    setPieceName('');
+  };
+  const addSavedScore = () => {
+    if (!selectedSavedScore) return;
+    if (p.pieces.some(piece => normaliseTitle(piece.title) === normaliseTitle(selectedSavedScore.name.replace(/\.(musiccoach|musicxml|xml|mid|midi|pdf)$/i, '')))) return;
+    const title = selectedSavedScore.name.replace(/\.(musiccoach|musicxml|xml|mid|midi|pdf)$/i, '');
+    set('pieces', [...p.pieces, {
+      id: 'library-' + selectedSavedScore.id, title, style: 'From Library', minutes: 25,
+      scoreData: selectedSavedScore.data, scoreName: selectedSavedScore.name, scoreType: selectedSavedScore.type,
+      scoreId: selectedSavedScore.id, addedAt: new Date().toISOString()
+    }]);
+    setPieceSource('');
+  };
+  const removePiece = id => set('pieces', p.pieces.filter(piece => piece.id !== id));
+  const toggleCheck = id => {
+    const key = checkKey(id);
+    set('checks', { ...p.checks, [key]: !p.checks[key] });
+  };
+  const addManualHours = () => {
+    if (!hoursInput || num(hoursInput) <= 0) return;
+    set('manualHours', round1(manualHours + num(hoursInput)));
+    setHoursInput('');
+  };
+  const saveMock = () => {
+    if (mockScore === '' || !Number.isFinite(Number(mockScore))) return;
+    set('mockScores', [...p.mockScores, {
+      id: Date.now(), piece: mockName.trim() || 'Full mock exam',
+      score: clamp(num(mockScore), 0, 100), notes: mockNotes.trim(), date: new Date().toISOString()
+    }]);
+    setMockName('');
+    setMockNotes('');
+  };
+  const avgScore = p.mockScores.length ? round1(p.mockScores.reduce((sum, mock) => sum + num(mock.score), 0) / p.mockScores.length) : null;
+  const linkForPiece = title => 'https://www.google.com/search?q=' + encodeURIComponent(title + ' piano sheet music ' + p.board + ' ' + p.target);
+  const timeline = Array.from({ length: monthsRemaining }, (_, index) => ({
+    month: index + 1,
+    hours: round1(targetHours / monthsRemaining),
+    goal: index === 0 ? 'Choose syllabus-compliant repertoire and record a baseline' :
+      index === monthsRemaining - 1 ? 'Full programme run-through and review' : 'Build accuracy, fluency and secure musical interpretation'
+  }));
+
+  return <div className="grade-planner">
+    <section className="panel gp-hero">
+      <div>
+        <div className="eyebrow">GRADE JOURNEY</div>
+        <h2>Plan your next level</h2>
+        <p className="muted">A practice-linked plan based on your selected exam board and pathway. Repertoire and technical details must be checked against the official grade-specific syllabus.</p>
+        <div className="gp-official-links">
+          <a href={requirements.officialUrl} target="_blank" rel="noreferrer">{requirements.officialLabel} ↗</a>
+          {p.board === 'Trinity' && <a href={TRINITY_WORK_URL} target="_blank" rel="noreferrer">Trinity technical work and supporting tests ↗</a>}
+        </div>
+      </div>
+      <div className="gp-ring"><strong>{overallProgress}%</strong><span>plan progress</span></div>
+    </section>
+
+    <section className="panel">
+      <h3>1. Exam goal</h3>
+      <div className="gp-grid">
+        <label>Exam board
+          <select value={p.board} onChange={event => {
+            const board = event.target.value;
+            setP(old => ({ ...old, board, pathway: board === 'ABRSM' ? 'abrsm-practical' : 'trinity-face', syllabus: board === 'ABRSM' ? '2025-2026' : 'trinity-current' }));
+          }}><option value="ABRSM">ABRSM</option><option value="Trinity">Trinity College London</option></select>
+        </label>
+        <label>Exam pathway
+          <select value={effectivePathway} onChange={event => set('pathway', event.target.value)}>
+            {pathways.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </label>
+        <label>Current grade
+          <select value={p.current} onChange={event => {
+            const current = event.target.value;
+            const currentIndex = GRADES.indexOf(current);
+            const nextTarget = GRADES.indexOf(p.target) > currentIndex ? p.target : GRADES[Math.min(GRADES.length - 1, currentIndex + 1)];
+            setP(old => ({ ...old, current, target: nextTarget }));
+          }}>{GRADES.map(grade => <option key={grade} value={grade}>{grade}</option>)}</select>
+        </label>
+        <label>Target grade
+          <select value={p.target} onChange={event => set('target', event.target.value)}>
+            {GRADES.filter(grade => GRADES.indexOf(grade) > GRADES.indexOf(p.current)).concat(p.current === 'Grade 8' ? ['Grade 8'] : []).map(grade => <option key={grade} value={grade}>{grade}</option>)}
+          </select>
+        </label>
+        {p.board === 'ABRSM' && <label>Syllabus version
+          <select value={effectiveSyllabus} onChange={event => set('syllabus', event.target.value)}>
+            {syllabusOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </label>}
+        <label>Target exam date
+          <input type="date" min={new Date().toISOString().slice(0, 10)} value={p.date} onChange={event => set('date', event.target.value)} />
+        </label>
+        <label>Practice target per week (hours)
+          <input type="number" min="0.5" max="40" step="0.5" value={p.weeklyHours} onChange={event => set('weeklyHours', clamp(num(event.target.value) || 0.5, 0.5, 40))} />
+        </label>
+      </div>
+      <div className="gp-notice"><strong>{requirements.syllabusLabel}</strong><p>{requirements.examSummary}</p><p>{p.date ? daysRemaining + ' days · ' + weeksRemaining + ' weeks remaining.' : 'No date set: the plan uses a 12-week planning window until you choose an exam date.'} Suggested practice target: <strong>{weeklyHours} h/week</strong>.</p></div>
+      {targetSyllabusUnavailable && <p className="gp-warning">The ABRSM 2027 &amp; 2028 repertoire can be used from 1 January 2027. For an exam before that date, select the 2025 &amp; 2026 syllabus.</p>}
+      {targetSyllabusOverlap && <p className="gp-warning">The ABRSM 2025 &amp; 2026 syllabus is valid through 31 December 2027. For a later exam, select the 2027 &amp; 2028 syllabus and keep all set pieces within that syllabus version.</p>}
+      {p.board === 'ABRSM' && p.target === 'Grade 6' || p.board === 'ABRSM' && p.target === 'Grade 7' || p.board === 'ABRSM' && p.target === 'Grade 8'
+        ? <p className="muted small">ABRSM Grades 6–8 have a prior-qualification requirement. Check the accepted qualifications and current booking rules on the official ABRSM site linked above.</p> : null}
+    </section>
+
+    <section className="panel">
+      <h3>2. Official exam components</h3>
+      <div className="gp-requirements">
+        <div><strong>{p.pieces.length}/{requirements.pieceCount} pieces added</strong><span>{requirements.pieceDetail}</span></div>
+        {requirements.items.map(item => <div key={item.id} className={p.checks[checkKey(item.id)] ? 'gp-requirement-done' : ''}>
+          <strong>{p.checks[checkKey(item.id)] ? 'Completed · ' : ''}{item.title}</strong><span>{item.detail}</span>
+          <label className="gp-check"><input type="checkbox" checked={!!p.checks[checkKey(item.id)]} onChange={() => toggleCheck(item.id)} /> Mark ready</label>
+        </div>)}
+      </div>
+      <p className="muted small">This checklist reflects the broad exam format for the chosen pathway. It does not replace the grade-specific PDF: exact keys, rhythms, exercises, lists, choices and eligibility must be verified in the current official syllabus.</p>
+    </section>
+
+    <section className="panel">
+      <h3>3. Your repertoire</h3>
+      <p className="muted">There are no invented “grade-appropriate” pieces here. Add the real title you have selected from the official list, or bring in a score saved in your Library. Piano Coach does not automatically certify that a title is on the exam board's list.</p>
+      <div className="gp-custom">
+        <input value={pieceName} onChange={event => setPieceName(event.target.value)} placeholder="Exact piece title and composer" aria-label="Exact piece title and composer" />
+        <select value={pieceStyle} onChange={event => setPieceStyle(event.target.value)} aria-label="Piece style">
+          {['Classical','Baroque','Romantic','Impressionist','Contemporary','Jazz','Film & game','Other'].map(style => <option key={style} value={style}>{style}</option>)}
+        </select>
+        <button className="btn btn-dark" onClick={addPiece} disabled={!pieceName.trim()}>Add piece</button>
+      </div>
+      <div className="gp-custom">
+        <select value={pieceSource} onChange={event => setPieceSource(event.target.value)} aria-label="Add a saved Library score">
+          <option value="">Add a saved score from Library…</option>
+          {savedScores.map(file => <option key={file.id} value={String(file.id)}>{file.name}</option>)}
+        </select>
+        <button className="btn" onClick={addSavedScore} disabled={!selectedSavedScore}>Add saved score</button>
+      </div>
+      <div className="gp-repertoire-count">{p.pieces.length} piece{p.pieces.length === 1 ? '' : 's'} in this plan · requirement: {requirements.pieceCount}
+        {p.pieces.length >= requirements.pieceCount ? <span className="gp-good"> Repertoire count reached</span> : <span> · add {requirements.pieceCount - p.pieces.length} more</span>}
+      </div>
+      {p.pieces.length > 0 ? p.pieces.map(piece => {
+        const related = findPieceSessions(piece);
+        const seconds = related.reduce((sum, session) => sum + Math.max(0, num(session.practiceSeconds ?? num(session.minutes) * 60)), 0);
+        const latest = related.reduce((latestDate, session) => !latestDate || new Date(session.lastPractisedAt || session.date) > new Date(latestDate) ? (session.lastPractisedAt || session.date) : latestDate, null);
+        const hasScore = !!piece.scoreData;
+        return <article className="gp-saved gp-repertoire-item" key={piece.id}>
+          <div className="gp-repertoire-main">
+            <strong>{piece.title}</strong>
+            <small>{piece.style || 'Repertoire'}{piece.scoreName ? ' · ' + piece.scoreName : ''}</small>
+            <div className="gp-piece-progress"><span>{related.length} practice session{related.length === 1 ? '' : 's'} · {formatDuration(seconds)} logged{latest ? ' · last ' + new Date(latest).toLocaleDateString() : ''}</span></div>
+            {hasScore && <label className="gp-file-change">Replace attached score<input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.musiccoach,.musicxml,.xml,.mid,.midi,application/pdf,image/png,image/jpeg,image/webp,application/xml,text/xml" onChange={event => {
+              const file = event.target.files && event.target.files[0];
+              event.target.value = '';
+              if (!file) return;
+              if (file.size > 5 * 1024 * 1024) { window.alert('Please choose a score smaller than 5 MB so it can be stored safely with this local plan.'); return; }
+              const reader = new FileReader();
+              reader.onload = () => set('pieces', p.pieces.map(old => old.id === piece.id ? { ...old, scoreData: reader.result, scoreName: file.name, scoreType: file.type || file.name } : old));
+              reader.readAsDataURL(file);
+            }} /></label>}
+            {!hasScore && <label className="gp-file-change">Attach score<input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.musiccoach,.musicxml,.xml,.mid,.midi,application/pdf,image/png,image/jpeg,image/webp,application/xml,text/xml" onChange={event => {
+              const file = event.target.files && event.target.files[0];
+              event.target.value = '';
+              if (!file) return;
+              if (file.size > 5 * 1024 * 1024) { window.alert('Please choose a score smaller than 5 MB so it can be stored safely with this local plan.'); return; }
+              const reader = new FileReader();
+              reader.onload = () => set('pieces', p.pieces.map(old => old.id === piece.id ? { ...old, scoreData: reader.result, scoreName: file.name, scoreType: file.type || file.name } : old));
+              reader.readAsDataURL(file);
+            }} /></label>}
+          </div>
+          <div className="toolbar gp-repertoire-actions">
+            <a className="btn" href={linkForPiece(piece.title)} target="_blank" rel="noreferrer">Find / verify piece ↗</a>
+            <button className="btn btn-dark" onClick={() => onPracticePiece(piece)}>Practise piece</button>
+            <button className="btn btn-quiet" onClick={() => removePiece(piece.id)}>Remove</button>
+          </div>
+        </article>;
+      }) : <div className="empty-state"><strong>No repertoire selected yet</strong><p>Add the exact pieces you have chosen from your board's current list. You can then launch practice for each piece and track its sessions here.</p></div>}
+      {p.pieces.length > requirements.pieceCount && <p className="gp-warning">You have more pieces than the pathway minimum. Check the official list-selection rules before deciding which pieces to present.</p>}
+    </section>
+
+    <section className="panel">
+      <h3>4. Practice-linked progress</h3>
+      <p className="muted">Practice sessions saved in Piano Coach count automatically. Matching a session to a selected repertoire piece uses its saved song title. Manual hours are kept separately so adding them does not double-count recorded practice.</p>
+      <div className="gp-stat"><span>Practice sessions</span><strong>{sessions.length}</strong></div>
+      <div className="gp-stat"><span>Recorded practice</span><strong>{round1(sessionHours)} h</strong></div>
+      <div className="gp-stat"><span>Additional manual hours</span><strong>{round1(manualHours)} h</strong></div>
+      <div className="gp-stat"><span>Total logged</span><strong>{actualHours.toFixed(1)} / {round1(targetHours).toFixed(1)} h</strong></div>
+      <div className="gp-track"><div style={{ width: hoursProgress + '%' }} /></div>
+      <div className="gp-stat"><span>Expected by now</span><strong>{expectedHours.toFixed(1)} h</strong></div>
+      <div className="gp-track expected"><div style={{ width: clamp(expectedHours / Math.max(1, targetHours) * 100, 0, 100) + '%' }} /></div>
+      <div className="gp-custom">
+        <label>Log additional time (hours)<input type="number" min="0.25" step="0.25" value={hoursInput} onChange={event => setHoursInput(event.target.value)} placeholder="e.g. 0.5" /></label>
+        <button className="btn btn-dark" disabled={!hoursInput || num(hoursInput) <= 0} onClick={addManualHours}>Add manual hours</button>
+      </div>
+      {actualHours + 0.05 < expectedHours
+        ? <div className="gp-advice"><strong>Practice target adjustment</strong><p>You are below your planned hours so far. Current average: {round1(actualHours / Math.max(1, weeksRemaining === 0 ? 1 : weeksRemaining))} h/week remaining is a rough guide only; adapt it to your time, quality and teacher's advice.</p></div>
+        : <div className="gp-advice on-track"><strong>Practice logged against plan</strong><p>Hours are a tracking aid, not a readiness prediction. Use piece feedback, technical-work checks and complete run-throughs alongside this total.</p></div>}
+      <div className="gp-calendar">
+        <div><h4>Suggested weekly split <span className="muted small">(editable plan guidance, not exam-board rules)</span></h4>
+          {[['Repertoire and difficult passages',0.45],['Technical work',0.25],['Supporting skills / musicianship',0.15],['Run-through and reflection',0.15]].map(([label, share]) => <div className="gp-week" key={label}><strong>{Math.round(share * 100)}%</strong><span>{label}</span><small>{round1(weeklyHours * share)} h</small></div>)}
+        </div>
+        <div><h4>Milestones</h4>
+          {timeline.map(item => <div className="gp-week" key={item.month}><strong>Month {item.month}</strong><span>{item.goal}</span><small>{item.hours} h</small></div>)}
+        </div>
+      </div>
+    </section>
+
+    <section className="panel">
+      <h3>5. Mock performances and feedback</h3>
+      <p className="muted">Save your own assessment notes and scores. These are personal tracking records—not official exam marks or an automated pass prediction.</p>
+      <div className="gp-grid">
+        <label>Piece or test
+          <select value={mockName} onChange={event => setMockName(event.target.value)}>
+            <option value="">Full mock exam / programme</option>
+            {p.pieces.map(piece => <option key={piece.id} value={piece.title}>{piece.title}</option>)}
+            {requirements.items.map(item => <option key={item.id} value={item.title}>{item.title}</option>)}
+          </select>
+        </label>
+        <label>Personal score (0–100)<input type="number" min="0" max="100" value={mockScore} onChange={event => setMockScore(event.target.value)} /></label>
+      </div>
+      <label className="gp-notes">Feedback<textarea rows="2" value={mockNotes} onChange={event => setMockNotes(event.target.value)} placeholder="Accuracy, rhythm, memory, expression, confidence, next step…" /></label>
+      <button className="btn btn-dark" onClick={saveMock} disabled={mockScore === '' || !Number.isFinite(Number(mockScore))}>Save assessment</button>
+      {avgScore !== null && <div className="gp-requirements">
+        <div><strong>{avgScore}/100</strong><span>Average personal score</span></div>
+        <div><strong>{p.mockScores.length}</strong><span>Assessments saved</span></div>
+        <div><strong>{p.mockScores[p.mockScores.length - 1].score}/100</strong><span>Latest personal score</span></div>
+      </div>}
+      {p.mockScores.slice().reverse().map(mock => <div className="gp-saved" key={mock.id}>
+        <span><strong>{mock.piece} · {mock.score}/100</strong><small>{new Date(mock.date).toLocaleDateString()}{mock.notes ? ' · ' + mock.notes : ''}</small></span>
+        <button className="btn btn-quiet" onClick={() => set('mockScores', p.mockScores.filter(item => item.id !== mock.id))}>Remove</button>
+      </div>)}
+    </section>
+  </div>;
 }
