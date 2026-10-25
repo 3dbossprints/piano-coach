@@ -159,6 +159,7 @@ export default function GradePlanner({ onPracticePiece = () => {}, sessions = []
   const piecesTarget = plan.board === 'ABRSM' && plan.route === 'Performance Grades' ? 4 : (plan.board === 'Trinity' && plan.route === 'Trinity Digital — Repertoire-only' ? 4 : 3);
   const repertoireStatus = useMemo(() => repertoireSelection(plan, piecesTarget), [plan.pieces, plan.board, plan.route, plan.target, piecesTarget]);
   const deadlineDays = plan.targetDate ? Math.max(0, Math.ceil((new Date(plan.targetDate + 'T23:59:59').getTime() - Date.now()) / 86400000)) : null;
+  const syllabusWarning = plan.board === 'ABRSM' && plan.targetDate && ((plan.syllabus === '2025 & 2026' && plan.targetDate > '2027-12-31') || (plan.syllabus === '2027 & 2028' && plan.targetDate < '2027-01-01')) ? (plan.syllabus === '2025 & 2026' ? 'The 2025 & 2026 ABRSM repertoire syllabus is valid only through 31 December 2027. Select 2027 & 2028 for an exam in 2028 or later.' : 'The ABRSM 2027 & 2028 repertoire syllabus applies to exams from 1 January 2027. Select 2025 & 2026 for an earlier exam date.') : '';
   const weeksRemaining = deadlineDays === null ? 12 : Math.max(1, Math.ceil(deadlineDays / 7));
   const expectedHours = Math.max(0, number(plan.weeklyHours) * weeksRemaining);
   const linkedSessions = sessions.filter(session => plan.pieces.some(piece => clean(piece.title) === clean(session.song)));
@@ -170,7 +171,7 @@ export default function GradePlanner({ onPracticePiece = () => {}, sessions = []
   const averageMock = mocks.length ? Math.round(mocks.reduce((sum, item) => sum + number(item.score), 0) / mocks.length) : null;
   const requirementChecks = requirements.filter(item => plan.checks[item.id]).length;
   const repertoirePoints = repertoireStatus.valid ? 25 : Math.min(20, plan.pieces.length / Math.max(1, piecesTarget) * 20);
-  const readyScore = Math.round((requirementChecks / Math.max(1, requirements.length)) * 50 + repertoirePoints + Math.min(25, totalHours / Math.max(1, expectedHours) * 25));
+  const readyScore = Math.max(0, Math.round((requirementChecks / Math.max(1, requirements.length)) * 50 + repertoirePoints + Math.min(25, totalHours / Math.max(1, expectedHours) * 25) - (syllabusWarning ? 15 : 0)));
   const hoursByPiece = piece => sessions.filter(session => clean(piece.title) === clean(session.song)).reduce((sum, session) => sum + Math.max(0, number(session.practiceSeconds ?? (number(session.minutes) * 60))) / 3600, 0);
 
   function addPiece() {
@@ -282,7 +283,7 @@ export default function GradePlanner({ onPracticePiece = () => {}, sessions = []
           </label>
         </div>
         <p className="muted"> {deadlineDays === null ? 'Set a target date to calculate the remaining practice window.' : deadlineDays === 0 ? 'Target date is today.' : weeksRemaining + ' week' + (weeksRemaining === 1 ? '' : 's') + ' remaining.'} This is a personal practice target, not an official number of hours required by the board.</p>
-        {plan.board === 'ABRSM' && plan.route === 'Practical Grades' && plan.syllabus === '2025 & 2026' && <p className="gp-notice">ABRSM’s 2025 & 2026 piano syllabus remains usable through 31 December 2027. The 2027 & 2028 repertoire is valid from 1 January 2027; keep all three set pieces in the same syllabus edition.</p>}
+        {plan.board === 'ABRSM' && plan.syllabus === '2025 & 2026' && <p className="gp-notice">The ABRSM 2025 & 2026 repertoire syllabus is valid through 31 December 2027. The 2027 & 2028 syllabus is valid from 1 January 2027; do not mix pieces from different editions.</p>}{syllabusWarning && <p className="gp-error" role="alert">{syllabusWarning}</p>}
         {plan.board === 'ABRSM' && <label className="gp-syllabus-select">ABRSM repertoire syllabus
           <select value={plan.syllabus} onChange={event => update('syllabus', event.target.value)}><option>2025 &amp; 2026</option><option>2027 &amp; 2028</option></select>
         </label>}
