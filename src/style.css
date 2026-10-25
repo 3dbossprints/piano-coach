@@ -969,3 +969,6 @@ input[type=file]:focus-visible,button:focus-visible{outline-color:#f3a18f}
  .music-chat-composer .btn{align-self:flex-end}
  .composer-staff-canvas{height:180px}
 }
+
+.white-key.central-key:not(.is-held){background:linear-gradient(180deg,#f2f7f1 0%,#e8f0e7 82%,#dce8df 100%)}
+.black-key.central-key:not(.is-held){background:linear-gradient(110deg,#40584a,#253831)}
