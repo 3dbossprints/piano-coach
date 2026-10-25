@@ -208,12 +208,13 @@ export default function GradePlanner({ onPracticePiece = () => {}, sessions = []
   function attachScore(id, file) {
     setScoreFileError('');
     if (!file) return;
-    if (!/\.pdf$/i.test(file.name) && !['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
-      setScoreFileError('Please choose a PDF, PNG, JPEG or WebP score.');
+    const structured = /\.(musiccoach|musicxml|xml)$/i.test(file.name);
+    if (!structured && !/\.pdf$/i.test(file.name) && !['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      setScoreFileError('Choose a native .musiccoach/MusicXML score, PDF, PNG, JPEG or WebP image.');
       return;
     }
     if (file.size > 1.5 * 1024 * 1024) {
-      setScoreFileError('Grade-plan attachments are limited to 1.5 MB so the plan can fit more reliably in browser storage. Compress the PDF/image or import it in Sheet Music instead.');
+      setScoreFileError('Grade-plan attachments are limited to 1.5 MB so the plan can fit more reliably in browser storage. Compress the score or import it in Sheet Music instead.');
       return;
     }
     const reader = new FileReader();
@@ -321,7 +322,7 @@ export default function GradePlanner({ onPracticePiece = () => {}, sessions = []
               <select value={categories.some(option => option.value === piece.category) ? piece.category : categories[0].value} onChange={event => setPlan(previous => ({ ...previous, pieces: previous.pieces.map(existing => existing.id === piece.id ? { ...existing, category: event.target.value } : existing) }))}>{categories.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
             </label><strong>{piece.title}</strong><small>{piece.composer || 'Composer not entered'}</small>
               <div className="gp-piece-stats"><span>{hoursByPiece(piece).toFixed(1)} h practised</span><span>{sessions.filter(session => clean(piece.title) === clean(session.song)).length} linked sessions</span>{piece.scoreName && <span>Score attached: {piece.scoreName}</span>}</div>
-              <label className="gp-attach-score">Attach score (PDF / PNG / JPEG / WebP)<input type="file" accept=".pdf,application/pdf,image/png,image/jpeg,image/webp" onChange={event => { attachScore(piece.id, event.target.files && event.target.files[0]); event.target.value = ''; }} /></label>
+              <label className="gp-attach-score">Attach score (.musiccoach / MusicXML / PDF / image)<input type="file" accept=".musiccoach,.musicxml,.xml,.pdf,application/vnd.piano-coach.musiccoach,application/vnd.recordare.musicxml+xml,application/xml,text/xml,application/pdf,image/png,image/jpeg,image/webp" onChange={event => { attachScore(piece.id, event.target.files && event.target.files[0]); event.target.value = ''; }} /></label>
             </div>
             <div className="gp-piece-actions"><button className="btn btn-dark" onClick={() => onPracticePiece(piece)}>Practise this piece</button><button className="btn" onClick={() => removePiece(piece.id)}>Remove</button></div>
           </article>)}
