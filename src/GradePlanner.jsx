@@ -123,7 +123,7 @@ export default function GradePlanner({ onPracticePiece = () => {}, sessions = []
       board: stored.board === 'Trinity' ? 'Trinity' : 'ABRSM',
       pathway: stored.pathway || 'abrsm-practical',
       syllabus: stored.syllabus || '2025-2026',
-      manualHours: num(stored.manualHours ?? stored.actualHours),
+      manualHours: num(stored.manualHours ?? Math.max(0, num(stored.actualHours) - (Array.isArray(sessions) ? sessions.reduce((sum, session) => sum + Math.max(0, num(session.practiceSeconds ?? num(session.minutes) * 60)) / 3600, 0) : 0))),
       checks: stored.checks && typeof stored.checks === 'object' ? stored.checks : {},
       mockScores: Array.isArray(stored.mockScores) ? stored.mockScores : []
     };
@@ -152,11 +152,15 @@ export default function GradePlanner({ onPracticePiece = () => {}, sessions = []
   const requirements = useMemo(() => examRequirements(p.board, effectivePathway, p.target, effectiveSyllabus), [p.board, effectivePathway, p.target, effectiveSyllabus]);
   const today = new Date();
   const targetDate = localDate(p.date);
-  const daysRemaining = targetDate ? Math.max(0, dayDiff(targetDate, new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12))) : 84;
+  const todayNoon = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12);
+  const planStart = localDate(p.planStartDate) || localDate(new Date().toISOString().slice(0, 10));
+  const planDurationDays = targetDate ? Math.max(1, dayDiff(targetDate, planStart)) : 84;
+  const daysRemaining = targetDate ? Math.max(0, dayDiff(targetDate, todayNoon)) : 84;
   const weeksRemaining = Math.max(1, Math.ceil(daysRemaining / 7));
-  const monthsRemaining = Math.max(1, Math.min(12, Math.ceil(weeksRemaining / 4.345)));
+  const totalPlanWeeks = Math.max(1, Math.ceil(planDurationDays / 7));
+  const monthsRemaining = Math.max(1, Math.min(12, Math.ceil(totalPlanWeeks / 4.345)));
   const weeklyHours = clamp(num(p.weeklyHours) || 5, 0.5, 40);
-  const targetHours = weeklyHours * weeksRemaining;
+  const targetHours = weeklyHours * totalPlanWeeks;
   const sessionSeconds = sessions.reduce((sum, session) => {
     const value = session.practiceSeconds != null ? num(session.practiceSeconds) : num(session.minutes) * 60;
     return sum + Math.max(0, value);
@@ -164,7 +168,8 @@ export default function GradePlanner({ onPracticePiece = () => {}, sessions = []
   const sessionHours = sessionSeconds / 3600;
   const manualHours = Math.max(0, num(p.manualHours));
   const actualHours = round1(sessionHours + manualHours);
-  const elapsedFraction = targetDate ? clamp(1 - daysRemaining / Math.max(1, weeksRemaining * 7), 0, 1) : 0;
+  const elapsedDays = clamp(dayDiff(todayNoon, planStart), 0, planDurationDays);
+  const elapsedFraction = targetDate ? clamp(elapsedDays / planDurationDays, 0, 1) : 0;
   const expectedHours = round1(targetHours * elapsedFraction);
   const hoursProgress = clamp(Math.round(actualHours / Math.max(1, targetHours) * 100), 0, 100);
   const checkKey = id => [p.board, effectivePathway, effectiveSyllabus, p.target, id].join(':');
@@ -272,7 +277,7 @@ export default function GradePlanner({ onPracticePiece = () => {}, sessions = []
           </select>
         </label>}
         <label>Target exam date
-          <input type="date" min={new Date().toISOString().slice(0, 10)} value={p.date} onChange={event => set('date', event.target.value)} />
+          <input type="date" min={new Date().toISOString().slice(0, 10)} value={p.date} onChange={event => setP(old => ({ ...old, date: event.target.value, planStartDate: new Date().toISOString().slice(0, 10) }))} />
         </label>
         <label>Practice target per week (hours)
           <input type="number" min="0.5" max="40" step="0.5" value={p.weeklyHours} onChange={event => set('weeklyHours', clamp(num(event.target.value) || 0.5, 0.5, 40))} />
