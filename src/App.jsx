@@ -185,6 +185,7 @@ export default function App(){
  const [targetIndex,setTargetIndex]=useState(0);
  const learnProgressRef=useRef(0),learnPhraseOffsetRef=useRef(0),learnNoteLockRef=useRef(0),learnModeRef=useRef(false);
  const heldKeysRef=useRef({});
+ const pressedComputerKeysRef=useRef({});
  const targets=useMemo(()=>parseMusicSequence(expected),[expected]);
  const actual=events;
  const comparison=useMemo(()=>compareSequences(expected,actual),[expected,actual]);
@@ -721,10 +722,11 @@ function getLearnPhrase(){const meter=String(timeSignature||'4/4').split('/').ma
   }else{setLearnMessage('Not quite — play '+(expectedEvent.note||'the next note')+' again.');setStatus('Learn mode · try again')}
 }
  function mappedComputerNote(keyName){const key=KEYMAP[String(keyName||'').toLowerCase()];if(!key)return null;const base=keyboardStartMidi+computerOctaveOffset;const target=base+(noteToMidi(key)-60);return midiToNote(Math.max(21,Math.min(108,target)))}
- function keyboardDown(e){if(e.repeat||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;const n=mappedComputerNote(e.key);if(n){e.preventDefault();pressKey(n)}}
+ function keyboardDown(e){if(e.repeat||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;const keyName=String(e.key||'').toLowerCase();const n=mappedComputerNote(keyName);if(n){e.preventDefault();pressedComputerKeysRef.current[keyName]=n;pressKey(n)}}
  function releaseKey(note){heldKeysRef.current[note]=false;const midi=noteToMidi(note);if(midi!==null&&synth.current){try{synth.current.triggerRelease(midiToNote(midi))}catch{}}setHeldKeys(v=>({...v,[note]:false}))}
  function releaseAllKeys(){heldKeysRef.current={};if(synth.current){try{synth.current.releaseAll()}catch{}}setHeldKeys({})}
- useEffect(()=>{const up=e=>{const n=mappedComputerNote(e.key);if(n)releaseKey(n)};window.addEventListener('keyup',up);window.addEventListener('blur',releaseAllKeys);return()=>{window.removeEventListener('keyup',up);window.removeEventListener('blur',releaseAllKeys)}},[]);
+ useEffect(()=>{const up=e=>{const keyName=String(e.key||'').toLowerCase();const n=pressedComputerKeysRef.current[keyName];if(n){delete pressedComputerKeysRef.current[keyName];releaseKey(n)}};const blur=()=>{pressedComputerKeysRef.current={};releaseAllKeys()};window.addEventListener('keyup',up);window.addEventListener('blur',blur);return()=>{window.removeEventListener('keyup',up);window.removeEventListener('blur',blur)}},[]);
+ useEffect(()=>{pressedComputerKeysRef.current={};releaseAllKeys()},[keyboardStart,keyboardOctaves]);
  useEffect(()=>{window.addEventListener('keydown',keyboardDown);return()=>window.removeEventListener('keydown',keyboardDown)});
  const allKeys=Array.from({length:88},(_,i)=>({midi:i+21,note:midiToNote(i+21),black:[1,3,6,8,10].includes((i+21)%12)}));
  const keyboardStartMidi=Math.max(21,Math.min(108-12*keyboardOctaves,noteToMidi(keyboardStart)||48));
