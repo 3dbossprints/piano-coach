@@ -67,6 +67,25 @@ function Staff({notes,expanded,bpm=84,timeSignature='4/4'}) {
  return <div className="staff-wrap"><div className="staff" ref={ref}/>{!notes.length&&<div className="staff-empty">Your detected notes will appear on the staff here.</div>}</div>
 }
 function requireVexFormatter(){return (globalThis.VexFlow&&globalThis.VexFlow.Formatter)||class {joinVoices(v){return this} format(){} };}
+function normalizeMusicXMLTitle(xmlText,title){
+ if(!xmlText)return xmlText;
+ const parser=new DOMParser(),doc=parser.parseFromString(String(xmlText),'application/xml');
+ if(doc.querySelector('parsererror'))return xmlText;
+ const isGeneric=value=>!String(value||'').trim()||/^(untitled(?:\\s+score)?|score)$/i.test(String(value||'').trim());
+ const existing=doc.querySelector('work-title')?.textContent||doc.querySelector('movement-title')?.textContent||'';
+ if(!isGeneric(existing))return xmlText;
+ const score=doc.querySelector('score-partwise');
+ if(!score)return xmlText;
+ let work=score.querySelector(':scope > work');
+ if(!work){work=doc.createElement('work');score.insertBefore(work,score.firstChild)}
+ let workTitle=work.querySelector(':scope > work-title');
+ if(!workTitle){workTitle=doc.createElement('work-title');work.appendChild(workTitle)}
+ const safeTitle=String(title||'Sheet music').trim()||'Sheet music';
+ workTitle.textContent=safeTitle;
+ const movement=doc.querySelector('movement-title');
+ if(movement&&isGeneric(movement.textContent))movement.textContent=safeTitle;
+ return new XMLSerializer().serializeToString(doc);
+}
 function MusicXMLPreview({xml,title='Sheet music'}) {
  const ref=useRef(null);
  const [status,setStatus]=useState('Loading full sheet music…');
@@ -89,7 +108,7 @@ function MusicXMLPreview({xml,title='Sheet music'}) {
     if(!OSMD)throw new Error('The notation renderer is unavailable');
     if(cancelled||!ref.current)return;
     renderer=new OSMD(ref.current,{autoResize:true,drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:false,backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false});
-    await renderer.load(xml);
+    await renderer.load(normalizeMusicXMLTitle(xml,title));
     if(cancelled)return;
     renderer.render();setStatus(title+' · full notation rendered from MusicXML');
    }catch(e){if(!cancelled)setStatus('Could not render the full notation here. The original MusicXML is still preserved for export. '+e.message)}
@@ -408,11 +427,12 @@ export default function App(){
      elapsedBeats+=measureLengthBeats;
     }
     notes.sort((a,b)=>a.time-b.time||a.part-b.part||a.staff-b.staff||a.voice.localeCompare(b.voice));
-    const title=xml.querySelector('work-title')?.textContent||xml.querySelector('movement-title')?.textContent||file.name.replace(/\.(musicxml|xml)$/i,'');
+    const rawTitle=xml.querySelector('work-title')?.textContent||xml.querySelector('movement-title')?.textContent||'';const fileTitle=file.name.replace(/\.(musicxml|xml)$/i,'').trim();const title=(!rawTitle.trim()||/^(untitled(?:\s+score)?|score)$/i.test(rawTitle.trim()))?(fileTitle||'Imported score'):rawTitle.trim();const normalizedSourceMusicXML=normalizeMusicXMLTitle(text,title);
     const key=firstPart.querySelector('attributes key');
-    score={format:'musiccoach',version:2,title,timeSignature:beats+'/'+beatType,bpm:tempo,created:new Date().toISOString(),source:'MusicXML import',notes,notation:{sourceFormat:'MusicXML',sourceMusicXML:text,key:key?{fifths:Number(getText(key,'fifths','0')),mode:getText(key,'mode','major')}:null,clefs:parts.flatMap((p,pi)=>[...p.querySelectorAll('clef')].map(c=>({sign:getText(c,'sign'),line:getText(c,'line'),staff:c.getAttribute('number')||'1',part:pi+1}))),notationEvents,partCount:parts.length,technicalSupport:['multi-part and grand-staff timing','backup/forward cursor movement','rests, durations, dots and chords','accidentals, ties and voices','dynamics, articulation and notation events']},sourceAsset:options.sourceAsset||null};
+    score={format:'musiccoach',version:2,title,timeSignature:beats+'/'+beatType,bpm:tempo,created:new Date().toISOString(),source:'MusicXML import',notes,notation:{sourceFormat:'MusicXML',sourceMusicXML:normalizedSourceMusicXML,key:key?{fifths:Number(getText(key,'fifths','0')),mode:getText(key,'mode','major')}:null,clefs:parts.flatMap((p,pi)=>[...p.querySelectorAll('clef')].map(c=>({sign:getText(c,'sign'),line:getText(c,'line'),staff:c.getAttribute('number')||'1',part:pi+1}))),notationEvents,partCount:parts.length,technicalSupport:['multi-part and grand-staff timing','backup/forward cursor movement','rests, durations, dots and chords','accidentals, ties and voices','dynamics, articulation and notation events']},sourceAsset:options.sourceAsset||null};
    }
-   setScoreNotation(score.notation||null);setScoreSourceAsset(score.sourceAsset||null);setSongTitle(score.title||file.name.slice(0,file.name.lastIndexOf('.')>0?file.name.lastIndexOf('.'):file.name.length));setBpm(Number(score.bpm)||bpm);setTimeSignature(score.timeSignature||'4/4');
+   const fallbackScoreTitle=file.name.replace(/\.(musiccoach|musicxml|xml)$/i,'').trim()||'Imported score';if(!score.title||/^(untitled(?:\s+score)?|score)$/i.test(String(score.title).trim()))score.title=fallbackScoreTitle;if(score.notation?.sourceMusicXML)score.notation.sourceMusicXML=normalizeMusicXMLTitle(score.notation.sourceMusicXML,score.title);
+   setScoreNotation(score.notation||null);setScoreSourceAsset(score.sourceAsset||null);setSongTitle(score.title||fallbackScoreTitle);setBpm(Number(score.bpm)||bpm);setTimeSignature(score.timeSignature||'4/4');
    const notes=(score.notes||[]).map((n,i)=>({...n,id:n.id||'score-'+i,midi:n.midi??(n.rest?null:noteToMidi(n.note)),source:'score'}));
    setLoadedScoreNotes(notes);setMusicCoachNotes(notes);setMusicCoachAnalysis(score.analysis||'');setEvents(notes);sessionEvents.current=notes;
    setExpected(notes.map(n=>n.rest?'R/'+(n.beats>=4?'w':n.beats>=2?'h':n.beats>=1?'q':'e'):n.note+'/'+(n.beats>=4?'w':n.beats>=2?'h':n.beats>=1?'q':'e')).join(' '));
