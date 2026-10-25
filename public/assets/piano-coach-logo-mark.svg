@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title">
+  <title id="title">Piano Coach music mark</title>
+  <g fill="none" stroke="#263831" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M91 25v75"/>
+    <path d="M91 35c-19 4-33 7-39 18"/>
+    <path d="M91 66c-13 3-22 6-28 13"/>
+  </g>
+  <ellipse cx="69" cy="104" rx="20" ry="13" transform="rotate(-24 69 104)" fill="#F2765D"/>
+  <g fill="#263831">
+    <rect x="35" y="128" width="15" height="7" rx="3.5"/>
+    <rect x="57" y="128" width="15" height="7" rx="3.5"/>
+    <rect x="79" y="128" width="15" height="7" rx="3.5"/>
+  </g>
+</svg>
