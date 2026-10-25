@@ -724,7 +724,7 @@ function getLearnPhrase(){const meter=String(timeSignature||'4/4').split('/').ma
  function keyboardDown(e){if(e.repeat||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;const n=mappedComputerNote(e.key);if(n){e.preventDefault();pressKey(n)}}
  function releaseKey(note){heldKeysRef.current[note]=false;const midi=noteToMidi(note);if(midi!==null&&synth.current){try{synth.current.triggerRelease(midiToNote(midi))}catch{}}setHeldKeys(v=>({...v,[note]:false}))}
  function releaseAllKeys(){heldKeysRef.current={};if(synth.current){try{synth.current.releaseAll()}catch{}}setHeldKeys({})}
- useEffect(()=>{const up=e=>{const n=mappedComputerNote(e.key);if(n)releaseKey(n)};window.addEventListener('keyup',up);window.addEventListener('blur',releaseAllKeys);return()=>{window.removeEventListener('keyup',up);window.removeEventListener('blur',releaseAllKeys)}},[]);
+ useEffect(()=>{const up=e=>{const n=mappedComputerNote(e.key);if(n)releaseKey(n)};window.addEventListener('keyup',up);window.addEventListener('blur',releaseAllKeys);return()=>{window.removeEventListener('keyup',up);window.removeEventListener('blur',releaseAllKeys)}},[keyboardStartMidi,computerOctaveOffset]);
  useEffect(()=>{window.addEventListener('keydown',keyboardDown);return()=>window.removeEventListener('keydown',keyboardDown)});
  const allKeys=Array.from({length:88},(_,i)=>({midi:i+21,note:midiToNote(i+21),black:[1,3,6,8,10].includes((i+21)%12)}));
  const keyboardStartMidi=Math.max(21,Math.min(108-12*keyboardOctaves,noteToMidi(keyboardStart)||48));
