@@ -581,7 +581,17 @@ async function convertScoreToMusicCoach(file,options={}){
   }catch(e){setStatus('Could not restore backup: '+(e?.message||'invalid file'))}
  }
  function shiftKeyboardStart(delta){const midi=noteToMidi(keyboardStart)||48;setKeyboardStart(midiToNote(Math.max(21,Math.min(108,midi+delta))))}
- function addComposerPlaced(id,label,x=50,y=50){setComposerPlaced(v=>[...v,{id:Date.now().toString(36)+Math.random().toString(36).slice(2),symbol:id,label,x,y}])}
+ function addComposerPlaced(id,label,x=50,y=50){
+  const placedId=Date.now().toString(36)+Math.random().toString(36).slice(2);
+  setComposerPlaced(v=>[...v,{id:placedId,symbol:id,label,x,y}]);
+  const durations={whole:'w',half:'h',quarter:'q',eighth:'e',sixteenth:'s'};
+  if(durations[id]){
+   const pitches=['F5','E5','D5','C5','B4','A4','G4','F4','E4'];
+   const pitch=pitches[Math.max(0,Math.min(pitches.length-1,Math.round((y-27)/4.5)))];
+   setComposerRight(v=>(v.trim()+' '+pitch+'/'+durations[id]).trim());
+  }
+  if(['p','mp','mf','f','ff','crescendo','diminuendo','staccato','tenuto','accent','fermata','trill','treble','bass','sharp','flat','natural','double-sharp','double-flat','repeat','segno','coda'].includes(id))setComposerSymbols(v=>v.includes(id)?v:[...v,id]);
+ }
  function moveComposerPlaced(id,x,y){setComposerPlaced(v=>v.map(item=>item.id===id?{...item,x:Math.max(2,Math.min(98,x)),y:Math.max(8,Math.min(92,y))}:item))}
 
  async function sendMusicChat(){
