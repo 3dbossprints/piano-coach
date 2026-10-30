@@ -1315,3 +1315,12 @@ button:disabled { cursor: not-allowed; opacity: .48; }
  .virtual-piano-scroll>.virtual-piano{height:150px}
  .virtual-piano-scroll>.virtual-piano .black-key{height:80px}
 }
+/* Listen & Learn: independent hands and combined grand-staff mode */
+.learn-hand-selector{width:min(100%,1100px);margin:0 auto 18px;padding:16px 18px;border:1px solid var(--line,#ddd);border-radius:16px;background:var(--panel,rgba(255,255,255,.72));}
+.learn-hand-selector>span{display:block;margin-bottom:10px;font-size:11px;font-weight:800;letter-spacing:.12em;opacity:.65}
+.learn-hand-selector>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.learn-hand-selector button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 10px;border:1px solid var(--line,#ddd);border-radius:12px;background:transparent;color:inherit;font:inherit;font-weight:700;cursor:pointer}
+.learn-hand-selector button.active{border-color:var(--accent,#7665c4);background:color-mix(in srgb,var(--accent,#7665c4) 12%,transparent);box-shadow:inset 0 0 0 1px var(--accent,#7665c4)}
+.learn-hand-selector button small{font-size:11px;font-weight:500;opacity:.7}
+.learn-hand-selector p{margin:10px 0 0;font-size:12px;opacity:.72}
+@media(max-width:560px){.learn-hand-selector{padding:12px}.learn-hand-selector>div{gap:6px}.learn-hand-selector button{padding:10px 5px;font-size:13px}}
