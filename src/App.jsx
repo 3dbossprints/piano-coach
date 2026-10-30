@@ -6,6 +6,34 @@ import GradePlanner from './GradePlanner.jsx';
 
 const KEYMAP = {a:'C4',w:'C#4',s:'D4',e:'D#4',d:'E4',f:'F4',t:'F#4',g:'G4',y:'G#4',h:'A4',u:'A#4',j:'B4',k:'C5'};
 const EXAMPLES = [{name:'Warm-up scale',notes:'C4 D4 E4 F4 G4 A4 B4 C5'},{name:'Gentle arpeggio',notes:'C4 E4 G4 C5 G4 E4 C4'},{name:'Five-note pattern',notes:'C4 D4 E4 D4 C4'}];
+function parseStandardMidi(buffer){
+ const bytes=new Uint8Array(buffer),view=new DataView(buffer);let p=0;
+ const ascii=(at,n)=>String.fromCharCode(...bytes.slice(at,at+n));
+ if(bytes.length<14||ascii(0,4)!=='MThd')throw new Error('Not a standard MIDI file (missing MThd header).');
+ const headerLength=view.getUint32(4);if(headerLength<6||8+headerLength>bytes.length)throw new Error('Incomplete MIDI header.');
+ const format=view.getUint16(8),trackCount=view.getUint16(10),division=view.getUint16(12);
+ if(format>2)throw new Error('Unsupported MIDI format.');if(!division||(division&0x8000))throw new Error('SMPTE-timed MIDI files are not supported yet.');
+ p=8+headerLength;const rawNotes=[],tempos=[{tick:0,us:500000}];
+ const readVar=st=>{let v=0,c=0,b;do{if(st.pos>=st.end||c++>4)throw new Error('Corrupt MIDI variable-length value.');b=bytes[st.pos++];v=(v<<7)|(b&127)}while(b&128);return v};
+ for(let ti=0;ti<trackCount;ti++){
+  if(p+8>bytes.length||ascii(p,4)!=='MTrk')throw new Error('MIDI track '+(ti+1)+' is missing or damaged.');
+  const len=view.getUint32(p+4),st={pos:p+8,end:p+8+len};if(st.end>bytes.length)throw new Error('MIDI track '+(ti+1)+' is truncated.');p=st.end;let tick=0,running=0;const active=new Map();
+  while(st.pos<st.end){tick+=readVar(st);if(st.pos>=st.end)break;let status=bytes[st.pos];if(status&128){st.pos++;if(status<240)running=status}else{if(!running)throw new Error('MIDI event has no running status.');status=running}
+   if(status===255){if(st.pos>=st.end)break;const type=bytes[st.pos++],n=readVar(st);if(st.pos+n>st.end)throw new Error('Damaged MIDI meta event.');if(type===81&&n===3){const us=(bytes[st.pos]<<16)|(bytes[st.pos+1]<<8)|bytes[st.pos+2];if(us)tempos.push({tick,us})}st.pos+=n;continue}
+   if(status===240||status===247){st.pos+=readVar(st);continue}
+   const cmd=status&240,ch=status&15,n=(cmd===192||cmd===208)?1:2;if(st.pos+n>st.end)throw new Error('Truncated MIDI channel event.');
+   const note=bytes[st.pos++],vel=n===2?bytes[st.pos++]:0;
+   if(cmd===144&&vel>0){const k=ch+':'+note,q=active.get(k)||[];q.push({tick,note,velocity:vel,channel:ch,track:ti});active.set(k,q)}
+   else if(cmd===128||(cmd===144&&vel===0)){const q=active.get(ch+':'+note);if(q?.length){const a=q.shift();rawNotes.push({...a,endTick:Math.max(a.tick,tick)})}}
+  }
+  for(const q of active.values())for(const a of q)rawNotes.push({...a,endTick:a.tick+Math.max(1,division/2)});
+ }
+ if(!rawNotes.length)throw new Error('No playable note events were found in this MIDI file.');
+ tempos.sort((a,b)=>a.tick-b.tick);const map=tempos.filter((t,i)=>!i||t.tick!==tempos[i-1].tick);
+ const secondsAt=target=>{let sec=0,last=0,us=500000;for(const t of map){if(t.tick>=target)break;sec+=(t.tick-last)*us/1e6/division;last=t.tick;us=t.us}return sec+(target-last)*us/1e6/division};
+ const first=map.find(t=>t.tick===0)?.us||500000;
+ return {format,division,bpm:60000000/first,notes:rawNotes.map((n,i)=>({note:midiToNote(n.note),midi:n.note,time:secondsAt(n.tick),duration:Math.max(.04,secondsAt(n.endTick)-secondsAt(n.tick)),velocity:n.velocity/127,channel:n.channel,track:n.track,hand:n.track%2===0?'right':'left',rest:false,id:'midi-'+n.track+'-'+i})).sort((a,b)=>a.time-b.time)};
+}
 const NOTATION_GUIDE = [
  {id:'dynamics',label:'Dynamics: pp, p, mp, mf, f, ff',help:'Very soft → very loud; these are volume instructions.'},
  {id:'crescendo',label:'Crescendo / diminuendo wedges',help:'Hairpin < grows louder; > grows softer over a passage.'},
@@ -647,7 +675,20 @@ function getLearnPhrase(){const meter=String(timeSignature||'4/4').split('/').ma
  function pauseMidiLibraryPlayback(){if(!midiPlaybackRef.current)return;try{Tone.Transport.pause();midiPlaybackRef.current.paused=true;setLibraryPlayback({id:midiPlaybackRef.current.itemId,kind:'tone',paused:true});setStatus('Playback paused')}catch(e){setAudioError('Could not pause playback: '+e.message)}}
  function resumeMidiLibraryPlayback(){if(!midiPlaybackRef.current)return;try{Tone.Transport.start();midiPlaybackRef.current.paused=false;setLibraryPlayback({id:midiPlaybackRef.current.itemId,kind:'tone',paused:false});setStatus('Resumed library playback')}catch(e){setAudioError('Could not resume playback: '+e.message)}}
  function stopMidiLibraryPlayback(){const p=midiPlaybackRef.current;if(!p)return;try{Tone.Transport.clear(p.endId);p.part.dispose();p.player.dispose();Tone.Transport.stop();Tone.Transport.cancel();Tone.Transport.position=0}catch{}midiPlaybackRef.current=null;setLibraryPlayback(current=>current.kind==='tone'?{id:null,kind:'',paused:true}:current);setStatus('Playback stopped')}
- async function handleMidiUpload(file,options={}){if(!file)return;try{setMusicCoachBusy(true);setMusicCoachStatus('Reading MIDI notes and preparing a playable score…');const {Midi}=await import('https://esm.sh/@tonejs/midi@2.0.28');const midi=new Midi(await file.arrayBuffer());const all=midi.tracks.flatMap((track,ti)=>track.notes.map((n,i)=>({note:n.name,midi:noteToMidi(n.name),time:Number(n.time)||0,duration:Math.max(.08,Number(n.duration)||.25),beats:Math.max(.25,(Number(n.duration)||.25)*bpm/60),measure:Math.floor((Number(n.time)||0)/(60/bpm*Math.max(1,Number(timeSignature.split('/')[0]))))+1,hand:ti===0?'right':'left',rest:false,id:'midi-'+ti+'-'+i}))).sort((a,b)=>a.time-b.time);if(!all.length)throw new Error('No note events were found in this MIDI file.');const title=file.name.replace(/\.(mid|midi)$/i,'')||'MIDI score';const score={format:'musiccoach',version:1,title,bpm,timeSignature,created:new Date().toISOString(),source:'Imported MIDI',notes:all};const json=encodeMusicCoach(score),data='data:application/vnd.piano-coach.musiccoach;base64,'+btoa(unescape(encodeURIComponent(json)));setLibraryFiles(v=>[{id:Date.now(),name:title+'.musiccoach',type:'application/vnd.piano-coach.musiccoach',size:json.length,data,added:new Date().toISOString(),kind:'score',score},...v.filter(x=>x.name!==title+'.musiccoach')]);setSongTitle(title);setEvents(all);sessionEvents.current=all;setLoadedScoreNotes(all);setExpected(all.slice(0,100).map(n=>n.note+'/'+(n.beats>=3.5?'w':n.beats>=1.5?'h':n.beats>=.7?'q':'e')).join(' '));setPracticeMode('learn');if(options.target==='Library')setLibraryTab('scores');setPage(options.target||'Practice');setPracticeStarted(false);setMusicCoachStatus('Converted '+all.length+' MIDI note events into an editable .musiccoach score.');setStatus('MIDI converted to sheet music');}catch(e){setMusicCoachStatus('MIDI import failed: '+e.message);setAudioError('Could not convert MIDI: '+e.message)}finally{setMusicCoachBusy(false)}}
+ async function handleMidiUpload(file,options={}){
+  if(!file)return;setMusicCoachBusy(true);setAudioError('');setMusicCoachStatus('Reading MIDI file…');
+  try{
+   const parsed=parseStandardMidi(await file.arrayBuffer());
+   const all=parsed.notes.map(n=>({...n,beats:Math.max(.125,n.duration*parsed.bpm/60),measure:Math.floor(n.time*parsed.bpm/60/Math.max(1,Number(timeSignature.split('/')[0])))+1}));
+   const title=file.name.replace(/\.(mid|midi)$/i,'').trim()||'MIDI score';
+   const score={format:'musiccoach',version:2,title,bpm:Math.round(parsed.bpm),timeSignature,created:new Date().toISOString(),source:'Imported MIDI',midiFormat:parsed.format,notes:all};
+   const json=encodeMusicCoach(score),data='data:application/vnd.piano-coach.musiccoach;base64,'+btoa(unescape(encodeURIComponent(json)));
+   const item={id:Date.now(),name:title+'.musiccoach',type:'application/vnd.piano-coach.musiccoach',size:new Blob([json]).size,data,added:new Date().toISOString(),kind:'score',score};
+   setLibraryFiles(v=>[item,...v.filter(x=>x.name!==item.name)]);setSongTitle(title);setEvents(all);sessionEvents.current=all;setLoadedScoreNotes(all);setBpm(Math.round(parsed.bpm));setExpected(all.slice(0,100).map(n=>n.note+'/'+(n.beats>=3.5?'w':n.beats>=1.5?'h':n.beats>=.7?'q':'e')).join(' '));setPracticeMode('learn');setPage(options.target||'Sheet music');setPracticeStarted(false);
+   setMusicCoachStatus('Imported '+all.length+' MIDI notes and saved an editable .musiccoach score.');setStatus('MIDI imported successfully');
+  }catch(e){const message=e?.message||'Unknown MIDI import error';setMusicCoachStatus('MIDI import failed: '+message);setAudioError('Could not import '+file.name+': '+message);setStatus('MIDI import failed')}
+  finally{setMusicCoachBusy(false)}
+ }
  function saveLibraryFile(file){if(!file)return;const reader=new FileReader();reader.onload=()=>{const item={id:Date.now(),name:file.name,type:file.type||'application/octet-stream',size:file.size,data:reader.result,added:new Date().toISOString()};setLibraryFiles(v=>[item,...v]);setStatus('Added '+file.name+' to your library')};reader.readAsDataURL(file)}
  function handleScoreUpload(file,options={}){if(!file)return;const name=file.name.toLowerCase(),target=options.target||'Sheet music';if(name.endsWith('.mid')||name.endsWith('.midi')){handleMidiUpload(file,{target});return}if(name.endsWith('.musiccoach')||name.endsWith('.musicxml')||name.endsWith('.xml')){importMusicXML(file,{target,download:!!options.download});return}if(file.type==='application/pdf'||name.endsWith('.pdf')||file.type.startsWith('image/')||/\.(png|jpe?g|webp)$/i.test(name)){convertScoreToMusicCoach(file,{target,download:!!options.download});return}saveLibraryFile(file)}
  function downloadLibraryFile(item){const a=document.createElement('a');a.href=item.data;a.download=item.name;a.click()}
