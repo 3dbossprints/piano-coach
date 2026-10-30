@@ -1324,3 +1324,134 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .learn-hand-selector button small{font-size:11px;font-weight:500;opacity:.7}
 .learn-hand-selector p{margin:10px 0 0;font-size:12px;opacity:.72}
 @media(max-width:560px){.learn-hand-selector{padding:12px}.learn-hand-selector>div{gap:6px}.learn-hand-selector button{padding:10px 5px;font-size:13px}}
+
+
+/* Desktop navigation: compact icon rail that expands without clipping its identity. */
+@media (min-width: 1101px) {
+  .shell { grid-template-columns: 76px minmax(0, 1fr) !important; }
+  .sidebar {
+    position: sticky !important;
+    top: 0 !important;
+    align-self: start !important;
+    width: 76px !important;
+    min-width: 76px !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    padding: 22px 10px 18px !important;
+    overflow-x: visible !important;
+    overflow-y: auto !important;
+    z-index: 80 !important;
+    transition: width .22s ease, min-width .22s ease, box-shadow .22s ease !important;
+  }
+  .sidebar .brand {
+    min-height: 52px;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 12px !important;
+    padding: 0 4px 22px !important;
+    white-space: nowrap;
+  }
+  .sidebar .brand img.brand-logo-mark {
+    display: block !important;
+    flex: 0 0 40px !important;
+    width: 40px !important;
+    height: 40px !important;
+    object-fit: contain !important;
+  }
+  .sidebar .brand span,
+  .sidebar .nav-label,
+  .sidebar .nav-item:not(.active),
+  .sidebar .nav-item.active {
+    font-size: 0 !important;
+  }
+  .sidebar .brand span { display: none !important; }
+  .sidebar .nav-label { display: none !important; }
+  .sidebar .nav-item,
+  .sidebar .nav-item.active,
+  .sidebar .nav-item:not(.active) {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 54px !important;
+    min-width: 54px !important;
+    min-height: 50px !important;
+    margin: 5px auto !important;
+    padding: 10px 4px !important;
+    gap: 0 !important;
+    overflow: visible !important;
+    white-space: nowrap !important;
+    font-size: 0 !important;
+  }
+  .sidebar .nav-item span {
+    display: inline-flex !important;
+    flex: 0 0 24px !important;
+    width: 24px !important;
+    min-width: 24px !important;
+    justify-content: center !important;
+    font-size: 21px !important;
+    line-height: 1 !important;
+  }
+  .sidebar .sidebar-tools {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 12px 0 4px !important;
+    margin-top: 12px !important;
+  }
+  .sidebar .sidebar-tools button { flex: 0 0 34px !important; }
+  .sidebar .sidebar-logo {
+    display: flex !important;
+    justify-content: center !important;
+    padding: 12px 0 4px !important;
+  }
+  .sidebar .sidebar-logo img { width: 34px !important; height: 34px !important; object-fit: contain !important; }
+  .sidebar:hover,
+  .sidebar:focus-within {
+    width: 248px !important;
+    min-width: 248px !important;
+    box-shadow: 16px 0 38px rgba(35, 28, 54, .12) !important;
+  }
+  .shell:has(.sidebar:hover),
+  .shell:has(.sidebar:focus-within) {
+    grid-template-columns: 248px minmax(0, 1fr) !important;
+  }
+  .sidebar:hover .brand,
+  .sidebar:focus-within .brand {
+    justify-content: flex-start !important;
+    padding-left: 8px !important;
+  }
+  .sidebar:hover .brand span,
+  .sidebar:focus-within .brand span {
+    display: block !important;
+    min-width: 0 !important;
+    font-size: 16px !important;
+  }
+  .sidebar:hover .nav-label,
+  .sidebar:focus-within .nav-label {
+    display: block !important;
+    font-size: 10px !important;
+    padding: 8px 12px !important;
+  }
+  .sidebar:hover .nav-item,
+  .sidebar:hover .nav-item.active,
+  .sidebar:hover .nav-item:not(.active),
+  .sidebar:focus-within .nav-item,
+  .sidebar:focus-within .nav-item.active,
+  .sidebar:focus-within .nav-item:not(.active) {
+    width: 100% !important;
+    min-width: 0 !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    padding: 12px 13px !important;
+    margin: 4px 0 !important;
+    font-size: 13px !important;
+  }
+  .sidebar:hover .nav-item span,
+  .sidebar:focus-within .nav-item span { font-size: 19px !important; }
+  .sidebar:hover .sidebar-tools,
+  .sidebar:focus-within .sidebar-tools { justify-content: flex-start !important; }
+  .sidebar:hover .sidebar-logo,
+  .sidebar:focus-within .sidebar-logo { justify-content: flex-start !important; }
+}
