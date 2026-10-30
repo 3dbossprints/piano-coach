@@ -185,6 +185,7 @@ export default function App(){
  const [targetIndex,setTargetIndex]=useState(0);
  const learnProgressRef=useRef(0),learnPhraseOffsetRef=useRef(0),learnNoteLockRef=useRef(0),learnModeRef=useRef(false);
  const heldKeysRef=useRef({});
+ const heldComputerKeysRef=useRef({});
  const targets=useMemo(()=>parseMusicSequence(expected),[expected]);
  const actual=events;
  const comparison=useMemo(()=>compareSequences(expected,actual),[expected,actual]);
@@ -720,11 +721,50 @@ function getLearnPhrase(){const meter=String(timeSignature||'4/4').split('/').ma
     if(hasLater)setTimeout(()=>playLearnPhrase(),500);
   }else{setLearnMessage('Not quite — play '+(expectedEvent.note||'the next note')+' again.');setStatus('Learn mode · try again')}
 }
- function keyboardDown(e){if(e.repeat||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;const key=KEYMAP[e.key.toLowerCase()];if(key){const base=keyboardStartMidi+computerOctaveOffset;const target=base+(noteToMidi(key)-60);const n=midiToNote(Math.max(21,Math.min(108,target)));e.preventDefault();pressKey(n)}}
- function releaseKey(note){heldKeysRef.current[note]=false;const midi=noteToMidi(note);if(midi!==null&&synth.current){try{synth.current.triggerRelease(midiToNote(midi))}catch{}}setHeldKeys(v=>({...v,[note]:false}))}
- function releaseAllKeys(){heldKeysRef.current={};if(synth.current){try{synth.current.releaseAll()}catch{}}setHeldKeys({})}
- useEffect(()=>{const up=e=>{const n=KEYMAP[e.key.toLowerCase()];if(n)releaseKey(n)};window.addEventListener('keyup',up);window.addEventListener('blur',releaseAllKeys);return()=>{window.removeEventListener('keyup',up);window.removeEventListener('blur',releaseAllKeys)}},[]);
- useEffect(()=>{window.addEventListener('keydown',keyboardDown);return()=>window.removeEventListener('keydown',keyboardDown)});
+ function keyboardDown(e){
+  const active=document.activeElement;
+  if(e.repeat||e.metaKey||e.ctrlKey||e.altKey||['INPUT','TEXTAREA','SELECT'].includes(active?.tagName)||active?.isContentEditable)return;
+  const key=KEYMAP[String(e.key||'').toLowerCase()];
+  if(!key)return;
+  const code=e.code||('key:'+String(e.key||'').toLowerCase());
+  if(heldComputerKeysRef.current[code])return;
+  const base=keyboardStartMidi+computerOctaveOffset;
+  const target=base+(noteToMidi(key)-60);
+  const note=midiToNote(Math.max(21,Math.min(108,target)));
+  e.preventDefault();
+  heldComputerKeysRef.current[code]=note;
+  pressKey(note);
+ }
+ function releaseKey(note){
+  if(!note)return;
+  heldKeysRef.current[note]=false;
+  const midi=noteToMidi(note);
+  if(midi!==null&&synth.current){try{synth.current.triggerRelease(midiToNote(midi),Tone.now())}catch{}}
+  setHeldKeys(v=>({...v,[note]:false}));
+ }
+ function releaseAllKeys(){
+  const notes=new Set([...Object.values(heldComputerKeysRef.current),...Object.keys(heldKeysRef.current).filter(n=>heldKeysRef.current[n])]);
+  heldComputerKeysRef.current={};
+  notes.forEach(note=>{heldKeysRef.current[note]=false;const midi=noteToMidi(note);if(midi!==null&&synth.current){try{synth.current.triggerRelease(midiToNote(midi),Tone.now())}catch{}}});
+  if(synth.current){try{synth.current.releaseAll(Tone.now())}catch{}}
+  heldKeysRef.current={};
+  setHeldKeys({});
+ }
+ useEffect(()=>{
+  const up=e=>{
+   const code=e.code||('key:'+String(e.key||'').toLowerCase());
+   const note=heldComputerKeysRef.current[code];
+   if(note){delete heldComputerKeysRef.current[code];releaseKey(note);}
+  };
+  window.addEventListener('keyup',up,true);
+  window.addEventListener('blur',releaseAllKeys);
+  window.addEventListener('pagehide',releaseAllKeys);
+  const visibility=()=>{if(document.hidden)releaseAllKeys()};
+  document.addEventListener('visibilitychange',visibility);
+  return()=>{window.removeEventListener('keyup',up,true);window.removeEventListener('blur',releaseAllKeys);window.removeEventListener('pagehide',releaseAllKeys);document.removeEventListener('visibilitychange',visibility)};
+ },[]);
+ useEffect(()=>{window.addEventListener('keydown',keyboardDown,true);return()=>window.removeEventListener('keydown',keyboardDown,true)});
+ useEffect(()=>{releaseAllKeys()},[keyboardStart,keyboardOctaves]);
  const allKeys=Array.from({length:88},(_,i)=>({midi:i+21,note:midiToNote(i+21),black:[1,3,6,8,10].includes((i+21)%12)}));
  const keyboardStartMidi=Math.max(21,Math.min(108-12*keyboardOctaves,noteToMidi(keyboardStart)||48));
  const keyboardEndMidi=keyboardStartMidi+keyboardOctaves*12;
