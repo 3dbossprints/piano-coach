@@ -824,7 +824,8 @@ function getLearnPhrase(){const meter=String(timeSignature||'4/4').split('/').ma
  const computerOctaveOffset=Math.floor((keyboardOctaves-1)/2)*12;
 
  const blackOffsets={'C#':0.62,'D#':1.62,'F#':3.62,'G#':4.62,'A#':5.62};
- const qualifyingSessions=sessions.filter(s=>Number(s.practiceSeconds??((Number(s.minutes)||0)*60))>=900);\n const practiceDays=[...new Set(qualifyingSessions.map(s=>{const d=new Date(s.lastPractisedAt||s.date);return Number.isNaN(d.getTime())?'':d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}).filter(Boolean))].sort().reverse();
+ const qualifyingSessions=sessions.filter(s=>Number(s.practiceSeconds??((Number(s.minutes)||0)*60))>=900);
+ const practiceDays=[...new Set(qualifyingSessions.map(s=>{const d=new Date(s.lastPractisedAt||s.date);return Number.isNaN(d.getTime())?'':d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}).filter(Boolean))].sort().reverse();
  const dayKey=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
  const todayKey=dayKey(new Date()),yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
  let streak=0;
