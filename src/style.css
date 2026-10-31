@@ -1525,7 +1525,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .sidebar-collapse-toggle{display:flex;align-items:center;justify-content:center;margin:8px 12px 14px;width:32px;height:30px;border:1px solid var(--line,#e8e3dc);border-radius:9px;background:transparent;color:inherit;cursor:pointer;font-size:18px}
 .sidebar-collapsed .sidebar{width:76px!important;min-width:76px!important;padding-left:10px!important;padding-right:10px!important}
 .sidebar-collapsed .sidebar .brand{justify-content:center;padding-left:0!important;padding-right:0!important}
-.sidebar-collapsed .sidebar .brand span,.sidebar-collapsed .sidebar .nav-label,.sidebar-collapsed .sidebar .nav-item:not(span),.sidebar-collapsed .sidebar .sidebar-tools,.sidebar-collapsed .sidebar .sidebar-logo{display:none!important}
+.sidebar-collapsed .sidebar .brand span,.sidebar-collapsed .sidebar .nav-label,.sidebar-collapsed .sidebar .sidebar-tools,.sidebar-collapsed .sidebar .sidebar-logo{display:none!important}
 .sidebar-collapsed .sidebar .nav-item{width:48px!important;min-width:48px!important;justify-content:center!important;padding:10px!important;margin:5px auto!important;font-size:0!important}
 .sidebar-collapsed .sidebar .nav-item span{display:block!important;width:auto!important;font-size:20px!important}
 .sidebar-collapsed .sidebar-collapse-toggle{margin:8px auto 14px}
