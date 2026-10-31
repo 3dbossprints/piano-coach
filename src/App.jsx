@@ -742,7 +742,7 @@ function getLearnPhrase(){const meter=String(timeSignature||'4/4').split('/').ma
    setLibraryPlayback({id:item.id,kind:'tone',paused:false});setAudioError('');setStatus('Playing '+item.name);
   }catch(e){setAudioError('Could not play score: '+(e?.message||String(e)));setStatus('Score playback failed')}
  }
-async async function toggleScoreLibraryPlayback(item){
+async function toggleScoreLibraryPlayback(item){
   if(libraryPlayback.id===item.id&&libraryPlayback.kind==='tone'){
    if(libraryPlayback.paused)resumeMidiLibraryPlayback();else pauseMidiLibraryPlayback();
    return;
