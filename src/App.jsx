@@ -617,7 +617,7 @@ async function requestLocalAudioCoachFeedback(blob,title,targetNotes,detectedNot
   learnModeRef.current=false;disconnectLearnMidi();setLearnListenMode(false);setSheetPianoOpen(false);
   stopMic();stopPlayback();stopMetro();releaseAllKeys();try{synth.current?.releaseAll(Tone.now());synth.current?.dispose();synth.current=null}catch{}
   const seconds=Math.max(0,learnSeconds);
-  if(seconds>0){
+  if(seconds>0||loadedScoreNotes.length>0||expected.trim()){
     const session={id:editingSessionId||Date.now(),date:new Date().toISOString(),lastPractisedAt:new Date().toISOString(),
       song:songTitle||'Listen & Learn lesson',minutes:Math.round(seconds/60*10)/10,practiceSeconds:seconds,notes:events.length,
       reflection:'Listen & Learn lesson',feedback:completed?'Completed guided score practice':'Saved to continue later',
