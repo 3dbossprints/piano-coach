@@ -8,12 +8,12 @@ const PLAYABLE_EXTENSIONS = /\.(musiccoach|musicxml|xml|mid|midi)$/i;
 
 export function isSheetMusicLibraryItem(item) {
   if (!item || typeof item.name !== 'string') return false;
-  return item.kind === 'practice-score' || item.kind === 'score' || SHEET_EXTENSIONS.test(item.name);
+  return SHEET_EXTENSIONS.test(item.name) || (item.kind === 'practice-score' && Array.isArray(item.score?.notes));
 }
 
 export function isPlayableSheetMusicItem(item) {
   if (!isSheetMusicLibraryItem(item)) return false;
-  return PLAYABLE_EXTENSIONS.test(item.name) || item.type === 'application/vnd.piano-coach.musiccoach';
+  return PLAYABLE_EXTENSIONS.test(item.name) || item.type === 'application/vnd.piano-coach.musiccoach' || (item.kind === 'practice-score' && Array.isArray(item.score?.notes));
 }
 
 function openDatabase() {
