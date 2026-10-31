@@ -157,7 +157,7 @@ function scoreNotesToMusicXML(score){
  if(!notes.length)return '';
  const part=(hand,id,clef)=>{
   const selected=notes.filter(n=>(n.hand==='left'?'left':n.hand==='right'?'right':Number(n.midi??noteToMidi(n.note))<60?'left':'right')===hand).sort((a,b)=>(Number(a.time)||0)-(Number(b.time)||0));
-  const body=selected.map(n=>{const m=String(n.note).match(/^([A-G])(#|b)?(-?\\d+)$/i);if(!m)return '';const ticks=Math.max(1,Math.round(Math.max(.08,Number(n.duration)||.5)*4));return '<note><pitch><step>'+m[1].toUpperCase()+'</step>'+(m[2]==='#'?'<alter>1</alter>':m[2]==='b'?'<alter>-1</alter>':'')+'<octave>'+m[3]+'</octave></pitch><duration>'+ticks+'</duration><type>quarter</type></note>';}).join('');
+  const body=selected.map(n=>{const m=String(n.note).match(/^([A-G])(#|b)?(-?\d+)$/i);if(!m)return '';const ticks=Math.max(1,Math.round(Math.max(.08,Number(n.duration)||.5)*4));return '<note><pitch><step>'+m[1].toUpperCase()+'</step>'+(m[2]==='#'?'<alter>1</alter>':m[2]==='b'?'<alter>-1</alter>':'')+'<octave>'+m[3]+'</octave></pitch><duration>'+ticks+'</duration><type>quarter</type></note>';}).join('');
   return '<part id="'+id+'"><measure number="1"><attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>'+clef+'</sign><line>'+(clef==='G'?'2':'4')+'</line></clef></attributes>'+body+'</measure></part>';
  };
  return '<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><work><work-title>'+esc(score.title||'Sheet music')+'</work-title></work><part-list><score-part id="P1"><part-name>Right hand</part-name></score-part><score-part id="P2"><part-name>Left hand</part-name></score-part></part-list>'+part('right','P1','G')+part('left','P2','F')+'</score-partwise>';
@@ -778,14 +778,14 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
  async function openLibrarySheetFullscreen(item){
   try{
    let xmlText='';
-   if(/\\.(mid|midi)$/i.test(item.name||'')){
+   if(/\.(mid|midi)$/i.test(item.name||'')){
     const response=await fetch(item.data);if(!response.ok)throw new Error('The MIDI file could not be read.');
     const parsed=parseStandardMidi(await response.arrayBuffer());
-    xmlText=scoreNotesToMusicXML({title:item.name.replace(/\\.(mid|midi)$/i,''),bpm:parsed.bpm,notes:parsed.notes.map(n=>({...n,hand:n.midi<60?'left':'right'}))});
+    xmlText=scoreNotesToMusicXML({title:item.name.replace(/\.(mid|midi)$/i,''),bpm:parsed.bpm,notes:parsed.notes.map(n=>({...n,hand:n.midi<60?'left':'right'}))});
    }else{
     const response=await fetch(item.data);if(!response.ok)throw new Error('The saved score could not be read.');
     const raw=await response.text();
-    if(/\\.musiccoach$/i.test(item.name||'')){const score=item.score||decodeMusicCoach(raw);xmlText=score.sourceMusicXML||score.notation?.sourceMusicXML||score.musicxml||scoreNotesToMusicXML(score);}
+    if(/\.musiccoach$/i.test(item.name||'')){const score=item.score||decodeMusicCoach(raw);xmlText=score.sourceMusicXML||score.notation?.sourceMusicXML||score.musicxml||scoreNotesToMusicXML(score);}
     else xmlText=raw;
    }
    if(!xmlText||!/<score-partwise|<score-timewise/i.test(xmlText))throw new Error('This file does not contain renderable sheet notation.');
