@@ -24,3 +24,13 @@ test('compares played and expected notes in sequence order',()=>{
  assert.deepEqual(result.rows.map(x=>x.status),['correct','incorrect','missed']);
  assert.equal(result.accuracy,33);
 });
+
+
+test('keeps the first keyboard note unchanged when changing visible octaves', async () => {
+  const { clampKeyboardStartMidi } = await import('./music.js');
+  assert.equal(clampKeyboardStartMidi('G2', 3), 43);
+  assert.equal(clampKeyboardStartMidi('G2', 4), 43);
+  assert.equal(clampKeyboardStartMidi('G2', 5), 43);
+  assert.equal(clampKeyboardStartMidi('F3', 3), 53);
+  assert.equal(clampKeyboardStartMidi('F3', 4), 53);
+});
