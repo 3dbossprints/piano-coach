@@ -49,7 +49,7 @@ const NOTATION_GUIDE = [
  {id:'chords',label:'Chords or notes stacked vertically',help:'Two or more noteheads aligned vertically are played together.'},
  {id:'ornaments',label:'Trills, turns, grace notes or fermatas',help:'Decorations add notes or indicate a held/expressive pause.'}
 ];
-function Staff({notes,expanded,bpm=84,timeSignature='4/4',fromStart=false}) {
+function Staff({notes,expanded,bpm=84,timeSignature='4/4',fromStart=false,clef='treble'}) {
  const ref=useRef(null);
  useEffect(()=>{
   if(!ref.current)return;
@@ -61,7 +61,7 @@ function Staff({notes,expanded,bpm=84,timeSignature='4/4',fromStart=false}) {
    renderer.resize(width,expanded?190:150);
    const ctx=renderer.getContext();
    const stave=new Stave(12,18,width-24);
-   stave.addClef('treble').addTimeSignature(timeSignature).setContext(ctx).draw();
+   stave.addClef(clef).addTimeSignature(timeSignature).setContext(ctx).draw();
    const beatSeconds=60/Math.max(30,Number(bpm)||84);
    const durationCode=seconds=>{
     const beats=Math.max(.25,Math.min(4,seconds/beatSeconds));
@@ -96,14 +96,15 @@ function Staff({notes,expanded,bpm=84,timeSignature='4/4',fromStart=false}) {
  return <div className="staff-wrap"><div className="staff" ref={ref}/>{!notes.length&&<div className="staff-empty">Your detected notes will appear on the staff here.</div>}</div>
 }
 function renderLearnFallingNotes(notes,bpm){return notes.map((note,index,all)=>renderLearnFallingNote(note,index,all,bpm))}
-function getLearnStaffNotes(notes,bpm){return notes.map((n,i,phrase)=>({id:i,note:n.note,midi:n.midi,rest:n.rest,beats:n.beats,time:Math.max(0,(Number(n._start||0)-Number(phrase[0]?._start||0))*(60/bpm)),duration:n.beats*60/bpm}))}
+function getLearnStaffNotes(notes,bpm){return notes.map((n,i,phrase)=>({id:n.id||i,note:n.note,midi:n.midi,rest:n.rest,beats:n.beats,time:Math.max(0,(Number(n._start||0)-Number(phrase[0]?._start||0))*(60/bpm)),duration:n.beats*60/bpm,staff:n.staff,part:n.part,voice:n.voice,hand:n.hand}))}
+function getLearnHandStaffNotes(notes,hand){const hasGrandStaff=notes.some(n=>Number(n.staff)===2);if(hand==='left')return notes.filter(n=>hasGrandStaff?Number(n.staff)===2:(Number(n.midi??noteToMidi(n.note))<60));return notes.filter(n=>hasGrandStaff?(n.staff==null||Number(n.staff)===1):(Number(n.midi??noteToMidi(n.note))>=60))}
 function renderLearnPitchLabels(){return ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'].map(note=><span key={note}>{note}</span>)}
 function renderLearnTempoControl(bpm,setBpm){return <div className="learn-tempo-control"><span>Tempo · {bpm} BPM</span><input type="range" min="40" max="240" step="1" value={bpm} onChange={event=>setBpm(Number(event.target.value))} aria-label="Listen and Learn tempo"/></div>}
 function renderLearnTempoWarning(scoreNotation){if(!scoreNotation?.sourceMusicXML||musicXmlHasTempo(scoreNotation.sourceMusicXML))return null;return <small className="learn-tempo-warning">The imported MusicXML did not preserve a printed tempo. Check the original page and set this slider to its marked BPM.</small>}
 function renderLearnMicConnectButton(listening,startMic,micStream,playLearnPhrase,setLearnMessage){if(listening)return null;return <button className="btn" onClick={async()=>{await startMic();if(micStream.current)await playLearnPhrase();else setLearnMessage('Microphone permission is still off. Check your browser site settings and retry.')}}>🎙 Connect microphone</button>}
 function renderLearnNoKeysHint(){return <p className="learn-no-keys">Microphone mode is best for one note at a time. For chords and both hands, connect a USB MIDI piano for direct, accurate note input. MIDI works in Chrome or Edge on HTTPS.</p>}
 function renderLearnFullscreenControls(props){const {bpm,setBpm,scoreNotation,listening,startMic,micStream,playLearnPhrase,setLearnMessage,learnMidiConnected,disconnectLearnMidi,connectLearnMidi,level,finishLearnSession}=props;return <div className="learn-fullscreen-controls">{renderLearnTempoControl(bpm,setBpm)}{renderLearnTempoWarning(scoreNotation)}{renderLearnMicConnectButton(listening,startMic,micStream,playLearnPhrase,setLearnMessage)}<button className="btn" onClick={playLearnPhrase}>↻ Repeat sound</button><button className="btn" onClick={learnMidiConnected?disconnectLearnMidi:connectLearnMidi}>{learnMidiConnected?'Disconnect MIDI piano':'Connect MIDI piano'}</button><div className="learn-mic-meter"><span>Mic level</span><div><i style={{width:level+'%'}}/></div><b>{level}%</b></div><button className="btn btn-dark" onClick={finishLearnSession}>Finish lesson</button></div>}
-function renderLearnFallingNote(n,i,phrase,bpm){if(n.rest)return null;const match=(n.note||'').match(/^([A-G])(#|b)?(-?\d)$/);const lane=match?Math.max(0,['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'].indexOf(match[1]+(match[2]||''))):0;const beatOffset=Math.max(0,Number(n._start||0)-Number(phrase[0]?._start||0));const beat=Math.max(.25,Number(n.beats)||1);return <div key={n.id||i} className={'falling-note '+(i===0?'falling-note-next':'')} style={{left:((lane+.5)/12*100)+'%',top:'0px',height:Math.max(28,beat*28)+'px',animationDuration:'2.2s',animationDelay:(beatOffset*60/bpm)+'s'}}><span>{n.note||'Rest'}</span></div>}
+function renderLearnFallingNote(n,i,phrase,bpm){if(n.rest)return null;const match=(n.note||'').match(/^([A-G])(#|b)?(-?\d)$/);const lane=match?Math.max(0,['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'].indexOf(match[1]+(match[2]||''))):0;const beatOffset=Math.max(0,Number(n._start||0)-Number(phrase[0]?._start||0));const beat=Math.max(.25,Number(n.beats)||1);return <div key={n.id||i} className={'falling-note '+(n.staff===2||n.hand==='left'?'falling-note-left':'falling-note-right')+(i===0?' falling-note-next':'')} style={{left:((lane+.5)/12*100)+'%',top:'0px',height:Math.max(28,beat*28)+'px',animationDuration:'2.2s',animationDelay:(beatOffset*60/bpm)+'s'}}><span>{n.note||'Rest'}</span></div>}
 function musicXmlHasTempo(xml){return /<sound\b[^>]*\btempo=|<metronome[\s\S]*?<per-minute>/i.test(String(xml||''));}
 function requireVexFormatter(){return (globalThis.VexFlow&&globalThis.VexFlow.Formatter)||class {joinVoices(v){return this} format(){} };}
 function normalizeMusicXMLTitle(xmlText,title){
@@ -1026,7 +1027,7 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
       </header>
       <div className="learn-fullscreen-body">
         <div className="learn-hand-selector" role="group" aria-label="Choose which hand to practise">
-          <span>LEARNING MODE</span>
+          <span>HANDS / PARTS</span>
           <div>
             <button type="button" className={learnHand === 'left' ? 'active' : ''} aria-pressed={learnHand === 'left'} onClick={() => selectLearnHand('left')}>Left hand <small>𝄢 Bass</small></button>
             <button type="button" className={learnHand === 'right' ? 'active' : ''} aria-pressed={learnHand === 'right'} onClick={() => selectLearnHand('right')}>Right hand <small>𝄞 Treble</small></button>
@@ -1034,7 +1035,7 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
           </div>
           <p>
             {learnHand === 'both'
-              ? 'Both parts are combined in playback and the grand staff is shown. Connect a MIDI piano for accurate simultaneous chord checking.'
+              ? 'Both hands are shown and played together, including notes and chords from both staves. Connect a MIDI piano for accurate simultaneous chord checking.'
               : learnHand === 'left'
                 ? 'Bass staff selected for playback and checking. The full score stays visible as a reference.'
                 : 'Treble staff selected for playback and checking. The full score stays visible as a reference.'}
@@ -1060,7 +1061,14 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
                 onExpand={() => setFullscreenScore({ xml: scoreNotation.sourceMusicXML, title: songTitle || 'Sheet music' })}
               />
             ) : (
-              <Staff notes={getLearnStaffNotes(getLearnPhrase(), bpm)} expanded bpm={bpm} timeSignature={timeSignature} fromStart />
+              {learnHand === 'both' ? (
+  <div className="learn-grand-staff">
+    <section className="learn-staff-part"><div className="learn-staff-label">RIGHT HAND · TREBLE</div><Staff notes={getLearnHandStaffNotes(getLearnStaffNotes(getLearnPhrase(), bpm), 'right')} expanded bpm={bpm} timeSignature={timeSignature} fromStart clef="treble" /></section>
+    <section className="learn-staff-part"><div className="learn-staff-label">LEFT HAND · BASS</div><Staff notes={getLearnHandStaffNotes(getLearnStaffNotes(getLearnPhrase(), bpm), 'left')} expanded bpm={bpm} timeSignature={timeSignature} fromStart clef="bass" /></section>
+  </div>
+) : (
+  <Staff notes={getLearnStaffNotes(getLearnPhrase(), bpm)} expanded bpm={bpm} timeSignature={timeSignature} fromStart clef={learnHand === 'left' ? 'bass' : 'treble'} />
+)}
             )}
           </div>
         ) : (
