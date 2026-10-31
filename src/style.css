@@ -1571,3 +1571,5 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 }
 
 @media(max-width:800px){.sidebar-collapse-toggle{display:none!important}.sidebar-collapsed .sidebar{width:100%!important;min-width:0!important;padding-left:5px!important;padding-right:5px!important}}
+
+@media(max-width:800px){.sidebar-collapsed .sidebar .nav-item{width:auto!important;min-width:0!important;padding:8px 10px!important}}
