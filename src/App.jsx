@@ -1092,14 +1092,14 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
                 onExpand={() => setFullscreenScore({ xml: scoreNotation.sourceMusicXML, title: songTitle || 'Sheet music' })}
               />
             ) : (
-              {learnHand === 'both' ? (
+              learnHand === 'both' ? (
   <div className="learn-grand-staff">
     <section className="learn-staff-part"><div className="learn-staff-label">RIGHT HAND · TREBLE</div><Staff notes={getLearnHandStaffNotes(getLearnStaffNotes(getLearnPhrase(), bpm), 'right')} expanded bpm={bpm} timeSignature={timeSignature} fromStart clef="treble" /></section>
     <section className="learn-staff-part"><div className="learn-staff-label">LEFT HAND · BASS</div><Staff notes={getLearnHandStaffNotes(getLearnStaffNotes(getLearnPhrase(), bpm), 'left')} expanded bpm={bpm} timeSignature={timeSignature} fromStart clef="bass" /></section>
   </div>
 ) : (
   <Staff notes={getLearnStaffNotes(getLearnPhrase(), bpm)} expanded bpm={bpm} timeSignature={timeSignature} fromStart clef={learnHand === 'left' ? 'bass' : 'treble'} />
-)}
+)
             )}
           </div>
         ) : (
