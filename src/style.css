@@ -1563,3 +1563,9 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .gp-advanced-toggle{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap}
 .gp-advanced-toggle a{color:inherit;font-size:13px}
 @media(max-width:640px){.gp-questionnaire-form{grid-template-columns:1fr}.gp-questionnaire-form .btn{width:100%}.gp-simple-hero{flex-direction:column}.gp-piece-row{flex-direction:column;align-items:stretch}.gp-piece-actions{width:100%}.gp-piece-actions .btn{flex:1}.gp-advanced-toggle{flex-direction:column}}
+
+@media(min-width:801px){
+ .shell.sidebar-collapsed{grid-template-columns:76px minmax(0,1fr)!important}
+ .sidebar-collapsed .sidebar .nav-item{font-size:0!important;justify-content:center!important;padding-left:8px!important;padding-right:8px!important}
+ .sidebar-collapsed .sidebar .nav-item span{display:block!important;font-size:20px!important;flex:0 0 auto!important}
+}
