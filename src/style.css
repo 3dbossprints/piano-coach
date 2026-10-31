@@ -1601,3 +1601,104 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   .practice-library-link{align-items:stretch;flex-direction:column}
   .practice-library-link .btn{width:100%}
 }
+
+
+/* Stable desktop navigation: it never expands, overlays or resizes the workspace on hover/focus. */
+@media (min-width: 701px) {
+  .shell,
+  .shell:has(.sidebar:hover),
+  .shell:has(.sidebar:focus-within) {
+    grid-template-columns: 248px minmax(0, 1fr) !important;
+  }
+  .sidebar,
+  .sidebar:hover,
+  .sidebar:focus-within {
+    position: sticky !important;
+    top: 0 !important;
+    width: 248px !important;
+    min-width: 248px !important;
+    max-width: 248px !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    max-height: 100vh !important;
+    flex: 0 0 248px !important;
+    transform: none !important;
+    transition: none !important;
+    box-shadow: none !important;
+    overflow-x: hidden !important;
+  }
+  .sidebar .brand,
+  .sidebar:hover .brand,
+  .sidebar:focus-within .brand {
+    display: flex !important;
+    width: 100% !important;
+    justify-content: center !important;
+    align-items: center !important;
+    padding: 2px 8px 22px !important;
+  }
+  .sidebar .brand span,
+  .sidebar:hover .brand span,
+  .sidebar:focus-within .brand span {
+    display: block !important;
+    font-size: 16px !important;
+  }
+  .sidebar .nav-label,
+  .sidebar:hover .nav-label,
+  .sidebar:focus-within .nav-label {
+    display: block !important;
+    font-size: 10px !important;
+  }
+  .sidebar .nav-item,
+  .sidebar:hover .nav-item,
+  .sidebar:focus-within .nav-item,
+  .sidebar .nav-item.active,
+  .sidebar .nav-item:not(.active) {
+    width: 100% !important;
+    min-width: 0 !important;
+    justify-content: flex-start !important;
+    padding: 12px 13px !important;
+    margin: 4px 0 !important;
+    gap: 12px !important;
+    font-size: 13px !important;
+  }
+  .sidebar .nav-item span,
+  .sidebar:hover .nav-item span,
+  .sidebar:focus-within .nav-item span {
+    width: 22px !important;
+    font-size: 19px !important;
+  }
+  .sidebar .sidebar-tools,
+  .sidebar:hover .sidebar-tools,
+  .sidebar:focus-within .sidebar-tools {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: center !important;
+    margin-top: auto !important;
+  }
+  .sidebar .sidebar-logo,
+  .sidebar:hover .sidebar-logo,
+  .sidebar:focus-within .sidebar-logo {
+    display: flex !important;
+    width: 100% !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin: 0 !important;
+    padding: 14px 8px 8px !important;
+  }
+  .sidebar .sidebar-logo a {
+    display: flex !important;
+    width: 100% !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  .sidebar .sidebar-logo img {
+    display: block !important;
+    width: 34px !important;
+    height: 34px !important;
+    margin: 0 auto !important;
+    object-fit: contain !important;
+  }
+  .sidebar-collapse-toggle {
+    display: none !important;
+  }
+}
