@@ -878,7 +878,7 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
    setFullscreenScore({xml:xmlText,title:item.name||'Sheet music'});
   }catch(e){setAudioError('Could not expand '+(item?.name||'file')+': '+(e.message||String(e)));}
  }
- async async function openLibraryScore(item){
+ async function openLibraryScore(item){
   if(!item)return;
   try{
    let blob;
