@@ -1724,3 +1724,77 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .learn-hand-controls button{border:1px solid #eee5db;border-radius:999px;background:#fff;color:#6e756e;padding:7px 13px;font-size:11px;font-weight:700}
 .learn-hand-controls button.active{background:#293832;border-color:#293832;color:#fff}
 @media(max-width:700px){.learn-hand-controls{grid-column:1/-1}.learn-hand-controls button{flex:1}}
+
+
+/* Listen & Learn beta: real falling motion, clear hand identity and compact controls. */
+.learn-beta-pill{display:inline-flex;align-items:center;margin-left:7px;padding:3px 7px;border:1px solid #e6c99b;border-radius:999px;background:#fff6e8;color:#94611d;font-size:9px;font-weight:850;letter-spacing:.09em;vertical-align:middle}
+.learn-roll-grid{--roll-height:310px}
+.learn-roll-note{animation:learn-roll-fall 1.8s linear forwards;animation-delay:var(--fall-delay,0s)!important;will-change:transform;pointer-events:none}
+@keyframes learn-roll-fall{from{transform:translate3d(0,0,0)}to{transform:translate3d(0,calc(var(--roll-height,310px) - var(--note-height,38px) - 21px),0)}}
+.learn-chunk-control{display:flex;align-items:center;gap:8px;margin-left:auto;color:#737c75;font-size:11px;font-weight:700}
+.learn-chunk-control select{max-width:145px;min-height:34px;padding:6px 28px 6px 10px;border:1px solid #e5ded4;border-radius:9px;background:#fff;color:#26352d;font:inherit}
+.learn-hand-controls{min-width:0}
+.learn-fullscreen-head .eyebrow{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.audio-com-preview{margin:18px 0;padding:14px;border:1px solid var(--line);border-radius:15px;background:var(--surface,#fff);overflow:hidden}
+.audio-com-preview .panel-head{align-items:center;gap:12px}
+.audio-com-preview iframe{display:block;width:100%;height:520px;border:0;border-radius:10px;background:#f8f8f8}
+.notation-guide summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;font-weight:750}
+.notation-guide summary::-webkit-details-marker{display:none}
+.notation-guide summary:after{content:'＋';font-size:18px;color:var(--muted)}
+.notation-guide[open] summary:after{content:'−'}
+.notation-guide summary span{margin-left:auto;color:var(--muted);font-size:11px;font-weight:500}
+.notation-guide:not([open]){padding:13px 16px}
+.notation-guide[open]{padding:16px}
+.score-review-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.score-review-card{min-width:0;max-width:100%}
+.score-review-card .musicxml-rendered{max-height:620px;overflow:auto}
+.score-review-card .musicxml-rendered svg{width:100%!important;max-width:100%!important;height:auto!important}
+.score-review-card .musicxml-preview{padding:8px;max-height:660px}
+.musiccoach-converter>.extras-toolbar{display:flex;align-items:center;flex-wrap:wrap}
+.musiccoach-converter>.extras-toolbar .btn{min-height:40px}
+@media(max-width:800px){
+ .learn-roll-grid{--roll-height:250px}
+ .learn-chunk-control{grid-column:1/-1;justify-content:space-between;margin:0}
+ .learn-chunk-control select{flex:1;max-width:none}
+ .audio-com-preview{padding:10px}
+ .audio-com-preview iframe{height:430px}
+ .score-review-grid{grid-template-columns:minmax(0,1fr)}
+ .score-review-card .musicxml-rendered{max-height:480px}
+ .musiccoach-converter>.extras-toolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+ .musiccoach-converter>.extras-toolbar .btn{width:100%;min-width:0;padding:9px 7px;font-size:11px;white-space:normal}
+}
+@media(max-width:560px){
+ .learn-fullscreen{padding:8px!important}
+ .learn-fullscreen-head{gap:8px}
+ .learn-fullscreen-head h2{font-size:20px}
+ .learn-top-panel{gap:10px}
+ .learn-top-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .learn-top-actions .btn{min-width:0;padding:9px 6px;font-size:11px}
+ .learn-hand-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+ .learn-hand-controls>span{grid-column:1/-1}
+ .learn-hand-controls button{min-width:0;padding:8px 5px;font-size:10px}
+ .learn-piano-roll{height:220px;min-height:220px}
+ .learn-roll-grid{--roll-height:220px}
+ .learn-keyboard-section{padding:9px 7px}
+ .learn-keyboard.piano{height:100px;min-height:100px}
+ .learn-keyboard .white-key{height:97px}
+ .learn-keyboard .black-key{height:58px}
+ .learn-keyboard .white-key span{font-size:6px}
+ .learn-session-controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .learn-session-controls .learn-tempo-control{grid-column:1/-1;min-width:0}
+ .learn-session-controls .btn{min-width:0;white-space:normal}
+ .musiccoach-converter>.extras-toolbar{grid-template-columns:1fr 1fr}
+ .musiccoach-converter>.eyebrow{margin-top:4px}
+ .score-review-card{padding:8px}
+ .score-review-card .score-preview iframe{height:420px;min-height:260px}
+ .audio-com-preview iframe{height:360px}
+ .notation-guide summary{align-items:flex-start}
+ .notation-guide summary span{white-space:nowrap}
+ .topbar{align-items:flex-start;gap:10px;flex-wrap:wrap}
+ .top-actions{width:100%;justify-content:space-between;flex-wrap:wrap}
+ .top-actions .status-chip{max-width:100%;overflow-wrap:anywhere}
+ .main{min-width:0;overflow-x:hidden}
+ .panel,.musiccoach-converter,.sheet-music-workspace{min-width:0;max-width:100%}
+ .song-search{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+ .song-search>*{width:100%;min-width:0}
+}
