@@ -1729,7 +1729,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 /* Listen & Learn beta: real falling motion, clear hand identity and compact controls. */
 .learn-beta-pill{display:inline-flex;align-items:center;margin-left:7px;padding:3px 7px;border:1px solid #e6c99b;border-radius:999px;background:#fff6e8;color:#94611d;font-size:9px;font-weight:850;letter-spacing:.09em;vertical-align:middle}
 .learn-roll-grid{--roll-height:310px}
-.learn-roll-note{animation:learn-roll-fall 1.8s linear forwards;will-change:transform;pointer-events:none}
+.learn-roll-note{animation:learn-roll-fall 1.8s linear forwards;animation-delay:var(--fall-delay,0s)!important;will-change:transform;pointer-events:none}
 @keyframes learn-roll-fall{from{transform:translate3d(0,0,0)}to{transform:translate3d(0,calc(var(--roll-height,310px) - var(--note-height,38px) - 21px),0)}}
 .learn-chunk-control{display:flex;align-items:center;gap:8px;margin-left:auto;color:#737c75;font-size:11px;font-weight:700}
 .learn-chunk-control select{max-width:145px;min-height:34px;padding:6px 28px 6px 10px;border:1px solid #e5ded4;border-radius:9px;background:#fff;color:#26352d;font:inherit}
