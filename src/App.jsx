@@ -916,14 +916,14 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
   if(!expectedEvent){const hasLater=all.some(n=>n._start>=offset+goal-0.0001);if(hasLater){learnPhraseOffsetRef.current=offset+goal;learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};setLearnPhraseOffset(offset+goal);setLearnBarProgress(0);setLearnMessage('This phrase has no playable notes in the selected hand. Moving to the next phrase…');setTimeout(()=>{if(learnModeRef.current)playLearnPhrase()},400)}else{setLearnMessage('There are no more playable notes in this piece. Finish the lesson to save your practice.')}return}
   const group=phrase.filter(n=>Math.abs(n._start-expectedEvent._start)<0.0001),required=[...new Set(group.map(n=>Number(n.midi)).filter(Number.isFinite))],groupKey=offset+':'+expectedEvent._start;
   let tracker=learnChordHitsRef.current;if(tracker.key!==groupKey)tracker={key:groupKey,hits:[]};
-  if(!required.includes(Number(midi))){setLearnMessage('Not quite — play '+(required.length>1?required.map(m=>midiToNote(m)).join(' + '):expectedEvent.note)+' again.');setStatus('Learn mode · try again');setLearnAnimationKey(v=>v+1);setTimeout(()=>{if(learnModeRef.current)playLearnPhrase()},250);return}
+  if(!required.includes(Number(midi))){learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};setLearnBarProgress(0);setLearnMessage('Not quite — this bar will repeat. Listen and try it again.');setStatus('Learn mode · repeat this bar');setLearnAnimationKey(v=>v+1);setTimeout(()=>{if(learnModeRef.current)playLearnPhrase()},250);return}
   if(!tracker.hits.includes(Number(midi)))tracker.hits.push(Number(midi));learnChordHitsRef.current=tracker;
   if(tracker.hits.length<required.length){const remaining=required.filter(value=>!tracker.hits.includes(value)).map(value=>midiToNote(value));setLearnMessage('Correct — '+note+'. Now play '+remaining.join(' + ')+' to complete the chord.');setStatus('Learn mode · chord '+tracker.hits.length+'/'+required.length);return}
   learnChordHitsRef.current={key:'',hits:[]};
   const nextEvent=phrase.find(n=>n._start>expectedEvent._start+0.0001);
   if(nextEvent){const next=Math.max(0,nextEvent._start-offset);learnProgressRef.current=next;setLearnBarProgress(Math.min(goal,next));setLearnMessage(required.length>1?'Chord correct — '+required.map(m=>midiToNote(m)).join(' + ')+'. Keep going.':'Correct — '+note+'. Keep going.');setStatus('Learn mode · correct '+note);return}
-  const hasLater=all.some(n=>n._start>=offset+goal-0.0001),nextOffset=hasLater?offset+goal:0;
-  learnPhraseOffsetRef.current=nextOffset;learnProgressRef.current=0;setLearnPhraseOffset(nextOffset);setLearnBarProgress(0);
+  const hasLater=all.some(n=>n._start>=offset+goal-0.0001),nextOffset=hasLater?offset+goal:offset;
+  learnPhraseOffsetRef.current=nextOffset;learnProgressRef.current=hasLater?0:goal;setLearnPhraseOffset(nextOffset);setLearnBarProgress(hasLater?0:goal);
   setLearnMessage(hasLater?'Bar correct — the next bar is ready.':'Excellent! You completed the playable score line. Finish the lesson to save your practice.');
   setStatus(hasLater?'Learn mode · phrase complete':'Learn mode · score complete');
   if(hasLater)setTimeout(()=>{if(learnModeRef.current)playLearnPhrase()},500);
