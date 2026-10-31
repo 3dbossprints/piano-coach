@@ -1010,7 +1010,7 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
         <div className="learn-bar-progress"><i style={{width:Math.min(100,learnBarProgress/barBeats*100)+'%'}}/></div>
       </section>
       <div className="learn-piano-roll" aria-label="Falling note piano roll"><div className="learn-roll-grid">
-        {barNotes.map((n,i)=>{const midi=Number(n.midi),distance=Math.max(0,Number(n._start)-position),height=Math.max(18,(Number(n.beats)||1)*38),top=Math.max(5,Math.min(260,250-distance*54-height)),isCurrent=activeGroup.some(x=>x.id===n.id||x._index===n._index);return <div key={n.id||n._index||i} className={'learn-roll-note '+(isCurrent?'is-current ':'')+(n.hand==='left'?'hand-left':'hand-right')} style={{left:((midi-rangeStart)*noteWidth)+'%',width:'calc('+noteWidth+'% - 2px)',top:top+'px',height:height+'px'}}><span>{n.note||midiToNote(midi)}</span></div>})}
+        {barNotes.map((n,i)=>{const midi=Number(n.midi),distance=Math.max(0,Number(n._start)-position),height=Math.max(18,(Number(n.beats)||1)*38),top=Math.max(5,Math.min(260,250-distance*54-height)),isCurrent=activeGroup.some(x=>x.id===n.id||x._index===n._index);return <div key={(n.id||n._index||i)+'-'+learnAnimationKey+'-'+learnBarProgress} className={'learn-roll-note '+(isCurrent?'is-current ':'')+(n.hand==='left'?'hand-left':'hand-right')} style={{left:((midi-rangeStart)*noteWidth)+'%',width:'calc('+noteWidth+'% - 2px)',top:top+'px',height:height+'px','--fall-delay':(distance*60/Math.max(30,bpm))+'s'}}><span>{n.note||midiToNote(midi)}</span></div>})}
         <div className="learn-roll-hitline"><span>PLAY HERE</span></div>
       </div></div>
       <section className="learn-keyboard-section"><div className="learn-keyboard-heading"><span>PIANO KEYBOARD</span><span>{octaveCount} octave{octaveCount===1?'':'s'} · {midiToNote(rangeStart)}–{midiToNote(rangeEnd-1)}</span></div>
@@ -1042,7 +1042,7 @@ return <div className="shell"><aside className="sidebar"><a className="brand" hr
     {playable&&<button className="btn btn-dark" onClick={()=>toggleScoreLibraryPlayback(item)}>{libraryPlayback.id===item.id&&libraryPlayback.kind==="tone"?(libraryPlayback.paused?"▶ Resume":"Ⅱ Pause"):"▶ Listen"}</button>}
     {playable&&libraryPlayback.id===item.id&&<button className="btn" onClick={()=>stopLibraryItem(item)}>■ Stop</button>}
     <button className="btn" onClick={()=>openLibrarySheetFullscreen(item)}>Expand sheet ↗</button>
-    <button className="btn btn-dark" onClick={()=>openLibraryScore(item)}>Open / practise</button>
+    <button className="btn btn-dark" onClick={()=>openLibraryScore(item)}>Listen & Learn</button>
     <button className="btn" onClick={()=>downloadLibraryFile(item)}>Download</button>
     <button className="btn btn-quiet" onClick={()=>{if(confirm('Remove '+item.name+' from your sheet music library?'))setLibraryFiles(v=>v.filter(x=>x.id!==item.id))}}>Remove</button>
    </div>
