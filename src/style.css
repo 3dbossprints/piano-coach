@@ -1573,3 +1573,31 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 @media(max-width:800px){.sidebar-collapse-toggle{display:none!important}.sidebar-collapsed .sidebar{width:100%!important;min-width:0!important;padding-left:5px!important;padding-right:5px!important}}
 
 @media(max-width:800px){.sidebar-collapsed .sidebar .nav-item{width:auto!important;min-width:0!important;padding:8px 10px!important}}
+
+/* Sheet Music library, keyboard stability, hand-aware learning and fixed desktop navigation */
+.score-library-expand{display:flex;justify-content:center;margin:16px 0 4px}
+.score-library-expand .btn{min-width:190px}
+.score-library-note{margin:12px 0 0;text-align:center}
+.practice-library-link{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--surface-soft,rgba(120,150,130,.06))}
+.practice-library-link p{flex:1 1 260px;margin:0}
+.learn-grand-staff{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;width:100%;min-width:0}
+.learn-staff-part{min-width:0;padding:12px 14px;border:1px solid #e0e8df;border-radius:14px;background:#fff}
+.learn-staff-label{margin-bottom:8px;color:#65786c;font-size:10px;font-weight:800;letter-spacing:.12em}
+.learn-grand-staff .staff-wrap,.learn-grand-staff .staff{width:100%;min-width:0;overflow-x:auto}
+.falling-note-left{background:#c9b9f1;color:#322259;box-shadow:0 0 18px #b49ade77}
+.falling-note-right{background:#a6e8b9;color:#123d2a}
+@media(min-width:701px){
+  .shell{grid-template-columns:248px minmax(0,1fr)!important}
+  .sidebar{width:248px!important;min-width:248px!important;max-width:248px!important;flex:0 0 248px!important;transition:none!important;transform:none!important}
+  .sidebar:hover{width:248px!important;min-width:248px!important;max-width:248px!important}
+  .sidebar-logo{width:100%!important;min-height:54px;display:flex!important;justify-content:center!important;align-items:center!important;margin-top:0!important;padding:14px 8px 4px!important}
+  .sidebar-logo a{width:100%;display:flex;justify-content:center;align-items:center}
+  .sidebar-logo img{display:block;width:34px;height:34px;margin-inline:auto;object-fit:contain}
+  .sidebar-tools{margin-top:auto!important}
+}
+@media(max-width:700px){
+  .learn-grand-staff{gap:9px}
+  .learn-staff-part{padding:8px}
+  .practice-library-link{align-items:stretch;flex-direction:column}
+  .practice-library-link .btn{width:100%}
+}
