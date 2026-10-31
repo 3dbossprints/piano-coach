@@ -20,8 +20,8 @@ test('only structured musical notation is marked playable', () => {
   }
 });
 
-test('practice score items remain recognised even when they have no extension', () => {
-  assert.equal(isSheetMusicLibraryItem({ name: 'Practice capture', kind: 'practice-score' }), true);
+test('rejects an unstructured practice item without a sheet-music file', () => {
+  assert.equal(isSheetMusicLibraryItem({ name: 'Practice capture', kind: 'practice-score' }), false);
   assert.equal(isPlayableSheetMusicItem({ name: 'Practice capture', kind: 'practice-score' }), false);
 });
 
