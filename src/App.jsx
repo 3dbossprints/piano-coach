@@ -493,7 +493,7 @@ export default function App(){
         const onsetDivisions=chord?Math.max(0,cursor-duration):cursor;
         const accidental=alter===1?'#':alter===-1?'b':alter===2?'##':alter===-2?'bb':'';
         const noteName=rest?'rest':step+accidental+octave;
-        const n={id:'xml-'+measureIndex+'-'+notes.length,note:noteName,midi:rest?null:noteToMidi(noteName),rest,beats:beatsValue,duration:beatsValue*60/Math.max(30,tempo),time:(elapsedBeats+onsetDivisions/divisions)*60/Math.max(30,tempo),measure:Number(measure.getAttribute('number')||measureIndex),beat:onsetDivisions/divisions,voice:getText(child,'voice','1'),staff:Number(getText(child,'staff','1')),part:pi+1,type,dots,accidental:getText(child,'accidental')||null,grace,chord,ties:[...child.querySelectorAll(':scope > tie')].map(t=>t.getAttribute('type')),notations:[]};
+        const n={id:'xml-'+measureIndex+'-'+notes.length,note:noteName,midi:rest?null:noteToMidi(noteName),rest,beats:beatsValue,duration:beatsValue*60/Math.max(30,tempo),time:(elapsedBeats+onsetDivisions/divisions)*60/Math.max(30,tempo),measure:Number(measure.getAttribute('number')||measureIndex),beat:onsetDivisions/divisions,voice:getText(child,'voice','1'),staff:Number(getText(child,'staff','1')),part:pi+1,hand:Number(getText(child,'staff','1'))===2?'left':(parts.length>1&&pi>0?'left':'right'),type,dots,accidental:getText(child,'accidental')||null,grace,chord,ties:[...child.querySelectorAll(':scope > tie')].map(t=>t.getAttribute('type')),notations:[]};
         const notation=child.querySelector(':scope > notations');
         if(notation)for(const el of [...notation.querySelectorAll('*')]){
          const entry={type:el.localName,attributes:Object.fromEntries([...el.attributes].map(a=>[a.name,a.value])),text:el.children.length?undefined:el.textContent};
@@ -518,7 +518,7 @@ export default function App(){
    const fallbackScoreTitle=file.name.replace(/\.(musiccoach|musicxml|xml)$/i,'').trim()||'Imported score';if(!score.title||/^(untitled(?:\s+score)?|score)$/i.test(String(score.title).trim()))score.title=fallbackScoreTitle;if(score.notation?.sourceMusicXML)score.notation.sourceMusicXML=normalizeMusicXMLTitle(score.notation.sourceMusicXML,score.title);
    setScoreNotation(score.notation||null);setScoreSourceAsset(score.sourceAsset||null);setSongTitle(score.title||fallbackScoreTitle);setBpm(Number(score.bpm)||bpm);setTimeSignature(score.timeSignature||'4/4');
    const notes=(score.notes||[]).map((n,i)=>({...n,id:n.id||'score-'+i,midi:n.midi??(n.rest?null:noteToMidi(n.note)),source:'score'}));
-   setLoadedScoreNotes(notes);setMusicCoachNotes(notes);setMusicCoachAnalysis(score.analysis||'');setEvents(notes);sessionEvents.current=notes;
+   setLoadedScoreNotes(notes);setMusicCoachNotes(notes);setMusicCoachAnalysis(score.analysis||'');setEvents(notes);sessionEvents.current=notes;setLearnHand('both');
    setExpected(notes.map(n=>n.rest?'R/'+(n.beats>=4?'w':n.beats>=2?'h':n.beats>=1?'q':'e'):n.note+'/'+(n.beats>=4?'w':n.beats>=2?'h':n.beats>=1?'q':'e')).join(' '));
    if(score.sourceAsset?.data){setScoreImageUrl(score.sourceAsset.data);setScoreImageName(score.sourceAsset.name||file.name);setScoreIsPdf(score.sourceAsset.mimeType==='application/pdf')}else{setScoreImageUrl('');setScoreImageName('');setScoreIsPdf(false)}
    const json=encodeMusicCoach(score),data='data:application/vnd.piano-coach.musiccoach;base64,'+btoa(unescape(encodeURIComponent(json)));
@@ -636,13 +636,13 @@ async function convertScoreToMusicCoach(file,options={}){
   const parts=[...new Set(source.map(n=>Number(n.part)).filter(Number.isFinite))].sort((a,b)=>a-b);
   const hasSeparateParts=parts.length>1;
   if(learnHand==='right'){
-    if(hasStaffTwo)selected=source.filter(n=>n.staff==null||Number(n.staff)===1);
-    else if(hasSeparateParts)selected=source.filter(n=>Number(n.part)===parts[0]);
+    if(hasSeparateParts)selected=source.filter(n=>Number(n.part)===parts[0]);
+    else if(hasStaffTwo)selected=source.filter(n=>n.staff==null||Number(n.staff)===1);
     else if(source.some(n=>n.hand==='right'))selected=source.filter(n=>n.hand==='right');
     else selected=source.filter(n=>n.rest||Number(n.midi??noteToMidi(n.note))>=60);
   }else if(learnHand==='left'){
-    if(hasStaffTwo)selected=source.filter(n=>Number(n.staff)===2);
-    else if(hasSeparateParts)selected=source.filter(n=>Number(n.part)===parts[1]);
+    if(hasSeparateParts)selected=source.filter(n=>Number(n.part)===parts[1]);
+    else if(hasStaffTwo)selected=source.filter(n=>Number(n.staff)===2);
     else if(source.some(n=>n.hand==='left'))selected=source.filter(n=>n.hand==='left');
     else selected=source.filter(n=>n.rest||Number(n.midi??noteToMidi(n.note))<60);
   }
@@ -831,7 +831,7 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
    const score={format:'musiccoach',version:2,title,bpm:Math.round(parsed.bpm),timeSignature,created:new Date().toISOString(),source:'Imported MIDI',midiFormat:parsed.format,notes:all};
    const json=encodeMusicCoach(score),data='data:application/vnd.piano-coach.musiccoach;base64,'+btoa(unescape(encodeURIComponent(json)));
    const item={id:Date.now(),name:title+'.musiccoach',type:'application/vnd.piano-coach.musiccoach',size:new Blob([json]).size,data,added:new Date().toISOString(),kind:'score',score};
-   setLibraryFiles(v=>[item,...v.filter(x=>x.name!==item.name)]);setSongTitle(title);setEvents(all);sessionEvents.current=all;setLoadedScoreNotes(all);setBpm(Math.round(parsed.bpm));setExpected(all.slice(0,100).map(n=>n.note+'/'+(n.beats>=3.5?'w':n.beats>=1.5?'h':n.beats>=.7?'q':'e')).join(' '));setPracticeMode('learn');setPage(options.target||'Sheet music');setPracticeStarted(false);
+   setLibraryFiles(v=>[item,...v.filter(x=>x.name!==item.name)]);setSongTitle(title);setLearnHand('both');setEvents(all);sessionEvents.current=all;setLoadedScoreNotes(all);setBpm(Math.round(parsed.bpm));setExpected(all.slice(0,100).map(n=>n.note+'/'+(n.beats>=3.5?'w':n.beats>=1.5?'h':n.beats>=.7?'q':'e')).join(' '));setPracticeMode('learn');setPage(options.target||'Sheet music');setPracticeStarted(false);
    setMusicCoachStatus('Imported '+all.length+' MIDI notes and saved an editable .musiccoach score.');setStatus('MIDI imported successfully');
   }catch(e){const message=e?.message||'Unknown MIDI import error';setMusicCoachStatus('MIDI import failed: '+message);setAudioError('Could not import '+file.name+': '+message);setStatus('MIDI import failed')}
   finally{setMusicCoachBusy(false)}
