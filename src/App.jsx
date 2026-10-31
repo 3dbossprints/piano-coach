@@ -948,7 +948,96 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
  let streak=0;
  if(practiceDays.includes(todayKey)||practiceDays.includes(dayKey(yesterday))){let cursor=new Date();if(!practiceDays.includes(todayKey))cursor.setDate(cursor.getDate()-1);while(practiceDays.includes(dayKey(cursor))){streak++;cursor.setDate(cursor.getDate()-1)}}
  const nav=['Dashboard','Practice','Sheet music','Grade plan','Extras'];
- const renderLearnFullscreen=()=>{if(!learnListenMode||!sheetPianoOpen)return null;return (<div className="learn-fullscreen" role="dialog" aria-modal="true" aria-label="Learn and Listen piano lesson"><header className="learn-fullscreen-head"><div><div className="eyebrow">PIANO COACH · GUIDED PRACTICE</div><h2>{songTitle||'Learn & Listen'}</h2><p>{learnMidiConnected?'MIDI piano connected · chord input enabled':listening?'Microphone on · play one note at a time':'Enable microphone access to begin listening'}</p></div><div className="learn-head-actions"><button className="learn-view-toggle" onClick={()=>setLearnView(v=>v==='staff'?'falling':'staff')} title="Switch between sheet music and falling-note view">{learnView==='staff'?'▥ Falling notes':'𝄞 Sheet music'}</button><button className="learn-close" onClick={finishLearnSession} aria-label="Finish lesson and close">✕</button></div></header><div className="learn-fullscreen-body"><div className="learn-hand-selector" role="group" aria-label="Choose which hand to practise"><span>LEARNING MODE</span><div><button type="button" className={learnHand==='left'?'active':''} aria-pressed={learnHand==='left'} onClick={()=>{setLearnHand('left');learnPhraseOffsetRef.current=0;learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};setLearnPhraseOffset(0);setLearnBarProgress(0);setLearnMessage('Left hand selected. Listen to the bass part, then play it on your piano.')}}>Left hand <small>𝄢 Bass</small></button><button type="button" className={learnHand==='right'?'active':''} aria-pressed={learnHand==='right'} onClick={()=>{setLearnHand('right');learnPhraseOffsetRef.current=0;learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};setLearnPhraseOffset(0);setLearnBarProgress(0);setLearnMessage('Right hand selected. Listen to the melody, then play it on your piano.')}}>Right hand <small>𝄞 Treble</small></button><button type="button" className={learnHand==='both'?'active':''} aria-pressed={learnHand==='both'} onClick={()=>{setLearnHand('both');learnPhraseOffsetRef.current=0;learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};setLearnPhraseOffset(0);setLearnBarProgress(0);setLearnMessage('Both hands selected. For reliable chords, connect a MIDI piano; microphone input is monophonic.')}}>Both hands <small>Grand staff</small></button></div><p>{learnHand==='both'?'Both parts are combined in playback and the grand staff is shown. Connect a MIDI piano for accurate simultaneous chord checking.':learnHand==='left'?'Bass staff selected for playback and checking. The full score stays visible as a reference.':'Treble staff selected for playback and checking. The full score stays visible as a reference.'}</p></div><div className="learn-current"><span className="learn-live-dot"/>{listening?'LISTENING FOR YOUR PIANO':'MICROPHONE NOT CONNECTED'}<strong>{learnMessage}</strong><div className="learn-beat-progress"><div style={{width:Math.min(100,learnBarProgress/Math.max(1,(Number(timeSignature.split('/')[0])||4)*4/(Number(timeSignature.split('/')[1])||4)*2)*100)+'%'}}/></div><small>Two-bar progress · {learnBarProgress}/{Math.max(1,(Number(timeSignature.split('/')[0])||4)*4/(Number(timeSignature.split('/')[1])||4)*2)} beats · {Math.floor(learnSeconds/60)}:{String(learnSeconds%60).padStart(2,'0')}</small></div>{learnView==='staff'&&<div className="learn-score-view">{scoreNotation?.sourceMusicXML?<MusicXMLPreview xml={scoreNotation.sourceMusicXML} title={songTitle||'Sheet music'} onExpand={()=>setFullscreenScore({xml:scoreNotation.sourceMusicXML,title:songTitle||'Sheet music'})}/>:<Staff notes={getLearnStaffNotes(getLearnPhrase(),bpm)} expanded bpm={bpm} timeSignature={timeSignature} fromStart/></div>}{learnView!=='staff'&&<div className="learn-falling-view"><div className="falling-lane-labels">{renderLearnPitchLabels()}</div><div key={learnAnimationKey} className="falling-note-field">{renderLearnFallingNotes(getLearnPhrase(),bpm)}<div className="falling-hit-line"/></div></div>}{renderLearnFullscreenControls({bpm,setBpm,scoreNotation,listening,startMic,micStream,playLearnPhrase,setLearnMessage,learnMidiConnected,disconnectLearnMidi,connectLearnMidi,level,finishLearnSession})}{renderLearnNoKeysHint()}</div></div>);};
+ const renderLearnFullscreen = () => {
+  if (!learnListenMode || !sheetPianoOpen) return null;
+  const beatsPerPhrase = Math.max(1, (Number(timeSignature.split('/')[0]) || 4) * 4 / (Number(timeSignature.split('/')[1]) || 4) * 2);
+  const selectLearnHand = hand => {
+    setLearnHand(hand);
+    learnPhraseOffsetRef.current = 0;
+    learnProgressRef.current = 0;
+    learnChordHitsRef.current = { key: '', hits: [] };
+    setLearnPhraseOffset(0);
+    setLearnBarProgress(0);
+    const messages = {
+      left: 'Left hand selected. Listen to the bass part, then play it on your piano.',
+      right: 'Right hand selected. Listen to the melody, then play it on your piano.',
+      both: 'Both hands selected. For reliable chords, connect a MIDI piano; microphone input is monophonic.'
+    };
+    setLearnMessage(messages[hand]);
+  };
+  return (
+    <div className="learn-fullscreen" role="dialog" aria-modal="true" aria-label="Learn and Listen piano lesson">
+      <header className="learn-fullscreen-head">
+        <div>
+          <div className="eyebrow">PIANO COACH · GUIDED PRACTICE</div>
+          <h2>{songTitle || 'Learn & Listen'}</h2>
+          <p>{learnMidiConnected ? 'MIDI piano connected · chord input enabled' : listening ? 'Microphone on · play one note at a time' : 'Enable microphone access to begin listening'}</p>
+        </div>
+        <div className="learn-head-actions">
+          <button className="learn-view-toggle" onClick={() => setLearnView(view => view === 'staff' ? 'falling' : 'staff')} title="Switch between sheet music and falling-note view">
+            {learnView === 'staff' ? '▥ Falling notes' : '𝄞 Sheet music'}
+          </button>
+          <button className="learn-close" onClick={finishLearnSession} aria-label="Finish lesson and close">✕</button>
+        </div>
+      </header>
+      <div className="learn-fullscreen-body">
+        <div className="learn-hand-selector" role="group" aria-label="Choose which hand to practise">
+          <span>LEARNING MODE</span>
+          <div>
+            <button type="button" className={learnHand === 'left' ? 'active' : ''} aria-pressed={learnHand === 'left'} onClick={() => selectLearnHand('left')}>Left hand <small>𝄢 Bass</small></button>
+            <button type="button" className={learnHand === 'right' ? 'active' : ''} aria-pressed={learnHand === 'right'} onClick={() => selectLearnHand('right')}>Right hand <small>𝄞 Treble</small></button>
+            <button type="button" className={learnHand === 'both' ? 'active' : ''} aria-pressed={learnHand === 'both'} onClick={() => selectLearnHand('both')}>Both hands <small>Grand staff</small></button>
+          </div>
+          <p>
+            {learnHand === 'both'
+              ? 'Both parts are combined in playback and the grand staff is shown. Connect a MIDI piano for accurate simultaneous chord checking.'
+              : learnHand === 'left'
+                ? 'Bass staff selected for playback and checking. The full score stays visible as a reference.'
+                : 'Treble staff selected for playback and checking. The full score stays visible as a reference.'}
+          </p>
+        </div>
+        <div className="learn-current">
+          <span className="learn-live-dot" />
+          {listening ? 'LISTENING FOR YOUR PIANO' : 'MICROPHONE NOT CONNECTED'}
+          <strong>{learnMessage}</strong>
+          <div className="learn-beat-progress">
+            <div style={{ width: Math.min(100, learnBarProgress / beatsPerPhrase * 100) + '%' }} />
+          </div>
+          <small>
+            Two-bar progress · {learnBarProgress}/{beatsPerPhrase} beats · {Math.floor(learnSeconds / 60)}:{String(learnSeconds % 60).padStart(2, '0')}
+          </small>
+        </div>
+        {learnView === 'staff' ? (
+          <div className="learn-score-view">
+            {scoreNotation?.sourceMusicXML ? (
+              <MusicXMLPreview
+                xml={scoreNotation.sourceMusicXML}
+                title={songTitle || 'Sheet music'}
+                onExpand={() => setFullscreenScore({ xml: scoreNotation.sourceMusicXML, title: songTitle || 'Sheet music' })}
+              />
+            ) : (
+              <Staff notes={getLearnStaffNotes(getLearnPhrase(), bpm)} expanded bpm={bpm} timeSignature={timeSignature} fromStart />
+            )}
+          </div>
+        ) : (
+          <div className="learn-falling-view">
+            <div className="falling-lane-labels">{renderLearnPitchLabels()}</div>
+            <div key={learnAnimationKey} className="falling-note-field">
+              {renderLearnFallingNotes(getLearnPhrase(), bpm)}
+              <div className="falling-hit-line" />
+            </div>
+          </div>
+        )}
+        {renderLearnFullscreenControls({
+          bpm, setBpm, scoreNotation, listening, startMic, micStream,
+          playLearnPhrase, setLearnMessage, learnMidiConnected,
+          disconnectLearnMidi, connectLearnMidi, level, finishLearnSession
+        })}
+        {renderLearnNoKeysHint()}
+      </div>
+    </div>
+  );
+};
 return <div className={"shell "+(sidebarCollapsed?"sidebar-collapsed":"")}><aside className="sidebar"><a className="brand" href="#" onClick={e=>{e.preventDefault();setPage('Dashboard')}}><img className="brand-logo-mark" src="/assets/piano-coach-logo-mark.svg" alt=""/> <span>Piano Coach<small>Listen · Learn · Play</small></span></a><button type="button" className="sidebar-collapse-toggle" onClick={()=>setSidebarCollapsed(v=>!v)} aria-label={sidebarCollapsed?"Expand sidebar":"Collapse sidebar"} title={sidebarCollapsed?"Expand sidebar":"Collapse sidebar"}>{sidebarCollapsed?"»":"«"}</button><div className="nav-label">WORKSPACE</div>{nav.map(n=><button key={n} className={'nav-item '+(page===n?'active':'')} onClick={()=>{setPage(n)}}><span>{({'Dashboard':'⌂','Practice':'♫','Sheet music':'♬','Score converter':'⇄','Score tools':'▤','Library':'▥','Grade plan':'◎','Extras':'✦'})[n]}</span>{n}</button>)}<div className="sidebar-tools"><button title="Download all data (.musicdata)" aria-label="Download all data" onClick={downloadMusicData}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 17v3h16v-3"/></svg></button><button title="Restore data from .musicdata" aria-label="Upload backup data" onClick={()=>musicDataInputRef.current?.click()}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 16V4m-5 5 5-5 5 5M4 17v3h16v-3"/></svg></button><input ref={musicDataInputRef} type="file" accept=".musicdata,application/vnd.piano-coach.musicdata+json,application/json" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)importMusicData(f);e.target.value=''}}/><button title="Delete local data" aria-label="Delete local data" onClick={()=>{if(confirm('Deleting your saved website data will permanently remove your practice sessions, saved studies and Library items from this device. This cannot be undone. Delete your data?')){setSessions([]);setSaved([]);setLibraryFiles([]);for(const k of ['pc_sessions','pc_studies','pc_files'])localStorage.removeItem(k);setStatus('Local data cleared')}}}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m-11 0 1 14h12l1-14M10 10v6m4-6v6"/></svg></button></div><div className="sidebar-logo"><a href="https://jws.l.cd" target="_blank" rel="noopener noreferrer" aria-label="Open your requested website"><img src="/assets/user-corner-logo.svg" alt="Open website"/></a></div></aside>
  <main className="main"><header className="topbar"><div><div className="eyebrow">YOUR PERSONAL MUSIC STUDIO</div><h1>{page==='Practice'?'Play, listen, improve.':page==='Dashboard'?'A little practice goes a long way.':page}</h1></div><div className="top-actions"><span className="status-chip"><i/> {status}</span><button className="btn btn-dark" onClick={()=>{setPage('Practice');setStatus('Ready to play')}}>＋ New session</button></div></header>
  {page==='Practice'&&!practiceStarted&&<section className="panel practice-setup"><div className="eyebrow">LET'S MAKE MUSIC</div><h2>What are you playing?</h2><p className="muted">Tell Piano Coach what you're working on so your feedback can be specific.</p><label className="sequence-label">Song or piece<input value={songTitle} onChange={e=>setSongTitle(e.target.value)} placeholder="e.g. Moonlight Sonata, grade piece…"/></label><label className="sequence-label">How long do you want to practise? (minutes)<input type="number" min="1" max="240" value={practiceMinutes} onChange={e=>setPracticeMinutes(e.target.value)}/></label><label className="sequence-label">Time signature / beats per bar<select value={timeSignature} onChange={e=>setTimeSignature(e.target.value)}><option value="2/4">2/4 · 2 beats per bar</option><option value="3/4">3/4 · 3 beats per bar</option><option value="4/4">4/4 · 4 beats per bar</option><option value="6/8">6/8 · 6 eighth-beats per bar</option><option value="12/8">12/8 · 12 eighth-beats per bar</option></select></label><label className="upload-score">Upload sheet music (MusicXML, XML, .musiccoach, MIDI, PDF or image)<input type="file" accept=".musiccoach,.musicxml,.xml,.mid,.midi,application/pdf,.pdf,image/png,image/jpeg,image/webp,image/svg+xml,.svg" onChange={e=>{const file=e.target.files?.[0];if(file){setPracticeScoreName(file.name);setPracticeScoreError('');setStatus('Importing '+file.name+'…');try{handleScoreUpload(file,{target:'Practice'});}catch(err){setPracticeScoreError(err.message||'Could not import this file.');}}e.target.value=''}}/>{practiceScoreName&&<small className="practice-upload-success">Selected: {practiceScoreName} · import started</small>}{practiceScoreError&&<small className="practice-upload-error">{practiceScoreError}</small>}</label><div className="practice-mode-picker"><strong>How would you like to practise?</strong><div className="toolbar"><button type="button" className={"btn "+(practiceMode==='normal'?'btn-dark':'')} onClick={()=>setPracticeMode('normal')}>Normal practice</button><button type="button" className={"btn "+(practiceMode==='learn'?'btn-dark':'')} onClick={()=>setPracticeMode('learn')}>Listen & Learn</button></div><p className="muted small">{practiceMode==='learn'?'A focused view with large sheet music, a two-bar progress guide and piano listening.':'The usual practice workspace with microphone recording and feedback.'}</p></div><p className="muted small">MusicXML/XML and MIDI can be converted to editable notes. PDF/image recognition depends on the on-device recognition engine and may need correction.</p><button className="btn btn-dark" onClick={()=>{if(practiceMode==='learn'){toggleLearnSession()}else{beginPractice()}}} disabled={!(Number(practiceMinutes)>0)||musicCoachBusy}>Start {practiceMode==='learn'?'Listen & Learn':'practice'} →</button><p className="muted small">Your microphone permission is requested when the session starts. You can stop recording whenever you finish playing.</p></section>}
