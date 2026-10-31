@@ -37,6 +37,10 @@ function getWorker(onProgress) {
           const error = new Error(msg.msg || 'The local recognition worker failed.');
           for (const task of pending.values()) task.reject(error);
           pending.clear();
+          const failedWorker = worker;
+          worker = null;
+          workerReady = null;
+          failedWorker?.terminate();
           reject(error);
           return;
         }
@@ -50,6 +54,10 @@ function getWorker(onProgress) {
         const error = new Error(event.message || 'The local recognition worker failed to start.');
         for (const task of pending.values()) task.reject(error);
         pending.clear();
+        const failedWorker = worker;
+        worker = null;
+        workerReady = null;
+        failedWorker?.terminate();
         reject(error);
       }, { once: true });
       worker.postMessage({ type: 'init' });
