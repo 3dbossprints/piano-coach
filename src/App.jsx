@@ -1001,12 +1001,14 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
   const offset=learnPhraseOffsetRef.current,position=offset+learnProgressRef.current;
   const first=barNotes.find(n=>n._start>=position-0.0001)||barNotes[0],activeGroup=first?barNotes.filter(n=>Math.abs(n._start-first._start)<0.0001):[];
   const totalBars=Math.max(1,Math.ceil(allNotes.reduce((m,n)=>Math.max(m,n._start+(Number(n.beats)||1)),0)/barBeats)),barNumber=Math.min(totalBars,Math.floor(offset/barBeats)+1);
+  const chooseHand=hand=>{setLearnHand(hand);learnPhraseOffsetRef.current=0;learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};setLearnPhraseOffset(0);setLearnBarProgress(0);setLearnAnimationKey(v=>v+1);setLearnMessage(hand==='both'?'Both hands selected. Use MIDI for reliable simultaneous chord checking.':(hand==='left'?'Left hand selected. Practise the bass part.':'Right hand selected. Practise the melody.'));};
   return <div className="learn-fullscreen" role="dialog" aria-modal="true" aria-label="Listen and Learn piano practice">
     <header className="learn-fullscreen-head"><div><div className="eyebrow">PIANO COACH · LISTEN & LEARN</div><h2>{songTitle||'Your piece'}</h2><p>{learnMidiConnected?'MIDI piano connected · accurate chord input':listening?'Microphone connected · play the highlighted notes':'Connect a microphone or MIDI piano to begin'}</p></div><button className="learn-close" onClick={()=>finishLearnSession(false)} aria-label="Close and save for later">✕</button></header>
     <div className="learn-fullscreen-body learn-studio">
       <section className="learn-top-panel">
         <div className="learn-top-copy"><span className="learn-live-dot"/><div><strong>{learnMessage}</strong><small>Bar {barNumber} of {totalBars} · {Math.floor(learnSeconds/60)}:{String(learnSeconds%60).padStart(2,'0')} elapsed</small></div></div>
         <div className="learn-top-actions"><button className="btn btn-dark" onClick={playLearnPhrase}>▶ Hear this bar</button><button className="btn" onClick={skipLearnBar}>Skip bar →</button></div>
+        <div className="learn-hand-controls" role="group" aria-label="Choose which hand to practise"><span>HANDS</span><button type="button" className={learnHand==='left'?'active':''} aria-pressed={learnHand==='left'} onClick={()=>chooseHand('left')}>Left</button><button type="button" className={learnHand==='right'?'active':''} aria-pressed={learnHand==='right'} onClick={()=>chooseHand('right')}>Right</button><button type="button" className={learnHand==='both'?'active':''} aria-pressed={learnHand==='both'} onClick={()=>chooseHand('both')}>Both</button></div>
         <div className="learn-bar-progress"><i style={{width:Math.min(100,learnBarProgress/barBeats*100)+'%'}}/></div>
       </section>
       <div className="learn-piano-roll" aria-label="Falling note piano roll"><div className="learn-roll-grid" style={{backgroundSize:whiteWidth+'% 100%,100% 38px'}}>
