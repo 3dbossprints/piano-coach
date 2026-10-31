@@ -32,7 +32,14 @@ function getWorker(onProgress) {
           return;
         }
         if (msg.type === 'log') { onProgress?.(msg.msg); return; }
-        if (msg.type === 'error' && msg.id == null) { clearTimeout(timeout); reject(new Error(msg.msg)); return; }
+        if (msg.type === 'error' && msg.id == null) {
+          clearTimeout(timeout);
+          const error = new Error(msg.msg || 'The local recognition worker failed.');
+          for (const task of pending.values()) task.reject(error);
+          pending.clear();
+          reject(error);
+          return;
+        }
         const task = pending.get(msg.id);
         if (!task) return;
         if (msg.type === 'result') { pending.delete(msg.id); task.resolve(msg); }
@@ -40,12 +47,24 @@ function getWorker(onProgress) {
       });
       worker.addEventListener('error', event => {
         clearTimeout(timeout);
-        reject(new Error(event.message || 'The local recognition worker failed to start.'));
+        const error = new Error(event.message || 'The local recognition worker failed to start.');
+        for (const task of pending.values()) task.reject(error);
+        pending.clear();
+        reject(error);
       }, { once: true });
       worker.postMessage({ type: 'init' });
     });
   }
-  return workerReady.then(() => worker);
+  return workerReady.catch(error => {
+    // A rejected initialisation promise must not poison every retry in this tab.
+    const failedWorker = worker;
+    failedWorker?.terminate();
+    if (worker === failedWorker) {
+      worker = null;
+      workerReady = null;
+    }
+    throw error;
+  }).then(() => worker);
 }
 
 function canvasForImage(image) {
