@@ -153,7 +153,8 @@ function encodeMusicCoach(score){return 'PIANOCOACH-MIX/1\n'+JSON.stringify(scor
 function decodeMusicCoach(text){const source=String(text||'');const payload=source.startsWith('PIANOCOACH-MIX/1\n')?source.slice('PIANOCOACH-MIX/1\n'.length):source;return JSON.parse(payload)}
 export default function App(){
  const [page,setPage]=useState('Dashboard');
- const [practiceMode,setPracticeMode]=useState(()=>{try{return localStorage.getItem('pc_practice_mode')==='learn'?'learn':'normal'}catch{return 'normal'}});\n const [sidebarCollapsed,setSidebarCollapsed]=useState(()=>{try{return localStorage.getItem('pc_sidebar_collapsed')==='true'}catch{return false}});\n const [fullscreenScore,setFullscreenScore]=useState(null);
+ const [practiceMode,setPracticeMode]=useState(()=>{try{return localStorage.getItem('pc_practice_mode')==='learn'?'learn':'normal'}catch{return 'normal'}});
+ const [sidebarCollapsed,setSidebarCollapsed]=useState(()=>{try{return localStorage.getItem('pc_sidebar_collapsed')==='true'}catch{return false}});\n const [fullscreenScore,setFullscreenScore]=useState(null);
  const [cookieChoice,setCookieChoice]=useState(()=>{try{const v=JSON.parse(localStorage.getItem('pc_cookie_consent')||'null');return v?.choice==='accept'?v:null}catch{return null}});
  const [cookiePrefs,setCookiePrefs]=useState(()=>{try{return JSON.parse(localStorage.getItem('pc_cookie_prefs')||'{"essential":true,"preferences":false,"analytics":false}')}catch{return {essential:true,preferences:false,analytics:false}}});
  const [cookieSettingsOpen,setCookieSettingsOpen]=useState(false);
@@ -219,7 +220,8 @@ export default function App(){
  const actual=events;
  const comparison=useMemo(()=>compareSequences(expected,actual),[expected,actual]);
  useEffect(()=>{Tone.getDestination().volume.value=20*Math.log10(Math.max(.01,volume/100));},[volume]);
- useEffect(()=>{try{localStorage.setItem('pc_practice_mode',practiceMode)}catch{}},[practiceMode]);\n useEffect(()=>{try{localStorage.setItem('pc_sidebar_collapsed',String(sidebarCollapsed))}catch{}},[sidebarCollapsed]);\n useEffect(()=>{try{localStorage.setItem('pc_sessions',JSON.stringify(sessions))}catch(e){setStatus('Practice sessions could not be saved in this browser. Export a .musicdata backup and free some storage.')}},[sessions]);
+ useEffect(()=>{try{localStorage.setItem('pc_practice_mode',practiceMode)}catch{}},[practiceMode]);
+ useEffect(()=>{try{localStorage.setItem('pc_sidebar_collapsed',String(sidebarCollapsed))}catch{}},[sidebarCollapsed]);\n useEffect(()=>{try{localStorage.setItem('pc_sessions',JSON.stringify(sessions))}catch(e){setStatus('Practice sessions could not be saved in this browser. Export a .musicdata backup and free some storage.')}},[sessions]);
  useEffect(()=>{try{localStorage.setItem('pc_studies',JSON.stringify(saved))}catch{}},[saved]);
  useEffect(()=>{try{localStorage.setItem('pc_files',JSON.stringify(libraryFiles))}catch(e){setStatus('Your saved music could not fit in browser storage. Download a .musicdata backup and remove large items.');}},[libraryFiles]);
  useEffect(()=>{if(!practiceStarted||remainingSeconds<=0)return;practiceTimerRef.current=setInterval(()=>setRemainingSeconds(v=>{if(v<=1){clearInterval(practiceTimerRef.current);practiceTimerRef.current=null;stopRecording();stopMic();setStatus('Practice time is up · reviewing your recording');return 0}return v-1}),1000);return()=>{if(practiceTimerRef.current)clearInterval(practiceTimerRef.current)}},[practiceStarted,remainingSeconds>0]);
