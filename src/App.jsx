@@ -636,7 +636,7 @@ function skipLearnBar(){
   const hasLater=all.some(n=>n._start>=nextOffset-0.0001);
   learnPhraseOffsetRef.current=nextOffset;learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};
   setLearnPhraseOffset(nextOffset);setLearnBarProgress(0);setLearnAnimationKey(v=>v+1);
-  setLearnMessage(hasLater?'Bar skipped. The next bar is ready.':'That was the final bar. Finish or revisit your session.');
+  setLearnMessage(hasLater?(learnChunkDivision>1?'Section skipped. The next section is ready.':'Bar skipped. The next bar is ready.'):'That was the final section. Finish or revisit your session.');
   if(hasLater)setTimeout(()=>{if(learnModeRef.current)playLearnPhrase()},250);
 }
 function resumeSavedSession(session){
@@ -917,7 +917,7 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
   if(!expectedEvent){const hasLater=all.some(n=>n._start>=offset+goal-0.0001);if(hasLater){learnPhraseOffsetRef.current=offset+goal;learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};setLearnPhraseOffset(offset+goal);setLearnBarProgress(0);setLearnMessage('This phrase has no playable notes in the selected hand. Moving to the next phrase…');setTimeout(()=>{if(learnModeRef.current)playLearnPhrase()},400)}else{setLearnMessage('There are no more playable notes in this piece. Finish the lesson to save your practice.')}return}
   const group=phrase.filter(n=>Math.abs(n._start-expectedEvent._start)<0.0001),required=[...new Set(group.map(n=>Number(n.midi)).filter(Number.isFinite))],groupKey=offset+':'+expectedEvent._start;
   let tracker=learnChordHitsRef.current;if(tracker.key!==groupKey)tracker={key:groupKey,hits:[]};
-  if(!required.includes(Number(midi))){learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};setLearnBarProgress(0);setLearnMessage('Not quite — this bar will repeat. Listen and try it again.');setStatus('Learn mode · repeat this bar');setLearnAnimationKey(v=>v+1);setTimeout(()=>{if(learnModeRef.current)playLearnPhrase()},250);return}
+  if(!required.includes(Number(midi))){learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};setLearnBarProgress(0);setLearnMessage(learnChunkDivision>1?'Not quite — this section will repeat. Listen and try it again.':'Not quite — this bar will repeat. Listen and try it again.');setStatus('Learn mode · repeat this bar');setLearnAnimationKey(v=>v+1);setTimeout(()=>{if(learnModeRef.current)playLearnPhrase()},250);return}
   if(!tracker.hits.includes(Number(midi)))tracker.hits.push(Number(midi));learnChordHitsRef.current=tracker;
   if(tracker.hits.length<required.length){const remaining=required.filter(value=>!tracker.hits.includes(value)).map(value=>midiToNote(value));setLearnMessage('Correct — '+note+'. Now play '+remaining.join(' + ')+' to complete the chord.');setStatus('Learn mode · chord '+tracker.hits.length+'/'+required.length);return}
   learnChordHitsRef.current={key:'',hits:[]};
@@ -1008,7 +1008,7 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
     <div className="learn-fullscreen-body learn-studio">
       <section className="learn-top-panel">
         <div className="learn-top-copy"><span className="learn-live-dot"/><div><strong>{learnMessage}</strong><small>Bar {barNumber} of {totalBars}{learnChunkDivision>1?' · Section '+chunkNumber+'/'+learnChunkDivision:''} · {Math.floor(learnSeconds/60)}:{String(learnSeconds%60).padStart(2,'0')} elapsed</small></div></div>
-        <div className="learn-top-actions"><button className="btn btn-dark" onClick={playLearnPhrase}>▶ Hear this bar</button><button className="btn" onClick={skipLearnBar}>Skip bar →</button></div>
+        <div className="learn-top-actions"><button className="btn btn-dark" onClick={playLearnPhrase}{learnChunkDivision>1?'▶ Hear this section':'▶ Hear this bar'}</button><button className="btn" onClick={skipLearnBar}>{learnChunkDivision>1?'Skip section →':'Skip bar →'}</button></div>
         <div className="learn-hand-controls" role="group" aria-label="Choose which hand to practise"><span>HANDS</span><button type="button" className={learnHand==='left'?'active':''} aria-pressed={learnHand==='left'} onClick={()=>chooseHand('left')}>Left</button><button type="button" className={learnHand==='right'?'active':''} aria-pressed={learnHand==='right'} onClick={()=>chooseHand('right')}>Right</button><button type="button" className={learnHand==='both'?'active':''} aria-pressed={learnHand==='both'} onClick={()=>chooseHand('both')}>Both</button></div>
         <label className="learn-chunk-control">Section size <select value={learnChunkDivision} onChange={e=>{const value=Number(e.target.value);setLearnChunkDivision(value);learnPhraseOffsetRef.current=Math.floor(learnPhraseOffsetRef.current/barBeats)*barBeats;learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};setLearnPhraseOffset(learnPhraseOffsetRef.current);setLearnBarProgress(0);setLearnAnimationKey(v=>v+1);setLearnMessage(value===1?'Full bar selected.':value===2?'Half-bar sections selected.':'Quarter-bar sections selected.')}}><option value={1}>Full bar</option><option value={2}>Half a bar</option><option value={4}>Quarter of a bar</option></select></label><div className="learn-bar-progress"><i style={{width:Math.min(100,learnBarProgress/chunkBeats*100)+'%'}}/></div>
       </section>
