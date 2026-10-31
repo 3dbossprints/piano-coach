@@ -122,9 +122,57 @@ function improveLowContrast(canvas) {
   ctx.filter = 'none';
   return enhanced;
 }
+// Estimate small page skew from a thumbnail's horizontal staff-line projection.
+// The scan is rotated only when a clear best angle is found; straight scores are untouched.
+function deskewScoreCanvas(canvas) {
+  if (!canvas || canvas.width < 240 || canvas.height < 240) return canvas;
+  const scale = Math.min(1, 260 / canvas.width, 380 / canvas.height);
+  const width = Math.max(80, Math.round(canvas.width * scale));
+  const height = Math.max(80, Math.round(canvas.height * scale));
+  const sample = document.createElement('canvas');
+  sample.width = width; sample.height = height;
+  const ctx = sample.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return canvas;
+  const radians = degrees => degrees * Math.PI / 180;
+  let bestAngle = 0, bestScore = -Infinity;
+  for (let angle = -3; angle <= 3.001; angle += 0.25) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, width, height);
+    ctx.translate(width / 2, height / 2);
+    ctx.rotate(radians(angle));
+    ctx.drawImage(canvas, -width / (2 * scale), -height / (2 * scale), width / scale, height / scale);
+    const pixels = ctx.getImageData(0, 0, width, height).data;
+    const rows = new Uint32Array(height);
+    for (let y = 2; y < height - 2; y++) {
+      let ink = 0;
+      for (let x = 2; x < width - 2; x += 2) {
+        const i = (y * width + x) * 4;
+        const luminance = 0.2126 * pixels[i] + 0.7152 * pixels[i + 1] + 0.0722 * pixels[i + 2];
+        if (luminance < 175) ink++;
+      }
+      rows[y] = ink;
+    }
+    let score = 0;
+    for (const count of rows) score += count * count;
+    if (score > bestScore) { bestScore = score; bestAngle = angle; }
+  }
+  if (Math.abs(bestAngle) < 0.35) return canvas;
+  const radiansAngle = radians(bestAngle);
+  const outWidth = Math.ceil(Math.abs(canvas.width * Math.cos(radiansAngle)) + Math.abs(canvas.height * Math.sin(radiansAngle)));
+  const outHeight = Math.ceil(Math.abs(canvas.height * Math.cos(radiansAngle)) + Math.abs(canvas.width * Math.sin(radiansAngle)));
+  const corrected = document.createElement('canvas');
+  corrected.width = outWidth; corrected.height = outHeight;
+  const output = corrected.getContext('2d');
+  if (!output) return canvas;
+  output.fillStyle = '#fff'; output.fillRect(0, 0, outWidth, outHeight);
+  output.translate(outWidth / 2, outHeight / 2);
+  output.rotate(radiansAngle);
+  output.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+  return corrected;
+}
 async function imageCanvas(file) {
   const url = URL.createObjectURL(file);
-  try { const image = new Image(); image.src = url; await image.decode(); return improveLowContrast(canvasForImage(image)); }
+  try { const image = new Image(); image.src = url; await image.decode(); return improveLowContrast(deskewScoreCanvas(canvasForImage(image))); }
   finally { URL.revokeObjectURL(url); }
 }
 async function pdfCanvases(file, onProgress) {
@@ -142,7 +190,7 @@ async function pdfCanvases(file, onProgress) {
       const canvas = document.createElement('canvas');
       canvas.width = Math.round(viewport.width); canvas.height = Math.round(viewport.height);
       await page.render({ canvas, viewport, background: '#ffffff' }).promise;
-      page.cleanup(); canvases.push(improveLowContrast(canvas));
+      page.cleanup(); canvases.push(improveLowContrast(deskewScoreCanvas(canvas)));
     }
   } finally { await pdf.destroy(); }
   return canvases;
