@@ -727,7 +727,7 @@ function getLearnPhrase(){const meter=String(timeSignature||'4/4').split('/').ma
    part.start(0);Tone.Transport.start();
    const end=Math.max(...notes.map(n=>n.time+n.duration))+.3;
    const endId=Tone.Transport.scheduleOnce(()=>{
-    part.dispose();player.dispose();midiPlaybackRef.current=null;
+    part.dispose();player.dispose();Tone.Transport.stop();Tone.Transport.cancel();midiPlaybackRef.current=null;
     setLibraryPlayback(current=>current.id===item.id?{id:null,kind:'',paused:true}:current);
     setStatus('Score playback finished');
    },end);
