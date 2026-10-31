@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { noteToMidi, midiToNote, parseSequence, compareSequences } from './music.js';
+import { noteToMidi, midiToNote, parseSequence, compareSequences, clampKeyboardStartMidi, assignMidiHands } from './music.js';
 
 test('converts standard piano range endpoints',()=>{
  assert.equal(noteToMidi('A0'),21);
@@ -27,10 +27,25 @@ test('compares played and expected notes in sequence order',()=>{
 
 
 test('keeps the first keyboard note unchanged when changing visible octaves', async () => {
-  const { clampKeyboardStartMidi } = await import('./music.js');
   assert.equal(clampKeyboardStartMidi('G2', 3), 43);
   assert.equal(clampKeyboardStartMidi('G2', 4), 43);
   assert.equal(clampKeyboardStartMidi('G2', 5), 43);
   assert.equal(clampKeyboardStartMidi('F3', 3), 53);
   assert.equal(clampKeyboardStartMidi('F3', 4), 53);
+});
+
+
+test('assigns separate MIDI tracks to separate hands using their pitch ranges', () => {
+  const notes = [
+    { track: 0, midi: 40, note: 'E2' },
+    { track: 0, midi: 48, note: 'C3' },
+    { track: 1, midi: 64, note: 'E4' },
+    { track: 1, midi: 76, note: 'E5' }
+  ];
+  assert.deepEqual(assignMidiHands(notes).map(note => note.hand), ['left', 'left', 'right', 'right']);
+});
+
+test('splits a single-track MIDI file by register when no hand tracks exist', () => {
+  const notes = assignMidiHands([{ track: 0, midi: 48 }, { track: 0, midi: 72 }]);
+  assert.deepEqual(notes.map(note => note.hand), ['left', 'right']);
 });
