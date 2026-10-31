@@ -279,7 +279,7 @@ export default function App(){
    if(ctx.state==='suspended')await ctx.resume();
    mic.current=ctx.createMediaStreamSource(micStream.current);analyser.current=ctx.createAnalyser();analyser.current.fftSize=8192;analyser.current.smoothingTimeConstant=0;mic.current.connect(analyser.current);
    setListening(true);setMicStatus('Microphone connected · play one note clearly to test pitch detection');setStatus('Microphone active — waiting for input');
-   startTime.current=Date.now();sessionEvents.current=sessionEvents.current.filter(e=>e.source!=='microphone');sampleMic();if(practiceStarted)setTimeout(()=>{if(micStream.current&&!isRecording)startRecording()},350);
+   startTime.current=Date.now();sessionEvents.current=sessionEvents.current.filter(e=>e.source!=='microphone');sampleMic();if(practiceStarted&&!learnModeRef.current)setTimeout(()=>{if(micStream.current&&!isRecording&&!learnModeRef.current)startRecording()},350);
   }catch(e){setMicStatus(e.name==='NotAllowedError'?'Microphone permission denied. Allow access in your browser settings.':'Could not start microphone: '+e.message)}
  }
  function sampleMic(){
