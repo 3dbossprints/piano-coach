@@ -913,7 +913,7 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
   const meter=String(timeSignature||'4/4').split('/').map(Number),goal=Math.max(.5,(meter[0]||4)*4/(meter[1]||4)),offset=learnPhraseOffsetRef.current;
   const all=getLearnEvents().filter(n=>!n.rest&&n.midi!==null),phrase=all.filter(n=>n._start>=offset-0.0001&&n._start<offset+goal-0.0001),position=offset+learnProgressRef.current;
   const expectedEvent=phrase.find(n=>n._start>=position-0.0001)||phrase[0];
-  if(!expectedEvent){const hasLater=all.some(n=>n._start>=offset+goal-0.0001);if(hasLater){learnPhraseOffsetRef.current=offset+goal;learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};setLearnPhraseOffset(offset+goal);setLearnBarProgress(0);setLearnMessage('This phrase has no playable notes in the selected hand. Moving to the next phrase…');setTimeout(()=>{if(learnModeRef.current)playLearnPhrase()},400)}else{setLearnMessage('There are no more playable notes in this score line. Finish the lesson to save your practice.')}return}
+  if(!expectedEvent){const hasLater=all.some(n=>n._start>=offset+goal-0.0001);if(hasLater){learnPhraseOffsetRef.current=offset+goal;learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};setLearnPhraseOffset(offset+goal);setLearnBarProgress(0);setLearnMessage('This phrase has no playable notes in the selected hand. Moving to the next phrase…');setTimeout(()=>{if(learnModeRef.current)playLearnPhrase()},400)}else{setLearnMessage('There are no more playable notes in this piece. Finish the lesson to save your practice.')}return}
   const group=phrase.filter(n=>Math.abs(n._start-expectedEvent._start)<0.0001),required=[...new Set(group.map(n=>Number(n.midi)).filter(Number.isFinite))],groupKey=offset+':'+expectedEvent._start;
   let tracker=learnChordHitsRef.current;if(tracker.key!==groupKey)tracker={key:groupKey,hits:[]};
   if(!required.includes(Number(midi))){setLearnMessage('Not quite — play '+(required.length>1?required.map(m=>midiToNote(m)).join(' + '):expectedEvent.note)+' again.');setStatus('Learn mode · try again');setLearnAnimationKey(v=>v+1);setTimeout(()=>{if(learnModeRef.current)playLearnPhrase()},250);return}
@@ -924,7 +924,7 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
   if(nextEvent){const next=Math.max(0,nextEvent._start-offset);learnProgressRef.current=next;setLearnBarProgress(Math.min(goal,next));setLearnMessage(required.length>1?'Chord correct — '+required.map(m=>midiToNote(m)).join(' + ')+'. Keep going.':'Correct — '+note+'. Keep going.');setStatus('Learn mode · correct '+note);return}
   const hasLater=all.some(n=>n._start>=offset+goal-0.0001),nextOffset=hasLater?offset+goal:0;
   learnPhraseOffsetRef.current=nextOffset;learnProgressRef.current=0;setLearnPhraseOffset(nextOffset);setLearnBarProgress(0);
-  setLearnMessage(hasLater?'Two-bar phrase correct — the next phrase is ready.':'Excellent! You completed the playable score line. Finish the lesson to save your practice.');
+  setLearnMessage(hasLater?'Bar correct — the next bar is ready.':'Excellent! You completed the playable score line. Finish the lesson to save your practice.');
   setStatus(hasLater?'Learn mode · phrase complete':'Learn mode · score complete');
   if(hasLater)setTimeout(()=>{if(learnModeRef.current)playLearnPhrase()},500);
  }
@@ -996,7 +996,7 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
   const meter=String(timeSignature||'4/4').split('/').map(Number),barBeats=Math.max(.5,(meter[0]||4)*4/(meter[1]||4));
   const allNotes=getLearnEvents().filter(n=>!n.rest&&n.midi!==null),barNotes=getLearnPhrase().filter(n=>!n.rest&&n.midi!==null);
   const minMidi=allNotes.length?Math.min(...allNotes.map(n=>Number(n.midi))):48,maxMidi=allNotes.length?Math.max(...allNotes.map(n=>Number(n.midi))):72;
-  const rangeStart=Math.max(21,Math.floor(minMidi/12)*12),octaveCount=Math.max(1,Math.min(7,Math.ceil((maxMidi-rangeStart+1)/12))),rangeEnd=Math.min(109,rangeStart+octaveCount*12);
+  const octaveCount=Math.max(1,Math.min(8,Math.ceil((maxMidi-minMidi+1)/12))),rawRangeStart=Math.floor(minMidi/12)*12,rangeStart=Math.max(21,Math.min(rawRangeStart,109-octaveCount*12)),rangeEnd=Math.min(109,rangeStart+octaveCount*12);
   const visibleKeys=allKeys.filter(k=>k.midi>=rangeStart&&k.midi<rangeEnd),whiteKeys=visibleKeys.filter(k=>!k.black),whiteWidth=100/Math.max(1,whiteKeys.length),noteWidth=100/Math.max(1,rangeEnd-rangeStart);
   const offset=learnPhraseOffsetRef.current,position=offset+learnProgressRef.current;
   const first=barNotes.find(n=>n._start>=position-0.0001)||barNotes[0],activeGroup=first?barNotes.filter(n=>Math.abs(n._start-first._start)<0.0001):[];
