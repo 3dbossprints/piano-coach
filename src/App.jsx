@@ -186,10 +186,7 @@ export default function App(){
  const [archiveResults,setArchiveResults]=useState([]),[commonsResults,setCommonsResults]=useState([]),[sourceSearchStatus,setSourceSearchStatus]=useState('');
  const [libraryPlayback,setLibraryPlayback]=useState({id:null,kind:'',paused:true});
  const audioLibraryRefs=useRef({});
- const [composerPlaced,setComposerPlaced]=useState([]);
  const musicDataInputRef=useRef(null);
- const [composerRecording,setComposerRecording]=useState('');
- const [composerTitle,setComposerTitle]=useState('My piano piece'),[composerRight,setComposerRight]=useState('C5/q D5/q E5/q G5/q'),[composerLeft,setComposerLeft]=useState('C3/h G2/h'),[composerSymbols,setComposerSymbols]=useState(['treble','bass']),[composerTime,setComposerTime]=useState('4/4'),[composerKey,setComposerKey]=useState('C'),[composerTempo,setComposerTempo]=useState(84),[composerXml,setComposerXml]=useState('');
  const [scoreNotation,setScoreNotation]=useState(null),[scoreSourceAsset,setScoreSourceAsset]=useState(null);
  const [loadedScoreNotes,setLoadedScoreNotes]=useState([]);
  const [musicCoachBusy,setMusicCoachBusy]=useState(false),[musicCoachStatus,setMusicCoachStatus]=useState('Upload a clear PNG or PDF score to create an editable .musiccoach file.'),[musicCoachAnalysis,setMusicCoachAnalysis]=useState(''),[musicCoachNotes,setMusicCoachNotes]=useState([]);
@@ -650,54 +647,7 @@ async function requestLocalAudioCoachFeedback(blob,title,targetNotes,detectedNot
 function getLearnPhrase(){const meter=String(timeSignature||'4/4').split('/').map(Number),goal=Math.max(.5,(meter[0]||4)*4/(meter[1]||4))*2,offset=learnPhraseOffsetRef.current;return getLearnEvents().filter(n=>n._start>=offset-0.0001&&n._start<offset+goal-0.0001)}
  async function playLearnPhrase(){const phrase=getLearnPhrase();if(!phrase.length){setLearnMessage('You completed this score. Finish the lesson to save your practice.');return}await ensureSynth();stopPlayback();setLearnAnimationKey(v=>v+1);const origin=phrase[0]._start??0,now=Tone.now()+.12;setLearnMessage('Playing the score at '+bpm+' BPM. Listen, then play the phrase.');phrase.forEach(n=>{if(!n.rest&&n.midi!==null){const beatOffset=n._start!==undefined?Math.max(0,n._start-origin):0;synth.current?.triggerAttackRelease(midiToNote(n.midi),Math.max(.12,(Number(n.beats)||1)*60/bpm*.92),now+beatOffset*60/bpm)}});setStatus('Playing score phrase at '+bpm+' BPM');}
  async function toggleLearnSession(){if(learnListenMode){finishLearnSession();return}if(!loadedScoreNotes?.length&&!parseMusicSequence(expected).length){setLearnMessage('Add notes or import a MusicXML score before starting.');return}learnModeRef.current=true;learnProgressRef.current=0;learnPhraseOffsetRef.current=0;learnNoteLockRef.current=0;learnChordHitsRef.current={key:'',hits:[]};setLearnBarProgress(0);setLearnPhraseOffset(0);setLearnSeconds(0);sessionEvents.current=[];setEvents([]);setSheetPianoOpen(true);setLearnListenMode(true);setLearnMessage('Requesting microphone access…');setStatus('Starting Learn & Listen');try{await startMic();if(micStream.current){setLearnMessage(learnHand==='both'&&!learnMidiConnected?'Listen to the phrase. For accurate simultaneous chords and both hands, connect your piano by USB MIDI; microphone mode detects one pitch at a time.':'Listen to the phrase, then play the notes on your piano.');await playLearnPhrase()}else{setLearnMessage('Microphone access is needed to check your playing. Allow access, then press Connect microphone.')}}catch(e){setLearnMessage('Could not start the microphone. Allow microphone access, then try again.')}}
- async function recordComposerHand(hand){
-  if(composerRecording)return;
-  setComposerRecording(hand);
-  setAudioError('');
-  setStatus('Recording '+hand+' hand · play clearly; silence and note lengths are analysed too');
-  let stream=null,rec=null,timer=null;
-  try{
-   stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
-   const chunks=[];
-   const mime=['audio/webm;codecs=opus','audio/webm','audio/mp4'].find(t=>MediaRecorder.isTypeSupported?.(t));
-   rec=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);
-   const blobPromise=new Promise((resolve,reject)=>{rec.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data)};rec.onerror=()=>reject(new Error('Microphone recording failed'));rec.onstop=()=>resolve(new Blob(chunks,{type:rec.mimeType||'audio/webm'}))});
-   rec.start();
-   await new Promise(resolve=>{timer=setTimeout(resolve,30000)});
-   if(rec.state!=='inactive')rec.stop();
-   const blob=await blobPromise;
-   setStatus('Analysing pitches, durations, overlaps and rests…');
-   const notes=await transcribeAudioBlob(blob);
-   if(!notes.length)throw new Error('No clear notes were detected. Try a quieter room and record one hand at a time.');
-   const beat=60/Math.max(30,Number(composerTempo)||84);
-   const sorted=notes.map(n=>({...n,time:Number(n.time)||0,duration:Math.max(.08,Number(n.duration)||.1),midi:Number(n.midi),note:midiToNote(Math.round(Number(n.midi)))})).sort((a,b)=>a.time-b.time);
-   // Preserve sustained values and silent gaps. Use a compact, editable notation vocabulary.
-   const valueFor=seconds=>{
-    const beats=seconds/beat;
-    const choices=[['w',4],['h',2],['q',1],['e',.5],['s',.25]];
-    let best=choices[choices.length-1];
-    for(const choice of choices)if(Math.abs(choice[1]-beats)<Math.abs(best[1]-beats))best=choice;
-    return best[0];
-   };
-   const tokens=[];let cursor=0;
-   for(const n of sorted){
-    if(n.time-cursor>beat*.42){
-     const gap=n.time-cursor;
-     // Break longer silence into valid rests rather than dropping it.
-     let remaining=gap;
-     while(remaining>beat*.18){const rest=Math.min(4,remaining/beat);const code=valueFor(rest*beat);tokens.push('R/'+code);const beats={w:4,h:2,q:1,e:.5,s:.25}[code];remaining-=beats*beat;}
-    }
-    tokens.push(n.note+'/'+valueFor(n.duration));
-    cursor=Math.max(cursor,n.time+n.duration);
-   }
-   const sequence=tokens.join(' ');
-   if(hand==='right')setComposerRight(sequence);else setComposerLeft(sequence);
-   setSongTitle(composerTitle);
-   setStatus('Added '+sorted.length+' detected note events, with estimated durations and rests, to the '+hand+' hand. Review against the recording; overlapping chords may need manual correction.');
-  }catch(e){setAudioError('Could not record '+hand+' hand: '+e.message);setStatus('Microphone transcription failed')}
-  finally{if(timer)clearTimeout(timer);if(rec&&rec.state!=='inactive'){try{rec.stop()}catch{}}stream?.getTracks().forEach(t=>t.stop());setComposerRecording('')}
-}
- function stopLibraryAudioOnly(reset=true){
+  function stopLibraryAudioOnly(reset=true){
   for(const audio of Object.values(audioLibraryRefs.current||{})){if(!audio)continue;try{audio.pause();if(reset)audio.currentTime=0}catch{}}
   setLibraryPlayback(current=>current.kind==='audio'?{id:null,kind:'',paused:true}:current);
  }
@@ -882,7 +832,7 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
  }
  function downloadMusicData(){
   const storage={};try{for(const key of ['pc_grade_plan','pc_cookie_prefs','pc_cookie_storage_enabled']){const value=localStorage.getItem(key);if(value!==null)storage[key]=value}}catch{}
-  const payload={format:'PIANO-COACH-MUSICDATA',version:1,createdAt:new Date().toISOString(),app:'Piano Coach',state:{sessions,studies:saved,libraryFiles,events,expected,scoreNotation,scoreSourceAsset,loadedScoreNotes,scoreImageName,scoreIsPdf,musicCoachNotes,musicCoachMarkings,practiceScoreName,songTitle,composerXml,practiceMode,practiceMinutes,reflection,practiceFeedback,preferences:{volume,bpm,expected,timeSignature,composerTitle,composerRight,composerLeft,composerSymbols,composerTime,composerKey,composerTempo,keyboardStart,keyboardOctaves},musicChat,composerPlaced},localStorage:storage};
+  const payload={format:'PIANO-COACH-MUSICDATA',version:1,createdAt:new Date().toISOString(),app:'Piano Coach',state:{sessions,studies:saved,libraryFiles,events,expected,scoreNotation,scoreSourceAsset,loadedScoreNotes,scoreImageName,scoreIsPdf,musicCoachNotes,musicCoachMarkings,practiceScoreName,songTitle,practiceMode,practiceMinutes,reflection,practiceFeedback,preferences:{volume,bpm,expected,timeSignature,keyboardStart,keyboardOctaves} ,musicChat},localStorage:storage};
   const blob=new Blob([JSON.stringify(payload)],{type:'application/vnd.piano-coach.musicdata+json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='piano-coach-backup-'+new Date().toISOString().slice(0,10)+'.musicdata';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);setStatus('Complete .musicdata backup downloaded');
  }
  async function importMusicData(file){
@@ -898,28 +848,13 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
    const nextSessions=Array.isArray(st.sessions)?st.sessions:[],nextStudies=Array.isArray(st.studies)?st.studies:[],nextFiles=(Array.isArray(st.libraryFiles)?st.libraryFiles:[]).filter(item=>isSheetMusicLibraryItem(item)&&(!item.data||(typeof item.data==='string'&&/^data:/i.test(item.data))));
    setSessions(nextSessions);setSaved(nextStudies);setLibraryFiles(nextFiles);
    if(Number.isFinite(p.volume))setVolume(p.volume);if(Number.isFinite(p.bpm))setBpm(p.bpm);if(typeof p.expected==='string')setExpected(p.expected);if(typeof p.timeSignature==='string')setTimeSignature(p.timeSignature);
-   if(typeof p.composerTitle==='string')setComposerTitle(p.composerTitle);if(typeof p.composerRight==='string')setComposerRight(p.composerRight);if(typeof p.composerLeft==='string')setComposerLeft(p.composerLeft);
-   if(Array.isArray(p.composerSymbols))setComposerSymbols(p.composerSymbols);if(typeof p.composerTime==='string')setComposerTime(p.composerTime);if(typeof p.composerKey==='string')setComposerKey(p.composerKey);if(Number.isFinite(p.composerTempo))setComposerTempo(p.composerTempo);
    if(typeof p.keyboardStart==='string')setKeyboardStart(p.keyboardStart);if(Number.isFinite(p.keyboardOctaves))setKeyboardOctaves(Math.max(1,Math.min(5,p.keyboardOctaves)));
-   setMusicChat(Array.isArray(st.musicChat)?st.musicChat:[]);setComposerPlaced(Array.isArray(st.composerPlaced)?st.composerPlaced:[]);setEvents(Array.isArray(st.events)?st.events:[]);sessionEvents.current=Array.isArray(st.events)?st.events:[];setScoreNotation(st.scoreNotation||null);setScoreSourceAsset(st.scoreSourceAsset||null);setLoadedScoreNotes(Array.isArray(st.loadedScoreNotes)?st.loadedScoreNotes:[]);setScoreImageName(typeof st.scoreImageName==='string'?st.scoreImageName:'');setScoreIsPdf(st.scoreIsPdf===true);setScoreImageUrl(st.scoreSourceAsset?.data||'');setMusicCoachNotes(Array.isArray(st.musicCoachNotes)?st.musicCoachNotes:[]);setMusicCoachMarkings(Array.isArray(st.musicCoachMarkings)?st.musicCoachMarkings:[]);if(typeof st.practiceScoreName==='string')setPracticeScoreName(st.practiceScoreName);if(typeof st.songTitle==='string')setSongTitle(st.songTitle);if(typeof st.composerXml==='string')setComposerXml(st.composerXml);if(typeof st.practiceMode==='string')setPracticeMode(st.practiceMode);if(typeof st.practiceMinutes==='string')setPracticeMinutes(st.practiceMinutes);if(typeof st.reflection==='string')setReflection(st.reflection);if(typeof st.practiceFeedback==='string')setPracticeFeedback(st.practiceFeedback);
+   setMusicChat(Array.isArray(st.musicChat)?st.musicChat:[]);setEvents(Array.isArray(st.events)?st.events:[]);sessionEvents.current=Array.isArray(st.events)?st.events:[];setScoreNotation(st.scoreNotation||null);setScoreSourceAsset(st.scoreSourceAsset||null);setLoadedScoreNotes(Array.isArray(st.loadedScoreNotes)?st.loadedScoreNotes:[]);setScoreImageName(typeof st.scoreImageName==='string'?st.scoreImageName:'');setScoreIsPdf(st.scoreIsPdf===true);setScoreImageUrl(st.scoreSourceAsset?.data||'');setMusicCoachNotes(Array.isArray(st.musicCoachNotes)?st.musicCoachNotes:[]);setMusicCoachMarkings(Array.isArray(st.musicCoachMarkings)?st.musicCoachMarkings:[]);if(typeof st.practiceScoreName==='string')setPracticeScoreName(st.practiceScoreName);if(typeof st.songTitle==='string')setSongTitle(st.songTitle);if(typeof st.composerXml==='string')setComposerXml(st.composerXml);if(typeof st.practiceMode==='string')setPracticeMode(st.practiceMode);if(typeof st.practiceMinutes==='string')setPracticeMinutes(st.practiceMinutes);if(typeof st.reflection==='string')setReflection(st.reflection);if(typeof st.practiceFeedback==='string')setPracticeFeedback(st.practiceFeedback);
    try{localStorage.setItem('pc_sessions',JSON.stringify(nextSessions));localStorage.setItem('pc_studies',JSON.stringify(nextStudies));localStorage.removeItem('pc_files');localStorage.setItem('pc_cookie_consent',JSON.stringify({choice:'accept',at:new Date().toISOString(),restoredFromBackup:true}))}catch{}
    setCookieChoice({choice:'accept',at:new Date().toISOString(),restoredFromBackup:true});setCookieSettingsOpen(false);setPage('Dashboard');setStatus('Backup restored: '+nextFiles.length+' files, '+nextStudies.length+' studies and '+nextSessions.length+' sessions');
   }catch(e){setStatus('Could not restore backup: '+(e?.message||'invalid file'))}
  }
  function shiftKeyboardStart(delta){const midi=clampKeyboardStartMidi(keyboardStart,keyboardOctaves);const base=clampKeyboardStartMidi(midi+delta,keyboardOctaves);setKeyboardStart(midiToNote(base))}
- function addComposerPlaced(id,label,x=50,y=50){
-  const placedId=Date.now().toString(36)+Math.random().toString(36).slice(2);
-  setComposerPlaced(v=>[...v,{id:placedId,symbol:id,label,x,y}]);
-  const durations={whole:'w',half:'h',quarter:'q',eighth:'e',sixteenth:'s'};
-  if(durations[id]){
-   const pitches=['F5','E5','D5','C5','B4','A4','G4','F4','E4'];
-   const pitch=pitches[Math.max(0,Math.min(pitches.length-1,Math.round((y-27)/4.5)))];
-   setComposerRight(v=>(v.trim()+' '+pitch+'/'+durations[id]).trim());
-  }
-  if(['p','mp','mf','f','ff','crescendo','diminuendo','staccato','tenuto','accent','fermata','trill','treble','bass','sharp','flat','natural','double-sharp','double-flat','repeat','segno','coda'].includes(id))setComposerSymbols(v=>v.includes(id)?v:[...v,id]);
- }
- function moveComposerPlaced(id,x,y){setComposerPlaced(v=>v.map(item=>item.id===id?{...item,x:Math.max(2,Math.min(98,x)),y:Math.max(8,Math.min(92,y))}:item))}
-
  async function sendMusicChat(){
   const question=musicChatInput.trim();if(!question||musicChatBusy)return;
   setMusicChat(v=>[...v,{role:'user',content:question}]);setMusicChatInput('');setMusicChatBusy(true);
