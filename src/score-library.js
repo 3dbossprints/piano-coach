@@ -13,9 +13,52 @@ export function isSheetMusicLibraryItem(item) {
   return SHEET_EXTENSIONS.test(item.name) || (item.kind === 'practice-score' && Array.isArray(item.score?.notes));
 }
 
+function decodeDataUri(item) {
+  if (typeof item?.data !== 'string') return null;
+  const comma = item.data.indexOf(',');
+  if (comma < 0) return null;
+  const metadata = item.data.slice(0, comma);
+  const payload = item.data.slice(comma + 1);
+  try {
+    if (/;base64/i.test(metadata)) {
+      const binary = atob(payload);
+      const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+      return { bytes, text: new TextDecoder().decode(bytes) };
+    }
+    const text = decodeURIComponent(payload);
+    return { bytes: new TextEncoder().encode(text), text };
+  } catch {
+    return null;
+  }
+}
+
 export function isPlayableSheetMusicItem(item) {
   if (!isSheetMusicLibraryItem(item)) return false;
-  return PLAYABLE_EXTENSIONS.test(item.name) || item.type === 'application/vnd.piano-coach.musiccoach' || (item.kind === 'practice-score' && Array.isArray(item.score?.notes));
+  if (item.kind === 'practice-score' && Array.isArray(item.score?.notes)) return true;
+  const name = item.name.toLowerCase();
+  const isMusicCoach = name.endsWith('.musiccoach') || item.type === 'application/vnd.piano-coach.musiccoach';
+  const isMusicXml = /\.(musicxml|xml)$/i.test(name);
+  const isMidi = /\.(mid|midi)$/i.test(name);
+  if (!isMusicCoach && !isMusicXml && !isMidi) return false;
+
+  // Older metadata-only cards can still be opened and validated when selected.
+  if (typeof item.data !== 'string') return true;
+  const decoded = decodeDataUri(item);
+  if (!decoded) return false;
+  if (isMidi) {
+    return decoded.bytes.length >= 14
+      && decoded.bytes[0] === 0x4d
+      && decoded.bytes[1] === 0x54
+      && decoded.bytes[2] === 0x68
+      && decoded.bytes[3] === 0x64;
+  }
+  if (isMusicXml) return /<score-(?:partwise|timewise)\b/i.test(decoded.text);
+  try {
+    const score = JSON.parse(decoded.text);
+    return score?.format === 'musiccoach' && Array.isArray(score.notes);
+  } catch {
+    return false;
+  }
 }
 
 function clearLegacyLibrary() {
