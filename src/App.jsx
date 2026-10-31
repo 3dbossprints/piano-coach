@@ -381,22 +381,47 @@ export default function App(){
   try{if(!window.PianoCoachAI)await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='/ai-tutor.js';script.onload=resolve;script.onerror=()=>reject(new Error('AI tutor script failed to load'));document.head.appendChild(script)});const prompt='Piano practice data: mode '+mode+'; target '+expected+'; recent detected notes '+events.slice(-20).map(e=>e.note+' at '+e.time+'s').join(', ')+'; pitch match '+comparison.correct+' of '+comparison.total+' target notes. Learner asks: '+tutorQuestion+'. Give specific, encouraging advice using only this evidence.';const result=await window.PianoCoachAI.ask(prompt,{onProgress:p=>setTutorStatus(p.message||'AI is working…')});setTutorAnswer(result.answer);setTutorStatus('Local AI ready · '+(result.device||'browser model'));}catch(e){setTutorStatus('AI unavailable: '+e.message)}finally{setTutorBusy(false)}
  }
  async function searchSongs(){
-    const query=songQuery.trim();if(!query)return;
-    setSongBusy(true);setSongResults([]);setArchiveResults([]);setCommonsResults([]);setSourceSearchStatus('Searching audio catalogues, public archives and shared sheet-music media…');
-    const urls=[
-      'https://itunes.apple.com/search?term='+encodeURIComponent(query)+'&entity=song&limit=25',
-      'https://archive.org/advancedsearch.php?q='+encodeURIComponent('('+query+') AND mediatype:audio')+'&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&rows=12&page=1&output=json',
-      'https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch='+encodeURIComponent(query+' sheet music')+'&gsrnamespace=6&gsrlimit=10&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=180&format=json&origin=*'
-    ];
-    const settled=await Promise.allSettled(urls.map(async(url)=>{const r=await fetch(url);if(!r.ok)throw Error(String(r.status));return r.json()}));
-    const failed=[];
-    if(settled[0].status==='fulfilled'){const data=settled[0].value;setSongResults((data.results||[]).map(x=>({id:'itunes-'+x.trackId,title:x.trackName,artist:x.artistName,album:x.collectionName,art:x.artworkUrl100,preview:x.previewUrl,provider:'iTunes'})))}else failed.push('iTunes audio previews unavailable');
-    if(settled[1].status==='fulfilled'){const docs=settled[1].value?.response?.docs||[];setArchiveResults(docs.filter(x=>x.identifier).map(x=>({id:x.identifier,title:x.title||x.identifier,creator:Array.isArray(x.creator)?x.creator.join(', '):(x.creator||'Creator not listed'),year:x.year||'',url:'https://archive.org/details/'+encodeURIComponent(x.identifier)})))}else failed.push('Internet Archive blocked or unavailable');
-    if(settled[2].status==='fulfilled'){const pages=Object.values(settled[2].value?.query?.pages||{});setCommonsResults(pages.map(x=>({id:x.pageid,title:(x.title||'').replace(/^File:/,''),url:'https://commons.wikimedia.org/wiki/'+encodeURIComponent(x.title||''),thumb:x.thumbnail?.source})))}else failed.push('Wikimedia Commons blocked or unavailable');
-    const count=(settled[0].status==='fulfilled'?settled[0].value?.results?.length||0:0)+(settled[1].status==='fulfilled'?settled[1].value?.response?.docs?.length||0:0)+(settled[2].status==='fulfilled'?Object.keys(settled[2].value?.query?.pages||{}).length:0);
-    setSourceSearchStatus(count?'Found '+count+' results across connected catalogues. '+(failed.length?failed.join('; ')+'. ':'')+'Commercial/community sites remain available through provider links; check licensing and availability on each result.':'No catalogue results were returned. '+(failed.length?failed.join('; ')+'. ':'')+'Try a shorter title or open the provider links.');
-    setSongBusy(false);
-  }
+  const query=songQuery.trim();
+  if(!query||songBusy)return;
+  setSongBusy(true);setSongResults([]);setArchiveResults([]);setCommonsResults([]);
+  setSourceSearchStatus('Searching Audio.com, public archives and shared sheet-music media…');
+  const audioSearchUrl='https://api.audio.com/v1/search?query='+encodeURIComponent(query)+'&types=audio';
+  const urls=[
+    audioSearchUrl,
+    'https://archive.org/advancedsearch.php?q='+encodeURIComponent('('+query+') AND mediatype:audio')+'&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&rows=12&page=1&output=json',
+    'https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch='+encodeURIComponent(query+' sheet music')+'&gsrnamespace=6&gsrlimit=10&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=180&format=json&origin=*'
+  ];
+  try{
+    const settled=await Promise.allSettled(urls.map(async url=>{const response=await fetch(url);if(!response.ok)throw new Error('HTTP '+response.status);return response.json()}));
+    const failures=[];
+    if(settled[0].status==='fulfilled'){
+      const payload=settled[0].value||{};
+      const entries=Array.isArray(payload)?payload:(payload.results||payload.items||payload.data||[]);
+      const audio=entries.filter(entry=>(entry.type||'audio')==='audio').map(entry=>{
+        const item=entry.model||entry.audio||entry;
+        const username=item.username||item.author?.username||'';
+        const slug=item.slug||'';
+        const url=item.url||(username&&slug?'https://audio.com/'+encodeURIComponent(username)+'/audio/'+encodeURIComponent(slug):'https://audio.com/search?q='+encodeURIComponent(query));
+        return {id:'audio-'+(item.id||slug||Math.random().toString(36).slice(2)),title:item.title||item.name||'Untitled audio',artist:item.author_name||item.author?.name||username||'Audio.com creator',album:item.category||'Audio.com',art:item.image||item.cover_image||null,preview:item.play?.url||item.stream_url||null,url,provider:'Audio.com'};
+      });
+      setSongResults(audio);
+    }else failures.push('Audio.com search API was unavailable; use the direct Audio.com search link below');
+    if(settled[1].status==='fulfilled'){
+      const docs=settled[1].value?.response?.docs||[];
+      setArchiveResults(docs.filter(x=>x.identifier).map(x=>({id:x.identifier,title:x.title||x.identifier,creator:Array.isArray(x.creator)?x.creator.join(', '):(x.creator||'Creator not listed'),year:x.year||'',url:'https://archive.org/details/'+encodeURIComponent(x.identifier)})));
+    }else failures.push('Internet Archive was unavailable');
+    if(settled[2].status==='fulfilled'){
+      const pages=Object.values(settled[2].value?.query?.pages||{});
+      setCommonsResults(pages.map(x=>({id:x.pageid,title:(x.title||'').replace(/^File:/,''),url:'https://commons.wikimedia.org/wiki/'+encodeURIComponent(x.title||''),thumb:x.thumbnail?.source})));
+    }else failures.push('Wikimedia Commons was unavailable');
+    const count=(settled[0].status==='fulfilled'?((settled[0].value?.results||settled[0].value?.items||settled[0].value?.data||[]).length):0)
+      +(settled[1].status==='fulfilled'?(settled[1].value?.response?.docs?.length||0):0)
+      +(settled[2].status==='fulfilled'?Object.keys(settled[2].value?.query?.pages||{}).length:0);
+    setSourceSearchStatus(count?'Found '+count+' results. '+(failures.length?failures.join('; ')+'. ':'')+'Audio previews are provided by Audio.com where a playable stream is published.': 'No catalogue results were returned. '+(failures.length?failures.join('; ')+'. ':'')+'You can still open Audio.com search directly.');
+  }catch(error){
+    setSourceSearchStatus('Search failed: '+(error.message||String(error))+'. Open Audio.com search directly below.');
+  }finally{setSongBusy(false)}
+ }
  function uploadScoreImage(file){if(!file)return;const isPdf=file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf');if(!isPdf&&!['image/png','image/jpeg','image/webp'].includes(file.type)){setStatus('Choose a PDF, PNG, JPEG or WebP score file.');return}if(file.size>25*1024*1024){setStatus('Score files must be smaller than 25 MB.');return}if(scoreImageUrl.startsWith('blob:'))URL.revokeObjectURL(scoreImageUrl);setScoreImageUrl(URL.createObjectURL(file));setScoreImageName(file.name);setScoreIsPdf(isPdf);const reader=new FileReader();reader.onload=()=>setLibraryFiles(v=>[{id:Date.now(),name:file.name,type:file.type||'application/pdf',size:file.size,data:reader.result,added:new Date().toISOString(),kind:'score'},...v.filter(x=>x.name!==file.name)]);reader.readAsDataURL(file);setScoreOcrStatus(isPdf?'PDF loaded. Run local HOMR recognition to create editable notation; inspect every converted page.':'Image loaded. Run local HOMR recognition to create editable notation; accuracy depends on scan quality.');setScoreOcrWarning('Recognition runs in your browser and may need manual correction.');setStatus('Score loaded and saved to Library')}
   async function recognizeScoreImage(){
    if(!scoreImageUrl)return;
@@ -779,8 +804,23 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
   }catch(e){const message=e?.message||'Unknown MIDI import error';setMusicCoachStatus('MIDI import failed: '+message);setAudioError('Could not import '+file.name+': '+message);setStatus('MIDI import failed')}
   finally{setMusicCoachBusy(false)}
  }
- function saveLibraryFile(file){if(!file)return;const reader=new FileReader();reader.onload=()=>{const item={id:Date.now(),name:file.name,type:file.type||'application/octet-stream',size:file.size,data:reader.result,added:new Date().toISOString()};setLibraryFiles(v=>[item,...v]);setStatus('Added '+file.name+' to your library')};reader.readAsDataURL(file)}
- function handleScoreUpload(file,options={}){if(!file)return;const name=file.name.toLowerCase(),target=options.target||'Sheet music';if(name.endsWith('.mid')||name.endsWith('.midi')){handleMidiUpload(file,{target});return}if(name.endsWith('.musiccoach')||name.endsWith('.musicxml')||name.endsWith('.xml')){importMusicXML(file,{target,download:!!options.download});return}if(file.type==='application/pdf'||name.endsWith('.pdf')||file.type.startsWith('image/')||/\.(png|jpe?g|webp)$/i.test(name)){convertScoreToMusicCoach(file,{target,download:!!options.download});return}saveLibraryFile(file)}
+ function saveLibraryFile(file){
+  if(!file)return;
+  if(!isSheetMusicLibraryItem({name:file.name})){setStatus('Only sheet music files can be saved in this library.');return}
+  const reader=new FileReader();
+  reader.onload=()=>{const item={id:Date.now(),name:file.name,type:file.type||'application/octet-stream',size:file.size,data:reader.result,added:new Date().toISOString(),kind:'score-source'};setLibraryFiles(v=>[item,...v.filter(x=>x.name!==item.name)]);setStatus('Saved '+file.name+' in this browser’s sheet music library')};
+  reader.onerror=()=>setStatus('Could not read '+file.name+'. Try exporting it again.');
+  reader.readAsDataURL(file);
+}
+ function handleScoreUpload(file,options={}){
+  if(!file)return;
+  const name=file.name.toLowerCase(),target=options.target||'Sheet music';
+  if(!isSheetMusicLibraryItem({name:file.name})){setStatus('Choose a sheet music file: MusicXML, MIDI, .musiccoach, PDF or a score image.');return}
+  if(name.endsWith('.mid')||name.endsWith('.midi')){handleMidiUpload(file,{target});return}
+  if(name.endsWith('.musiccoach')||name.endsWith('.musicxml')||name.endsWith('.xml')){importMusicXML(file,{target,download:!!options.download});return}
+  if(file.type==='application/pdf'||name.endsWith('.pdf')||file.type.startsWith('image/')||/\.(png|jpe?g|webp|svg)$/i.test(name)){convertScoreToMusicCoach(file,{target,download:!!options.download});return}
+  setStatus('This file type cannot be converted to sheet music.');
+ }
  function downloadLibraryFile(item){const a=document.createElement('a');a.href=item.data;a.download=item.name;a.click()}
  async function openLibrarySheetFullscreen(item){
   try{
@@ -806,15 +846,16 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
    setFullscreenScore({xml:xmlText,title:item.name||'Sheet music'});
   }catch(e){setAudioError('Could not expand '+(item?.name||'file')+': '+(e.message||String(e)));}
  }
- async function openLibraryScore(item){
+ async async function openLibraryScore(item){
   if(!item)return;
   try{
    let blob;
    if(item.data){const response=await fetch(item.data);if(!response.ok)throw new Error('The stored score could not be read.');blob=await response.blob();}
    else if(item.score){blob=new Blob([encodeMusicCoach(item.score)],{type:'application/vnd.piano-coach.musiccoach'});}
-   else throw new Error('This Library item has no stored file data.');
+   else throw new Error('This saved score has no file data.');
    const file=new File([blob],item.name||'library-score.musiccoach',{type:item.type||blob.type||'application/octet-stream'});
-   handleScoreUpload(file,{target:'Sheet music'});
+   setPracticeScoreName(item.name||'Sheet music');setPracticeScoreError('');setPracticeStarted(false);setPracticeMode('learn');setPage('Practice');setStatus('Loading '+(item.name||'score')+' into Practice…');
+   handleScoreUpload(file,{target:'Practice',download:false});
   }catch(e){setStatus('Could not open score: '+e.message)}
  }
  function downloadMusicData(){
