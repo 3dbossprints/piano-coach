@@ -741,15 +741,46 @@ function getLearnPhrase(){const meter=String(timeSignature||'4/4').split('/').ma
     else{
      const xml=new DOMParser().parseFromString(raw,'application/xml');
      if(xml.querySelector('parsererror'))throw new Error('Invalid MusicXML');
-     const divisions=Number(xml.querySelector('part measure attributes divisions')?.textContent)||1;
-     const tempo=Number(xml.querySelector('sound[tempo]')?.getAttribute('tempo'))||bpm;
-     let cursor=0;
-     const notes=[...xml.querySelectorAll('part:first-of-type measure note')].map(n=>{
-      const p=n.querySelector('pitch'),dur=Number(n.querySelector('duration')?.textContent)||divisions,rest=!!n.querySelector('rest');
-      const name=p?p.querySelector('step')?.textContent+(Number(p.querySelector('alter')?.textContent)===1?'#':Number(p.querySelector('alter')?.textContent)===-1?'b':'')+p.querySelector('octave')?.textContent:null;
-      const ev={note:name,time:cursor*60/tempo,duration:dur/divisions*60/tempo,rest};cursor+=dur/divisions;return ev;
-     }).filter(n=>n.note&&!n.rest);
-     score={title:item.name,bpm:tempo,notes};
+     const parts=[...xml.querySelectorAll('score-partwise > part')];
+     if(!parts.length)throw new Error('No musical parts were found in this MusicXML file.');
+     const firstMeasure=parts[0].querySelector(':scope > measure');
+     const tempo=Number(xml.querySelector('sound[tempo]')?.getAttribute('tempo')||parts[0].querySelector('metronome per-minute')?.textContent)||bpm;
+     const beats=Number(firstMeasure?.querySelector('attributes time beats')?.textContent)||4;
+     const beatType=Number(firstMeasure?.querySelector('attributes time beat-type')?.textContent)||4;
+     const beatsPerBar=beats*4/beatType;
+     const measures=parts.map(part=>[...part.querySelectorAll(':scope > measure')]);
+     const partDivisions=parts.map(()=>1),notes=[];
+     const measureCount=Math.max(...measures.map(items=>items.length));
+     let elapsedBeats=0;
+     for(let mi=0;mi<measureCount;mi++){
+      let measureLength=0;
+      for(let pi=0;pi<parts.length;pi++){
+       const measure=measures[pi][mi];if(!measure)continue;
+       let divisions=partDivisions[pi],cursor=0,maxCursor=0;
+       for(const child of [...measure.children]){
+        if(child.localName==='attributes'){
+         const nextDivisions=Number(child.querySelector(':scope > divisions')?.textContent);
+         if(nextDivisions>0)divisions=nextDivisions;
+         partDivisions[pi]=divisions;
+        }else if(child.localName==='backup'||child.localName==='forward'){
+         const amount=Number(child.querySelector(':scope > duration')?.textContent)||0;
+         cursor=child.localName==='backup'?Math.max(0,cursor-amount):cursor+amount;
+         maxCursor=Math.max(maxCursor,cursor);
+        }else if(child.localName==='note'){
+         const rest=!!child.querySelector(':scope > rest'),pitch=child.querySelector(':scope > pitch');
+         const durationDivisions=Number(child.querySelector(':scope > duration')?.textContent)||divisions;
+         const chord=!!child.querySelector(':scope > chord'),step=pitch?.querySelector('step')?.textContent,alter=Number(pitch?.querySelector('alter')?.textContent)||0,octave=pitch?.querySelector('octave')?.textContent;
+         const name=rest?'rest':step&&octave!==undefined?step+(alter===1?'#':alter===-1?'b':alter===2?'##':alter===-2?'bb':'')+octave:null;
+         const onset=chord?Math.max(0,cursor-durationDivisions):cursor;
+         if(name&&!rest)notes.push({note:name,time:(elapsedBeats+onset/divisions)*60/tempo,duration:durationDivisions/divisions*60/tempo,part:pi+1,staff:Number(child.querySelector('staff')?.textContent)||1,voice:child.querySelector('voice')?.textContent||'1'});
+         if(!chord){cursor+=durationDivisions;maxCursor=Math.max(maxCursor,cursor);}
+        }
+       }
+       measureLength=Math.max(measureLength,maxCursor/divisions);
+      }
+      elapsedBeats+=Math.max(measureLength,beatsPerBar);
+     }
+     score={title:item.name,bpm:tempo,timeSignature:beats+'/'+beatType,notes};
     }
    }
    if(!score||!Array.isArray(score.notes))throw new Error('This Library item does not contain a playable score.');
