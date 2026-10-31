@@ -1,6 +1,8 @@
 const DB_NAME = 'music-coach-score-library';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'scores';
+const META_STORE = 'meta';
+const MIGRATION_KEY = 'legacy-local-storage-imported';
 let databasePromise;
 
 const SHEET_EXTENSIONS = /\.(musiccoach|musicxml|xml|mid|midi|pdf|png|jpe?g|webp|svg)$/i;
@@ -16,6 +18,10 @@ export function isPlayableSheetMusicItem(item) {
   return PLAYABLE_EXTENSIONS.test(item.name) || item.type === 'application/vnd.piano-coach.musiccoach' || (item.kind === 'practice-score' && Array.isArray(item.score?.notes));
 }
 
+function clearLegacyLibrary() {
+  try { localStorage.removeItem('pc_files'); } catch { /* Storage may be disabled. */ }
+}
+
 function openDatabase() {
   if (typeof indexedDB === 'undefined') return Promise.resolve(null);
   if (!databasePromise) {
@@ -23,9 +29,8 @@ function openDatabase() {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
       request.onupgradeneeded = () => {
         const db = request.result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-        }
+        if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+        if (!db.objectStoreNames.contains(META_STORE)) db.createObjectStore(META_STORE);
       };
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error || new Error('Could not open browser score storage.'));
@@ -47,6 +52,24 @@ function readLegacyLibrary() {
   }
 }
 
+function readMigrationMarker(db) {
+  return new Promise((resolve, reject) => {
+    const request = db.transaction(META_STORE, 'readonly').objectStore(META_STORE).get(MIGRATION_KEY);
+    request.onsuccess = () => resolve(request.result === true);
+    request.onerror = () => reject(request.error || new Error('Could not inspect browser score storage.'));
+  });
+}
+
+function markMigrationComplete(db) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(META_STORE, 'readwrite');
+    tx.objectStore(META_STORE).put(true, MIGRATION_KEY);
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error || new Error('Could not update browser score storage.'));
+    tx.onabort = () => reject(tx.error || new Error('Browser score storage transaction was cancelled.'));
+  });
+}
+
 export async function loadBrowserScoreLibrary() {
   try {
     const db = await openDatabase();
@@ -57,9 +80,18 @@ export async function loadBrowserScoreLibrary() {
       request.onsuccess = () => resolve(request.result || []);
       request.onerror = () => reject(request.error || new Error('Could not read saved scores.'));
     });
-    if (records.length) return records.filter(isSheetMusicLibraryItem);
+    const savedScores = records.filter(isSheetMusicLibraryItem);
+    const migrated = await readMigrationMarker(db);
+    if (savedScores.length || migrated) {
+      if (!migrated) await markMigrationComplete(db);
+      clearLegacyLibrary();
+      return savedScores;
+    }
+    // One-time migration for users upgrading from the old localStorage library.
     const legacy = readLegacyLibrary();
     if (legacy.length) await writeToDatabase(db, legacy);
+    await markMigrationComplete(db);
+    clearLegacyLibrary();
     return legacy;
   } catch {
     return readLegacyLibrary();
@@ -87,6 +119,9 @@ export async function saveBrowserScoreLibrary(items) {
     const db = await openDatabase();
     if (db) {
       await writeToDatabase(db, scores);
+      await markMigrationComplete(db);
+      // Do not leave a stale localStorage backup that could resurrect deleted scores.
+      clearLegacyLibrary();
       return { persisted: true, storage: 'indexeddb' };
     }
   } catch {
