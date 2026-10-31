@@ -1702,3 +1702,25 @@ button:disabled { cursor: not-allowed; opacity: .48; }
     display: none !important;
   }
 }
+
+/* Listen & Learn: piano-roll workstation */
+.learn-studio{width:min(1500px,100%);gap:14px;padding-top:14px}
+.learn-top-panel{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 18px;align-items:center;padding:15px 18px;border:1px solid #eee7df;border-radius:18px;background:#fff}
+.learn-top-copy{display:flex;align-items:flex-start;gap:12px;min-width:0}.learn-top-copy>div{display:grid;gap:5px;min-width:0}.learn-top-copy strong{font-size:14px;line-height:1.4}.learn-top-copy small,.learn-keyboard-heading,.learn-keyboard-hint,.learn-session-footnote{color:#89918a;font-size:11px}
+.learn-top-actions{display:flex;gap:8px;flex-wrap:wrap}.learn-bar-progress{grid-column:1/-1;height:5px;background:#f0ece6;border-radius:99px;overflow:hidden}.learn-bar-progress i{display:block;height:100%;background:#f2765d;border-radius:99px;transition:width .2s ease}
+.learn-piano-roll{height:310px;min-height:230px;overflow:hidden;border-radius:17px;background:#18251f;border:1px solid #293a30}
+.learn-roll-grid{position:relative;width:100%;height:100%;background-image:linear-gradient(90deg,#ffffff13 1px,transparent 1px),linear-gradient(0deg,#ffffff0d 1px,transparent 1px);background-size:3.03% 100%,100% 38px}
+.learn-roll-note{position:absolute;z-index:2;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:7px 7px 5px 5px;border:1px solid #b2e9c4;background:linear-gradient(180deg,#b9f0c9,#71c995);color:#163b29;font-size:clamp(8px,.8vw,11px);font-weight:800;white-space:nowrap;box-shadow:0 0 15px #80dba455;animation:learn-roll-fall 1.65s cubic-bezier(.22,.65,.25,1) forwards;animation-delay:var(--fall-delay,0s)}
+.learn-roll-note.hand-left{background:linear-gradient(180deg,#c5c2f5,#9188dc);border-color:#d3cffb;color:#28234d;box-shadow:0 0 15px #9c94ef55}.learn-roll-note.is-current{outline:2px solid #ffe29a;box-shadow:0 0 0 3px #f5c96a35,0 0 22px #f5c96a66;z-index:4}
+.learn-roll-hitline{position:absolute;z-index:5;left:0;right:0;bottom:19px;height:2px;background:#f7c96a;box-shadow:0 0 12px #f7c96a99;pointer-events:none}.learn-roll-hitline span{position:absolute;right:9px;bottom:5px;color:#f7d88e;font-size:9px;font-weight:800;letter-spacing:1px}
+@keyframes learn-roll-fall{0%{transform:translateY(-24px);filter:brightness(1.2)}100%{transform:translateY(24px);filter:brightness(1)}}
+.learn-keyboard-section{padding:13px 14px 10px;border:1px solid #eee7df;border-radius:17px;background:#fff}.learn-keyboard-heading{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px;font-weight:800;letter-spacing:.7px}
+.learn-keyboard-scroll{padding:5px 3px 2px;overflow:hidden;background:#f8f6f2;border-radius:12px}.learn-keyboard.piano{width:100%;min-width:0;height:145px;min-height:145px;display:flex;position:relative;padding:0;overflow:visible}.learn-keyboard .white-key{height:142px;flex-shrink:0;margin:0;border-radius:0 0 5px 5px}.learn-keyboard .white-key span{opacity:1;font-size:clamp(6px,.65vw,9px);bottom:5px}.learn-keyboard .white-key.is-held{background:#f8d9c9}.learn-keyboard .black-key{height:83px;top:0;z-index:3}.learn-keyboard .black-key.is-held{background:#9a6656}.learn-keyboard-hint{margin-top:8px;line-height:1.45}
+.learn-session-controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:12px 0 0;border-top:1px solid #eee9e1}.learn-session-controls .learn-tempo-control{flex:1 1 180px;min-width:160px}.learn-session-footnote{margin:0;text-align:center;line-height:1.5}.learn-close{flex:0 0 auto}
+@media(max-width:700px){.learn-fullscreen{padding:10px}.learn-fullscreen-head{align-items:center;padding-bottom:12px}.learn-fullscreen-head h2{font-size:23px}.learn-fullscreen-head p{font-size:11px}.learn-studio{gap:10px}.learn-top-panel{grid-template-columns:1fr;padding:12px}.learn-top-actions{display:grid;grid-template-columns:1fr 1fr}.learn-piano-roll{height:250px;min-height:210px}.learn-keyboard.piano{height:115px;min-height:115px}.learn-keyboard .white-key{height:112px}.learn-keyboard .black-key{height:66px}.learn-session-controls{display:grid;grid-template-columns:1fr 1fr}.learn-session-controls .learn-tempo-control{grid-column:1/-1}.learn-session-controls .btn{width:100%;padding:9px 7px;font-size:11px}}
+
+.learn-hand-controls{grid-column:1/-1;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.learn-hand-controls>span{margin-right:4px;color:#89918a;font-size:9px;font-weight:800;letter-spacing:.9px}
+.learn-hand-controls button{border:1px solid #eee5db;border-radius:999px;background:#fff;color:#6e756e;padding:7px 13px;font-size:11px;font-weight:700}
+.learn-hand-controls button.active{background:#293832;border-color:#293832;color:#fff}
+@media(max-width:700px){.learn-hand-controls{grid-column:1/-1}.learn-hand-controls button{flex:1}}

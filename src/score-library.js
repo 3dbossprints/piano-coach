@@ -55,8 +55,12 @@ export function isPlayableSheetMusicItem(item) {
   }
   if (isMusicXml) return /<score-(?:partwise|timewise)\b/i.test(decoded.text) && /<note\b/i.test(decoded.text);
   try {
-    const score = JSON.parse(decoded.text);
-    return score?.format === 'musiccoach' && Array.isArray(score.notes) && score.notes.length > 0 && score.notes.some(note => note?.rest || note?.note || Number.isFinite(Number(note?.midi)));
+    const payload = decoded.text.startsWith('PIANOCOACH-MIX/1\n')
+      ? decoded.text.slice('PIANOCOACH-MIX/1\n'.length)
+      : decoded.text;
+    const score = JSON.parse(payload);
+    return score?.format === 'musiccoach' && Array.isArray(score.notes) && score.notes.length > 0 &&
+      score.notes.some(note => note?.rest || note?.note || Number.isFinite(Number(note?.midi)));
   } catch {
     return false;
   }
