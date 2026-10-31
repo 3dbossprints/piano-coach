@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as Tone from 'tone';
 import { Renderer, Stave, StaveNote, Voice, Formatter } from 'vexflow';
-import { midiToNote, noteToMidi, parseSequence, compareSequences, clampKeyboardStartMidi } from './music.js';
+import { midiToNote, noteToMidi, parseSequence, compareSequences, clampKeyboardStartMidi, assignMidiHands } from './music.js';
 import GradePlanner from './GradePlannerSimple.jsx';
 import { isPlayableSheetMusicItem, isSheetMusicLibraryItem, loadBrowserScoreLibrary, saveBrowserScoreLibrary } from './score-library.js';
 
@@ -33,7 +33,7 @@ function parseStandardMidi(buffer){
  tempos.sort((a,b)=>a.tick-b.tick);const map=tempos.filter((t,i)=>!i||t.tick!==tempos[i-1].tick);
  const secondsAt=target=>{let sec=0,last=0,us=500000;for(const t of map){if(t.tick>=target)break;sec+=(t.tick-last)*us/1e6/division;last=t.tick;us=t.us}return sec+(target-last)*us/1e6/division};
  const first=map.find(t=>t.tick===0)?.us||500000;
- return {format,division,bpm:60000000/first,notes:rawNotes.map((n,i)=>({note:midiToNote(n.note),midi:n.note,time:secondsAt(n.tick),duration:Math.max(.04,secondsAt(n.endTick)-secondsAt(n.tick)),velocity:n.velocity/127,channel:n.channel,track:n.track,hand:n.track%2===0?'right':'left',rest:false,id:'midi-'+n.track+'-'+i})).sort((a,b)=>a.time-b.time)};
+ const notes=rawNotes.map((n,i)=>({note:midiToNote(n.note),midi:n.note,time:secondsAt(n.tick),duration:Math.max(.04,secondsAt(n.endTick)-secondsAt(n.tick)),velocity:n.velocity/127,channel:n.channel,track:n.track,rest:false,id:'midi-'+n.track+'-'+i})).sort((a,b)=>a.time-b.time);return {format,division,bpm:60000000/first,notes:assignMidiHands(notes)};
 }
 const NOTATION_GUIDE = [
  {id:'dynamics',label:'Dynamics: pp, p, mp, mf, f, ff',help:'Very soft → very loud; these are volume instructions.'},
@@ -97,7 +97,7 @@ function Staff({notes,expanded,bpm=84,timeSignature='4/4',fromStart=false,clef='
 }
 function renderLearnFallingNotes(notes,bpm){return notes.map((note,index,all)=>renderLearnFallingNote(note,index,all,bpm))}
 function getLearnStaffNotes(notes,bpm){return notes.map((n,i,phrase)=>({id:n.id||i,note:n.note,midi:n.midi,rest:n.rest,beats:n.beats,time:Math.max(0,(Number(n._start||0)-Number(phrase[0]?._start||0))*(60/bpm)),duration:n.beats*60/bpm,staff:n.staff,part:n.part,voice:n.voice,hand:n.hand}))}
-function getLearnHandStaffNotes(notes,hand){const hasGrandStaff=notes.some(n=>Number(n.staff)===2),parts=[...new Set(notes.map(n=>Number(n.part)).filter(Number.isFinite))].sort((a,b)=>a-b);if(parts.length>1)return notes.filter(n=>hand==='left'?parts.slice(1).includes(Number(n.part)):Number(n.part)===parts[0]);if(hasGrandStaff)return notes.filter(n=>hand==='left'?Number(n.staff)===2:(n.staff==null||Number(n.staff)===1));return notes.filter(n=>hand==='left'?Number(n.midi??noteToMidi(n.note))<60:Number(n.midi??noteToMidi(n.note))>=60)}
+function getLearnHandStaffNotes(notes,hand){const hasGrandStaff=notes.some(n=>Number(n.staff)===2),parts=[...new Set(notes.map(n=>Number(n.part)).filter(Number.isFinite))].sort((a,b)=>a-b);if(parts.length>1)return notes.filter(n=>hand==='left'?parts.slice(1).includes(Number(n.part)):Number(n.part)===parts[0]);if(hasGrandStaff)return notes.filter(n=>hand==='left'?Number(n.staff)===2:(n.staff==null||Number(n.staff)===1));if(notes.some(n=>n.hand==='left'||n.hand==='right'))return notes.filter(n=>n.hand===hand);return notes.filter(n=>hand==='left'?Number(n.midi??noteToMidi(n.note))<60:Number(n.midi??noteToMidi(n.note))>=60)}
 function renderLearnPitchLabels(){return ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'].map(note=><span key={note}>{note}</span>)}
 function renderLearnTempoControl(bpm,setBpm){return <div className="learn-tempo-control"><span>Tempo · {bpm} BPM</span><input type="range" min="40" max="240" step="1" value={bpm} onChange={event=>setBpm(Number(event.target.value))} aria-label="Listen and Learn tempo"/></div>}
 function renderLearnTempoWarning(scoreNotation){if(!scoreNotation?.sourceMusicXML||musicXmlHasTempo(scoreNotation.sourceMusicXML))return null;return <small className="learn-tempo-warning">The imported MusicXML did not preserve a printed tempo. Check the original page and set this slider to its marked BPM.</small>}
