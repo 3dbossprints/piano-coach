@@ -8,6 +8,14 @@ export function noteToMidi(input) {
   const midi=(Number(m[3])+1)*12+semis;
   return midi>=21&&midi<=108?midi:null;
 }
+export function clampKeyboardStartMidi(noteOrMidi, octaves = 3) {
+  const range = Math.max(2, Math.min(5, Math.round(Number(octaves) || 3)));
+  const parsed = typeof noteOrMidi === 'number' ? noteOrMidi : noteToMidi(noteOrMidi);
+  const midi = Number.isFinite(parsed) ? Math.round(parsed) : 48;
+  // Preserve the requested first note across octave-count changes whenever the
+  // physical 88-key piano has room for the selected visible range.
+  return Math.max(21, Math.min(108 - range * 12, midi));
+}
 export function parseSequence(text) {
   return String(text).split(/[\s,;]+/).filter(Boolean).map(token=>({token,midi:noteToMidi(token)}));
 }
