@@ -1523,7 +1523,6 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 
 /* Fold-away workspace navigation */
 .sidebar-collapse-toggle{display:flex;align-items:center;justify-content:center;margin:8px 12px 14px;width:32px;height:30px;border:1px solid var(--line,#e8e3dc);border-radius:9px;background:transparent;color:inherit;cursor:pointer;font-size:18px}
-.sidebar-collapsed .sidebar{width:76px!important;min-width:76px!important;padding-left:10px!important;padding-right:10px!important}
 .sidebar-collapsed .sidebar .brand{justify-content:center;padding-left:0!important;padding-right:0!important}
 .sidebar-collapsed .sidebar .brand span,.sidebar-collapsed .sidebar .nav-label,.sidebar-collapsed .sidebar .sidebar-tools,.sidebar-collapsed .sidebar .sidebar-logo{display:none!important}
 .sidebar-collapsed .sidebar .nav-item{width:48px!important;min-width:48px!important;justify-content:center!important;padding:10px!important;margin:5px auto!important;font-size:0!important}
@@ -1565,7 +1564,10 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 @media(max-width:640px){.gp-questionnaire-form{grid-template-columns:1fr}.gp-questionnaire-form .btn{width:100%}.gp-simple-hero{flex-direction:column}.gp-piece-row{flex-direction:column;align-items:stretch}.gp-piece-actions{width:100%}.gp-piece-actions .btn{flex:1}.gp-advanced-toggle{flex-direction:column}}
 
 @media(min-width:801px){
+ .sidebar-collapsed .sidebar{width:76px!important;min-width:76px!important;padding-left:10px!important;padding-right:10px!important}
  .shell.sidebar-collapsed{grid-template-columns:76px minmax(0,1fr)!important}
  .sidebar-collapsed .sidebar .nav-item{font-size:0!important;justify-content:center!important;padding-left:8px!important;padding-right:8px!important}
  .sidebar-collapsed .sidebar .nav-item span{display:block!important;font-size:20px!important;flex:0 0 auto!important}
 }
+
+@media(max-width:800px){.sidebar-collapse-toggle{display:none!important}.sidebar-collapsed .sidebar{width:100%!important;min-width:0!important;padding-left:5px!important;padding-right:5px!important}}
