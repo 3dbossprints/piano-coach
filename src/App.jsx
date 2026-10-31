@@ -3,6 +3,7 @@ import * as Tone from 'tone';
 import { Renderer, Stave, StaveNote, Voice, Formatter } from 'vexflow';
 import { midiToNote, noteToMidi, parseSequence, compareSequences } from './music.js';
 import GradePlanner from './GradePlannerSimple.jsx';
+import { isPlayableSheetMusicItem, isSheetMusicLibraryItem, loadBrowserScoreLibrary, saveBrowserScoreLibrary } from './score-library.js';
 
 const KEYMAP = {a:'C4',w:'C#4',s:'D4',e:'D#4',d:'E4',f:'F4',t:'F#4',g:'G4',y:'G#4',h:'A4',u:'A#4',j:'B4',k:'C5'};
 const EXAMPLES = [{name:'Warm-up scale',notes:'C4 D4 E4 F4 G4 A4 B4 C5'},{name:'Gentle arpeggio',notes:'C4 E4 G4 C5 G4 E4 C4'},{name:'Five-note pattern',notes:'C4 D4 E4 D4 C4'}];
@@ -170,14 +171,14 @@ function decodeMusicCoach(text){const source=String(text||'');const payload=sour
 export default function App(){
  const [page,setPage]=useState('Dashboard');
  const [practiceMode,setPracticeMode]=useState(()=>{try{return localStorage.getItem('pc_practice_mode')==='learn'?'learn':'normal'}catch{return 'normal'}});
- const [sidebarCollapsed,setSidebarCollapsed]=useState(()=>{try{return localStorage.getItem('pc_sidebar_collapsed')==='true'}catch{return false}});
  const [fullscreenScore,setFullscreenScore]=useState(null);
  const [libraryFullscreenItem,setLibraryFullscreenItem]=useState(null);
  const [cookieChoice,setCookieChoice]=useState(()=>{try{const v=JSON.parse(localStorage.getItem('pc_cookie_consent')||'null');return v?.choice==='accept'?v:null}catch{return null}});
  const [cookiePrefs,setCookiePrefs]=useState(()=>{try{return JSON.parse(localStorage.getItem('pc_cookie_prefs')||'{"essential":true,"preferences":false,"analytics":false}')}catch{return {essential:true,preferences:false,analytics:false}}});
  const [cookieSettingsOpen,setCookieSettingsOpen]=useState(false);
  const [practiceStarted,setPracticeStarted]=useState(false),[songTitle,setSongTitle]=useState(''),[practiceMinutes,setPracticeMinutes]=useState('15'),[reflection,setReflection]=useState(''),[practiceFeedback,setPracticeFeedback]=useState(''),[remainingSeconds,setRemainingSeconds]=useState(0);
- const [libraryFiles,setLibraryFiles]=useState(()=>{try{return JSON.parse(localStorage.getItem('pc_files')||'[]')}catch{return[]}});
+ const [libraryFiles,setLibraryFiles]=useState(()=>{try{return (JSON.parse(localStorage.getItem('pc_files')||'[]')||[]).filter(isSheetMusicLibraryItem)}catch{return[]}});
+ const [libraryHydrated,setLibraryHydrated]=useState(false),[scoreLibraryExpanded,setScoreLibraryExpanded]=useState(false);
  const [extraTool,setExtraTool]=useState('keyboard');
  const [keyboardStart,setKeyboardStart]=useState('C3'),[keyboardOctaves,setKeyboardOctaves]=useState(3);
  const [musicChat,setMusicChat]=useState([]),[musicChatInput,setMusicChatInput]=useState(''),[musicChatBusy,setMusicChatBusy]=useState(false);
@@ -197,7 +198,7 @@ export default function App(){
  const [mode,setMode]=useState('Free practice');
  const [bpm,setBpm]=useState(84);
   const [timeSignature,setTimeSignature]=useState('4/4');
- const [sheetPianoOpen,setSheetPianoOpen]=useState(false),[learnListenMode,setLearnListenMode]=useState(false),[learnBarProgress,setLearnBarProgress]=useState(0),[learnMessage,setLearnMessage]=useState('Turn on Learn & Listen to practise two bars at a time.'),[learnSeconds,setLearnSeconds]=useState(0),[learnPhraseOffset,setLearnPhraseOffset]=useState(0),[learnView,setLearnView]=useState('staff'),[learnHand,setLearnHand]=useState('right');
+ const [sheetPianoOpen,setSheetPianoOpen]=useState(false),[learnListenMode,setLearnListenMode]=useState(false),[learnBarProgress,setLearnBarProgress]=useState(0),[learnMessage,setLearnMessage]=useState('Turn on Learn & Listen to practise two bars at a time.'),[learnSeconds,setLearnSeconds]=useState(0),[learnPhraseOffset,setLearnPhraseOffset]=useState(0),[learnView,setLearnView]=useState('staff'),[learnHand,setLearnHand]=useState('both');
  const [activeScoreId,setActiveScoreId]=useState(null);
  const [learnMidiConnected,setLearnMidiConnected]=useState(false),[learnMidiName,setLearnMidiName]=useState(''),[learnAnimationKey,setLearnAnimationKey]=useState(0);
  const [volume,setVolume]=useState(65);
@@ -239,10 +240,10 @@ export default function App(){
  const comparison=useMemo(()=>compareSequences(expected,actual),[expected,actual]);
  useEffect(()=>{Tone.getDestination().volume.value=20*Math.log10(Math.max(.01,volume/100));},[volume]);
  useEffect(()=>{try{localStorage.setItem('pc_practice_mode',practiceMode)}catch{}},[practiceMode]);
- useEffect(()=>{try{localStorage.setItem('pc_sidebar_collapsed',String(sidebarCollapsed))}catch{}},[sidebarCollapsed]);
  useEffect(()=>{try{localStorage.setItem('pc_sessions',JSON.stringify(sessions))}catch(e){setStatus('Practice sessions could not be saved in this browser. Export a .musicdata backup and free some storage.')}},[sessions]);
  useEffect(()=>{try{localStorage.setItem('pc_studies',JSON.stringify(saved))}catch{}},[saved]);
- useEffect(()=>{try{localStorage.setItem('pc_files',JSON.stringify(libraryFiles))}catch(e){setStatus('Your saved music could not fit in browser storage. Download a .musicdata backup and remove large items.');}},[libraryFiles]);
+ useEffect(()=>{let active=true;loadBrowserScoreLibrary().then(items=>{if(!active)return;if(Array.isArray(items)&&items.length)setLibraryFiles(items);setLibraryHydrated(true)}).catch(()=>{if(active)setLibraryHydrated(true)});return()=>{active=false}},[]);
+ useEffect(()=>{if(!libraryHydrated)return;saveBrowserScoreLibrary(libraryFiles).catch(error=>setStatus(error.message||'This score could not be saved in browser storage. Export a .musicdata backup.'))},[libraryFiles,libraryHydrated]);
  useEffect(()=>{if(!practiceStarted||remainingSeconds<=0)return;practiceTimerRef.current=setInterval(()=>setRemainingSeconds(v=>{if(v<=1){clearInterval(practiceTimerRef.current);practiceTimerRef.current=null;stopRecording();stopMic();setStatus('Practice time is up · reviewing your recording');return 0}return v-1}),1000);return()=>{if(practiceTimerRef.current)clearInterval(practiceTimerRef.current)}},[practiceStarted,remainingSeconds>0]);
  useEffect(()=>{if(!learnListenMode)return;const id=setInterval(()=>setLearnSeconds(v=>v+1),1000);return()=>clearInterval(id)},[learnListenMode]);
  useEffect(()=>()=>{stopMic();stopPlayback();stopMetro();stopMidiLibraryPlayback();if(synth.current)synth.current.dispose();},[]);
@@ -938,7 +939,7 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
  const keyboardWhiteKeyPercent=100/Math.max(1,keyboardVisibleWhiteKeys.length);
  const virtualWhiteKeys=allKeys.filter(k=>!k.black&&k.midi>=48&&k.midi<=72);
  const virtualBlackKeys=allKeys.filter(k=>k.black&&k.midi>=48&&k.midi<=72);
- const computerOctaveOffset=Math.floor((keyboardOctaves-1)/2)*12;
+ const computerOctaveOffset=0;
 
  const blackOffsets={'C#':0.62,'D#':1.62,'F#':3.62,'G#':4.62,'A#':5.62};
  const qualifyingSessions=sessions.filter(s=>Number(s.practiceSeconds??((Number(s.minutes)||0)*60))>=900);
@@ -948,6 +949,8 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
  let streak=0;
  if(practiceDays.includes(todayKey)||practiceDays.includes(dayKey(yesterday))){let cursor=new Date();if(!practiceDays.includes(todayKey))cursor.setDate(cursor.getDate()-1);while(practiceDays.includes(dayKey(cursor))){streak++;cursor.setDate(cursor.getDate()-1)}}
  const nav=['Dashboard','Practice','Sheet music','Grade plan','Extras'];
+ const sheetMusicFiles=libraryFiles.filter(isSheetMusicLibraryItem);
+ const visibleSheetMusicFiles=scoreLibraryExpanded?sheetMusicFiles:sheetMusicFiles.slice(0,3);
  const renderLearnFullscreen = () => {
   if (!learnListenMode || !sheetPianoOpen) return null;
   const beatsPerPhrase = Math.max(1, (Number(timeSignature.split('/')[0]) || 4) * 4 / (Number(timeSignature.split('/')[1]) || 4) * 2);
