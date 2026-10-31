@@ -53,7 +53,7 @@ export function isPlayableSheetMusicItem(item) {
     for (let i = 14; i + 3 < bytes.length; i++) if (bytes[i] === 0x4d && bytes[i + 1] === 0x54 && bytes[i + 2] === 0x72 && bytes[i + 3] === 0x6b) { hasTrack = true; break; }
     return hasHeader && trackCount > 0 && hasTrack;
   }
-  if (isMusicXml) return /<score-(?:partwise|timewise)\b/i.test(decoded.text);
+  if (isMusicXml) return /<score-(?:partwise|timewise)\b/i.test(decoded.text) && /<note\b/i.test(decoded.text);
   try {
     const score = JSON.parse(decoded.text);
     return score?.format === 'musiccoach' && Array.isArray(score.notes) && score.notes.length > 0 && score.notes.some(note => note?.rest || note?.note || Number.isFinite(Number(note?.midi)));
