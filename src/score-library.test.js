@@ -11,13 +11,14 @@ test('sheet library accepts notation and score-source formats only', () => {
   }
 });
 
-test('only structured musical notation is marked playable', () => {
-  for (const name of ['piece.musiccoach', 'piece.musicxml', 'piece.xml', 'piece.mid', 'piece.midi']) {
-    assert.equal(isPlayableSheetMusicItem({ name }), true, name);
-  }
-  for (const name of ['scan.pdf', 'photo.png', 'score.webp']) {
-    assert.equal(isPlayableSheetMusicItem({ name }), false, name);
-  }
+test('only structured musical notation with saved file data is marked playable', () => {
+  const coach = { name: 'piece.musiccoach', data: 'data:application/json;base64,' + Buffer.from('{"format":"musiccoach","notes":[{"note":"C4"}]}').toString('base64') };
+  const xml = { name: 'piece.musicxml', data: 'data:application/xml;base64,' + Buffer.from('<score-partwise><part-list/><part id="P1"/></score-partwise>').toString('base64') };
+  const midiBytes = Buffer.alloc(14); midiBytes.write('MThd', 0, 'ascii'); midiBytes.writeUInt32BE(6, 4);
+  const midi = { name: 'piece.mid', data: 'data:audio/midi;base64,' + midiBytes.toString('base64') };
+  for (const item of [coach, xml, midi]) assert.equal(isPlayableSheetMusicItem(item), true, item.name);
+  for (const name of ['scan.pdf', 'photo.png', 'score.webp']) assert.equal(isPlayableSheetMusicItem({ name, data: 'data:application/octet-stream;base64,AA==' }), false, name);
+  for (const name of ['piece.musiccoach', 'piece.musicxml', 'piece.mid']) assert.equal(isPlayableSheetMusicItem({ name }), false, name + ' without data');
 });
 
 test('rejects an unstructured practice item without a sheet-music file', () => {
