@@ -41,8 +41,8 @@ export function isPlayableSheetMusicItem(item) {
   const isMidi = /\.(mid|midi)$/i.test(name);
   if (!isMusicCoach && !isMusicXml && !isMidi) return false;
 
-  // Older metadata-only cards can still be opened and validated when selected.
-  if (typeof item.data !== 'string') return true;
+  // A filename is not proof of playable content: require stored bytes or parsed score data.
+  if (typeof item.data !== 'string') return false;
   const decoded = decodeDataUri(item);
   if (!decoded) return false;
   if (isMidi) {
