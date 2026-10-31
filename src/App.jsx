@@ -629,7 +629,7 @@ async function convertScoreToMusicCoach(file,options={}){
  function finishLearnSession(){learnModeRef.current=false;disconnectLearnMidi();setLearnListenMode(false);setSheetPianoOpen(false);stopMic();stopPlayback();const seconds=Math.max(0,learnSeconds);if(seconds>0){const session={id:Date.now(),date:new Date().toISOString(),lastPractisedAt:new Date().toISOString(),song:(songTitle||'Learn & Listen lesson'),minutes:Math.round(seconds/60*10)/10,practiceSeconds:seconds,notes:events.length,reflection:'Learn & Listen lesson',feedback:'Guided score listening and note practice',expected,bpm,timeSignature,events:events.map(e=>({...e}))};setSessions(prev=>[session,...prev]);setStatus('Learn & Listen saved · '+Math.floor(seconds/60)+' min counted as practice')}setLearnSeconds(0)}
  function getLearnEvents(){
   const meter=String(timeSignature||'4/4').split('/').map(Number),beatsPerBar=Math.max(.5,(meter[0]||4)*4/(meter[1]||4));
-  if(!loadedScoreNotes?.length){let cursor=0;return targets.map((n,i)=>{const ev={...n,_start:cursor,_index:i,beats:Number(n.beats)||1,rest:!!n.rest,midi:n.midi??(n.rest?null:noteToMidi(n.note))};cursor+=ev.beats;return ev})}
+  if(!loadedScoreNotes?.length){let cursor=0;return targets.map((n,i)=>{const midi=n.midi??(n.rest?null:noteToMidi(n.note)),ev={...n,_start:cursor,_index:i,beats:Number(n.beats)||1,rest:!!n.rest,midi,hand:Number(midi)<60?'left':'right'};cursor+=ev.beats;return ev})}
   const source=loadedScoreNotes.slice();
   let selected=source;
   const hasStaffTwo=source.some(n=>Number(n.staff)===2);
@@ -654,7 +654,7 @@ async function convertScoreToMusicCoach(file,options={}){
     const start=hasMeasureBeat?(Number(n.measure)-firstMeasure)*beatsPerBar+Number(n.beat):(hasTime?Number(n.time)*Math.max(30,Number(bpm)||84)/60:cursor);
     const beats=Math.max(.125,Number(n.beats)||((Number(n.duration)||0)*Math.max(30,Number(bpm)||84)/60)||1);
     cursor=Math.max(cursor,start+beats);
-    return {...n,_start:start,_index:i,beats,rest:!!n.rest,midi:n.midi??(n.rest?null:noteToMidi(n.note))};
+    const midi=n.midi??(n.rest?null:noteToMidi(n.note)),hand=n.hand||(hasSeparateParts?(Number(n.part)===parts[1]?'left':'right'):hasStaffTwo?(Number(n.staff)===2?'left':'right'):(Number(midi)<60?'left':'right'));return {...n,_start:start,_index:i,beats,rest:!!n.rest,midi,hand};
   }).filter(n=>n.rest||n.midi!==null).sort((a,b)=>a._start-b._start||Number(a.midi||0)-Number(b.midi||0));
 }
 function getLearnPhrase(){const meter=String(timeSignature||'4/4').split('/').map(Number),goal=Math.max(.5,(meter[0]||4)*4/(meter[1]||4))*2,offset=learnPhraseOffsetRef.current;return getLearnEvents().filter(n=>n._start>=offset-0.0001&&n._start<offset+goal-0.0001)}
