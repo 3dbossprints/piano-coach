@@ -42,6 +42,8 @@ test('a score filename alone cannot make an invalid file listenable', () => {
   const invalidCoach = 'data:application/json;base64,' + Buffer.from('{"format":"not-music","notes":[]}').toString('base64');
   assert.equal(isPlayableSheetMusicItem({ name: 'not-score.xml', data: invalidXml }), false);
   assert.equal(isPlayableSheetMusicItem({ name: 'not-score.musiccoach', data: invalidCoach }), false);
+  const emptyScore = 'data:application/xml;base64,' + Buffer.from('<score-partwise><part-list/><part id=\"P1\"/></score-partwise>').toString('base64');
+  assert.equal(isPlayableSheetMusicItem({ name: 'empty.musicxml', data: emptyScore }), false);
 });
 
 test('valid MusicXML data is listenable while score images remain non-audio', () => {
