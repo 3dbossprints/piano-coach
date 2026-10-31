@@ -3,7 +3,7 @@ const DB_VERSION = 1;
 const STORE_NAME = 'scores';
 let databasePromise;
 
-const SHEET_EXTENSIONS = /\.(musiccoach|musicxml|xml|mxl|mid|midi|pdf|png|jpe?g|webp|svg)$/i;
+const SHEET_EXTENSIONS = /\.(musiccoach|musicxml|xml|mid|midi|pdf|png|jpe?g|webp|svg)$/i;
 const PLAYABLE_EXTENSIONS = /\.(musiccoach|musicxml|xml|mid|midi)$/i;
 
 export function isSheetMusicLibraryItem(item) {
