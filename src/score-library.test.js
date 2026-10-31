@@ -24,3 +24,14 @@ test('practice score items remain recognised even when they have no extension', 
   assert.equal(isSheetMusicLibraryItem({ name: 'Practice capture', kind: 'practice-score' }), true);
   assert.equal(isPlayableSheetMusicItem({ name: 'Practice capture', kind: 'practice-score' }), false);
 });
+
+test('rejects non-score files even if incorrectly tagged as a score', () => {
+  assert.equal(isSheetMusicLibraryItem({ name: 'recording.mp3', kind: 'score' }), false);
+  assert.equal(isSheetMusicLibraryItem({ name: 'voice.wav', kind: 'practice-score' }), false);
+});
+
+test('playback is allowed for a structured practice score with note data', () => {
+  const item = { name: 'Practice capture', kind: 'practice-score', score: { notes: [{ note: 'C4' }] } };
+  assert.equal(isSheetMusicLibraryItem(item), true);
+  assert.equal(isPlayableSheetMusicItem(item), true);
+});
