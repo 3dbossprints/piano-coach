@@ -37,7 +37,7 @@
   async function ask(question, options={}) {
     const prompt = String(question || '').trim();
     if (!prompt) throw new Error('Type a question first.');
-    const pipe = await init(options.onProgress);
+    let pipe = await init(options.onProgress);
     emit(options.onProgress, 'Thinking about your question…', 100);
     const system = 'You are Piano Coach, a practical and encouraging piano teacher chatting directly with a learner. Answer the latest user message itself; do not open with a generic greeting, onboarding line, or “What can I help you with today?” Do not repeat the question. Start with the useful answer, then give clear, specific steps or a short example. Keep most answers under 180 words unless the learner asks for detail. Ask at most one clarifying question only when genuinely needed. Use prior chat messages to understand follow-ups. For practice feedback, use only the notes and timing data provided; never claim to have heard audio unless audio-analysis data is supplied. Be honest about uncertainty. Do not ask for API keys or suggest installing a separate app.';
     const history = Array.isArray(options.history) ? options.history
@@ -53,6 +53,7 @@
       emit(options.onProgress, 'GPU memory is limited. Releasing the GPU model and switching to the smaller CPU model…', 0);
       try { if (generator && typeof generator.dispose === 'function') await generator.dispose(); } catch {}
       generator = null;
+      pipe = null; // Drop the local reference as well so the WebGPU session can be reclaimed.
       loading = null;
       deviceUsed = null;
       try {
