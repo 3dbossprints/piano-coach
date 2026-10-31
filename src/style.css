@@ -1519,3 +1519,25 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   .sidebar .nav-item,.sidebar .nav-item.active,.sidebar .nav-item:not(.active) { padding:8px 7px !important; }
   .stats-grid { grid-template-columns:1fr !important; }
 }
+
+
+/* Fold-away workspace navigation */
+.sidebar-collapse-toggle{display:flex;align-items:center;justify-content:center;margin:8px 12px 14px;width:32px;height:30px;border:1px solid var(--line,#e8e3dc);border-radius:9px;background:transparent;color:inherit;cursor:pointer;font-size:18px}
+.sidebar-collapsed .sidebar{width:76px!important;min-width:76px!important;padding-left:10px!important;padding-right:10px!important}
+.sidebar-collapsed .sidebar .brand{justify-content:center;padding-left:0!important;padding-right:0!important}
+.sidebar-collapsed .sidebar .brand span,.sidebar-collapsed .sidebar .nav-label,.sidebar-collapsed .sidebar .nav-item:not(span),.sidebar-collapsed .sidebar .sidebar-tools,.sidebar-collapsed .sidebar .sidebar-logo{display:none!important}
+.sidebar-collapsed .sidebar .nav-item{width:48px!important;min-width:48px!important;justify-content:center!important;padding:10px!important;margin:5px auto!important;font-size:0!important}
+.sidebar-collapsed .sidebar .nav-item span{display:block!important;width:auto!important;font-size:20px!important}
+.sidebar-collapsed .sidebar-collapse-toggle{margin:8px auto 14px}
+.sidebar-collapsed .main{min-width:0}
+.score-fullscreen-backdrop{position:fixed;inset:0;z-index:1200;background:rgba(20,18,16,.72);display:flex;align-items:center;justify-content:center;padding:clamp(8px,2vw,28px)}
+.score-fullscreen-panel{width:min(1500px,100%);height:min(94vh,1100px);background:var(--surface,#fff);border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.3);display:flex;flex-direction:column;overflow:hidden}
+.score-fullscreen-panel>header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 20px;border-bottom:1px solid var(--line,#e8e3dc);flex:0 0 auto}
+.score-fullscreen-panel>header>div{display:flex;flex-direction:column;gap:3px}
+.score-fullscreen-panel>header small{color:var(--muted,#777);font-size:12px}
+.score-fullscreen-content{overflow:auto;flex:1;padding:14px 20px}
+.score-fullscreen-content .musicxml-preview{width:100%;max-width:none}
+.score-fullscreen-content .musicxml-rendered{width:100%;min-width:0}
+.score-fullscreen-content .musicxml-rendered svg{max-width:none}
+.musicxml-preview[title*="Double-click"]{cursor:zoom-in}
+@media(max-width:800px){.sidebar-collapsed .sidebar{width:56px!important;min-width:56px!important}.sidebar-collapsed .sidebar .nav-item{width:40px!important;min-width:40px!important}.score-fullscreen-panel{height:96vh;border-radius:12px}.score-fullscreen-content{padding:8px}}
