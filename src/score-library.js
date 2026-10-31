@@ -34,7 +34,7 @@ function decodeDataUri(item) {
 
 export function isPlayableSheetMusicItem(item) {
   if (!isSheetMusicLibraryItem(item)) return false;
-  if (item.kind === 'practice-score' && Array.isArray(item.score?.notes)) return true;
+  if (item.kind === 'practice-score' && Array.isArray(item.score?.notes) && item.score.notes.length > 0) return true;
   const name = item.name.toLowerCase();
   const isMusicCoach = name.endsWith('.musiccoach') || item.type === 'application/vnd.piano-coach.musiccoach';
   const isMusicXml = /\.(musicxml|xml)$/i.test(name);
@@ -46,16 +46,17 @@ export function isPlayableSheetMusicItem(item) {
   const decoded = decodeDataUri(item);
   if (!decoded) return false;
   if (isMidi) {
-    return decoded.bytes.length >= 14
-      && decoded.bytes[0] === 0x4d
-      && decoded.bytes[1] === 0x54
-      && decoded.bytes[2] === 0x68
-      && decoded.bytes[3] === 0x64;
+    const bytes = decoded.bytes;
+    const hasHeader = bytes.length >= 22 && bytes[0] === 0x4d && bytes[1] === 0x54 && bytes[2] === 0x68 && bytes[3] === 0x64;
+    const trackCount = hasHeader ? (bytes[10] << 8) | bytes[11] : 0;
+    let hasTrack = false;
+    for (let i = 14; i + 3 < bytes.length; i++) if (bytes[i] === 0x4d && bytes[i + 1] === 0x54 && bytes[i + 2] === 0x72 && bytes[i + 3] === 0x6b) { hasTrack = true; break; }
+    return hasHeader && trackCount > 0 && hasTrack;
   }
   if (isMusicXml) return /<score-(?:partwise|timewise)\b/i.test(decoded.text);
   try {
     const score = JSON.parse(decoded.text);
-    return score?.format === 'musiccoach' && Array.isArray(score.notes);
+    return score?.format === 'musiccoach' && Array.isArray(score.notes) && score.notes.length > 0 && score.notes.some(note => note?.rest || note?.note || Number.isFinite(Number(note?.midi)));
   } catch {
     return false;
   }
