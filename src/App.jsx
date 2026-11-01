@@ -876,7 +876,7 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
     blob=new Blob([encodeMusicCoach(item.score)],{type:'application/vnd.piano-coach.musiccoach'});
    }else throw new Error('This Library item has no saved file data.');
    const file=new File([blob],item.name||'library-score.musiccoach',{type:item.type||blob.type||'application/octet-stream'});
-   const title=(item.name||'Sheet music').replace(/\\.(musiccoach|musicxml|xml|mid|midi|pdf|png|jpe?g|webp)$/i,'');
+   const title=(item.name||'Sheet music').replace(/\.(musiccoach|musicxml|xml|mid|midi|pdf|png|jpe?g|webp)$/i,'');
    setPracticeScoreName(item.name||'Sheet music');
    setSongTitle(title);
    setPracticeScoreError('');
@@ -1063,11 +1063,11 @@ return <div className="shell"><aside className="sidebar"><a className="brand" hr
    <header className="practice-library-picker-header"><div><span className="eyebrow">YOUR COLLECTION</span><h2 id="practice-library-picker-title">Choose sheet music</h2><p className="muted">Select a piece from your saved Library. Your normal Library controls are hidden while choosing.</p></div><button type="button" className="btn" onClick={()=>setPracticeLibraryPicker(false)} aria-label="Close sheet music picker">✕ Close</button></header>
    <input className="search-input practice-library-picker-search" value={practiceLibrarySearch} onChange={e=>setPracticeLibrarySearch(e.target.value)} placeholder="Search your sheet music…"/>
    <div className="practice-library-picker-list">
-    {libraryFiles.filter(x=>((x.kind==='score'||x.kind==='practice-score'||/musicxml|xml|pdf|image\\//i.test(x.type)||/\\.(musiccoach|musicxml|xml|mid|midi|pdf|png|jpe?g|webp)$/i.test(x.name))&&(!x.type?.startsWith('audio/')||/\\.(mid|midi)$/i.test(x.name)))&&x.name.toLowerCase().includes(practiceLibrarySearch.toLowerCase())).map(x=><article className="practice-library-picker-item" key={x.id}>
+    {libraryFiles.filter(x=>((x.kind==='score'||x.kind==='practice-score'||/musicxml|xml|pdf|image\//i.test(x.type)||/\.(musiccoach|musicxml|xml|mid|midi|pdf|png|jpe?g|webp)$/i.test(x.name))&&(!x.type?.startsWith('audio/')||/\\.(mid|midi)$/i.test(x.name)))&&x.name.toLowerCase().includes(practiceLibrarySearch.toLowerCase())).map(x=><article className="practice-library-picker-item" key={x.id}>
      <div className="practice-library-picker-icon">▤</div><div className="practice-library-picker-meta"><strong>{x.name}</strong><span>{Math.max(1,Math.round((Number(x.size)||0)/1024))} KB · {(x.type||x.name.split('.').pop()||'Sheet music').replace('application/','').replace('image/','').toUpperCase()}</span></div>
      <button type="button" className="btn btn-dark" onClick={()=>choosePracticeLibraryScore(x)}>Choose</button>
     </article>)}
-    {!libraryFiles.some(x=>((x.kind==='score'||x.kind==='practice-score'||/musicxml|xml|pdf|image\\//i.test(x.type)||/\\.(musiccoach|musicxml|xml|mid|midi|pdf|png|jpe?g|webp)$/i.test(x.name))&&(!x.type?.startsWith('audio/')||/\\.(mid|midi)$/i.test(x.name)))&&x.name.toLowerCase().includes(practiceLibrarySearch.toLowerCase()))&&<div className="empty-state"><strong>{practiceLibrarySearch?'No matching sheet music':'Your Library is empty'}</strong><p>{practiceLibrarySearch?'Try another title or clear your search.':'Add sheet music in the Library first, then return here to choose it for Practice.'}</p><button type="button" className="btn" onClick={()=>setPracticeLibraryPicker(false)}>Back to Practice</button></div>}
+    {!libraryFiles.some(x=>((x.kind==='score'||x.kind==='practice-score'||/musicxml|xml|pdf|image\//i.test(x.type)||/\.(musiccoach|musicxml|xml|mid|midi|pdf|png|jpe?g|webp)$/i.test(x.name))&&(!x.type?.startsWith('audio/')||/\\.(mid|midi)$/i.test(x.name)))&&x.name.toLowerCase().includes(practiceLibrarySearch.toLowerCase()))&&<div className="empty-state"><strong>{practiceLibrarySearch?'No matching sheet music':'Your Library is empty'}</strong><p>{practiceLibrarySearch?'Try another title or clear your search.':'Add sheet music in the Library first, then return here to choose it for Practice.'}</p><button type="button" className="btn" onClick={()=>setPracticeLibraryPicker(false)}>Back to Practice</button></div>}
    </div>
   </section>
  </div>}
