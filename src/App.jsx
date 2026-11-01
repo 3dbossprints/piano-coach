@@ -222,6 +222,7 @@ export default function App(){
  const [songResults,setSongResults]=useState([]),[referenceSong,setReferenceSong]=useState(null),[referenceStatus,setReferenceStatus]=useState('Song reference not loaded');
  const [songBusy,setSongBusy]=useState(false);
  const [practiceScoreName,setPracticeScoreName]=useState('');
+ const [practiceLibraryPicker,setPracticeLibraryPicker]=useState(false),[practiceLibrarySearch,setPracticeLibrarySearch]=useState('');
  const [practiceScoreError,setPracticeScoreError]=useState('');
  const [scoreImageUrl,setScoreImageUrl]=useState('');
  const [scoreImageName,setScoreImageName]=useState('');
@@ -863,6 +864,31 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
    setFullscreenScore({xml:xmlText,title:item.name||'Sheet music'});
   }catch(e){setAudioError('Could not expand '+(item?.name||'file')+': '+(e.message||String(e)));}
  }
+ async function choosePracticeLibraryScore(item){
+  if(!item)return;
+  try{
+   let blob;
+   if(item.data){
+    const response=await fetch(item.data);
+    if(!response.ok)throw new Error('The saved score could not be read.');
+    blob=await response.blob();
+   }else if(item.score){
+    blob=new Blob([encodeMusicCoach(item.score)],{type:'application/vnd.piano-coach.musiccoach'});
+   }else throw new Error('This Library item has no saved file data.');
+   const file=new File([blob],item.name||'library-score.musiccoach',{type:item.type||blob.type||'application/octet-stream'});
+   const title=(item.name||'Sheet music').replace(/\\.(musiccoach|musicxml|xml|mid|midi|pdf|png|jpe?g|webp)$/i,'');
+   setPracticeScoreName(item.name||'Sheet music');
+   setSongTitle(title);
+   setPracticeScoreError('');
+   setPracticeStarted(false);
+   setPracticeLibraryPicker(false);
+   setPage('Practice');
+   setStatus('Loading '+(item.name||'score')+' into Practice…');
+   handleScoreUpload(file,{target:'Practice',download:false});
+  }catch(e){
+   setStatus('Could not select score: '+(e?.message||String(e)));
+  }
+ }
  async function openLibraryScore(item){
   if(!item)return;
   if(!isPlayableSheetMusicItem(item)){setStatus('Listen & Learn accepts only structured .musiccoach, MusicXML or MIDI files. Photos, scans and PDFs must be converted first.');return;}
@@ -1032,11 +1058,24 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
 };
 return <div className="shell"><aside className="sidebar"><a className="brand" href="#" onClick={e=>{e.preventDefault();setPage('Dashboard')}}><img className="brand-logo-mark" src="/assets/piano-coach-logo-mark.svg" alt=""/> <span>Piano Coach<small>Listen · Learn · Play</small></span></a><div className="nav-label">WORKSPACE</div>{nav.map(n=><button key={n} className={'nav-item '+(page===n?'active':'')} onClick={()=>{setPage(n)}}><span>{({'Dashboard':'⌂','Practice':'♫','Sheet music':'♬','Score converter':'⇄','Score tools':'▤','Library':'▥','Grade plan':'◎','Extras':'✦'})[n]}</span>{n}</button>)}<div className="sidebar-tools"><button title="Download all data (.musicdata)" aria-label="Download all data" onClick={downloadMusicData}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 17v3h16v-3"/></svg></button><button title="Restore data from .musicdata" aria-label="Upload backup data" onClick={()=>musicDataInputRef.current?.click()}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 16V4m-5 5 5-5 5 5M4 17v3h16v-3"/></svg></button><input ref={musicDataInputRef} type="file" accept=".musicdata,application/vnd.piano-coach.musicdata+json,application/json" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)importMusicData(f);e.target.value=''}}/><button title="Delete local data" aria-label="Delete local data" onClick={()=>{if(confirm('Deleting your saved website data will permanently remove your practice sessions, saved studies and Library items from this device. This cannot be undone. Delete your data?')){setSessions([]);setSaved([]);setLibraryFiles([]);for(const k of ['pc_sessions','pc_studies','pc_files'])localStorage.removeItem(k);setStatus('Local data cleared')}}}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m-11 0 1 14h12l1-14M10 10v6m4-6v6"/></svg></button></div><div className="sidebar-logo"><a href="https://jws.l.cd" target="_blank" rel="noopener noreferrer" aria-label="Open your requested website"><img src="/assets/user-corner-logo.svg" alt="Open website"/></a></div></aside>
  <main className="main">{compactViewport&&!continueOnSmallScreen&&<div className="device-size-overlay" role="dialog" aria-modal="true" aria-labelledby="device-size-title"><section className="device-size-card"><div className="device-size-icon">⌘</div><div className="eyebrow">BEST EXPERIENCE</div><h2 id="device-size-title">Use a computer or iPad for Music Coach</h2><p>Some tools — especially Listen & Learn, sheet music conversion and the piano keyboard — need a larger screen to work comfortably. We recommend opening Music Coach on a computer or iPad.</p><p className="device-size-warning">You can still continue on this screen, but parts of the app may be cramped or may not function as expected.</p><div className="device-size-actions"><button className="btn btn-dark" onClick={()=>setContinueOnSmallScreen(true)}>Continue on this screen</button><span>Recommended: screen width of 900px or more</span></div></section></div>}<header className="topbar"><div><div className="eyebrow">YOUR PERSONAL MUSIC STUDIO</div><h1>{page==='Practice'?'Play, listen, improve.':page==='Dashboard'?'A little practice goes a long way.':page}</h1></div><div className="top-actions"><span className="status-chip"><i/> {status}</span><button className="btn btn-dark" onClick={()=>{setPage('Practice');setStatus('Ready to play')}}>＋ New session</button></div></header>
+ {page==='Practice'&&practiceLibraryPicker&&<div className="practice-library-picker-backdrop" role="dialog" aria-modal="true" aria-labelledby="practice-library-picker-title">
+  <section className="practice-library-picker">
+   <header className="practice-library-picker-header"><div><span className="eyebrow">YOUR COLLECTION</span><h2 id="practice-library-picker-title">Choose sheet music</h2><p className="muted">Select a piece from your saved Library. Your normal Library controls are hidden while choosing.</p></div><button type="button" className="btn" onClick={()=>setPracticeLibraryPicker(false)} aria-label="Close sheet music picker">✕ Close</button></header>
+   <input className="search-input practice-library-picker-search" value={practiceLibrarySearch} onChange={e=>setPracticeLibrarySearch(e.target.value)} placeholder="Search your sheet music…"/>
+   <div className="practice-library-picker-list">
+    {libraryFiles.filter(x=>((x.kind==='score'||x.kind==='practice-score'||/musicxml|xml|pdf|image\\//i.test(x.type)||/\\.(musiccoach|musicxml|xml|mid|midi|pdf|png|jpe?g|webp)$/i.test(x.name))&&(!x.type?.startsWith('audio/')||/\\.(mid|midi)$/i.test(x.name)))&&x.name.toLowerCase().includes(practiceLibrarySearch.toLowerCase())).map(x=><article className="practice-library-picker-item" key={x.id}>
+     <div className="practice-library-picker-icon">▤</div><div className="practice-library-picker-meta"><strong>{x.name}</strong><span>{Math.max(1,Math.round((Number(x.size)||0)/1024))} KB · {(x.type||x.name.split('.').pop()||'Sheet music').replace('application/','').replace('image/','').toUpperCase()}</span></div>
+     <button type="button" className="btn btn-dark" onClick={()=>choosePracticeLibraryScore(x)}>Choose</button>
+    </article>)}
+    {!libraryFiles.some(x=>((x.kind==='score'||x.kind==='practice-score'||/musicxml|xml|pdf|image\\//i.test(x.type)||/\\.(musiccoach|musicxml|xml|mid|midi|pdf|png|jpe?g|webp)$/i.test(x.name))&&(!x.type?.startsWith('audio/')||/\\.(mid|midi)$/i.test(x.name)))&&x.name.toLowerCase().includes(practiceLibrarySearch.toLowerCase()))&&<div className="empty-state"><strong>{practiceLibrarySearch?'No matching sheet music':'Your Library is empty'}</strong><p>{practiceLibrarySearch?'Try another title or clear your search.':'Add sheet music in the Library first, then return here to choose it for Practice.'}</p><button type="button" className="btn" onClick={()=>setPracticeLibraryPicker(false)}>Back to Practice</button></div>}
+   </div>
+  </section>
+ </div>}
  {page==='Practice'&&!practiceStarted&&<section className="panel practice-setup practice-setup-flow">
   <div className="practice-welcome"><div className="eyebrow">YOUR PRACTICE SPACE</div><h2>Let's get you playing</h2><p className="muted">Follow these three steps. You can change your choices later.</p></div>
   <div className="practice-step"><div className="practice-step-number">1</div><div className="practice-step-content"><div className="practice-step-heading"><div><span className="eyebrow">YOUR MUSIC</span><h3>What would you like to practise?</h3></div>{practiceScoreName&&<span className="practice-loaded-pill">✓ Score loaded</span>}</div>
    <label className="sequence-label">Piece name <span className="muted small">Optional</span><input value={songTitle} onChange={e=>setSongTitle(e.target.value)} placeholder="e.g. Moonlight Sonata"/></label>
-   <div className="practice-music-choice">{practiceScoreName?<div className="practice-score-loaded"><strong>{practiceScoreName}</strong><span>Your sheet music is ready to use.</span></div>:<div><strong>No sheet music selected</strong><span>You can still practise with the microphone or keyboard.</span></div>}<button type="button" className="btn" onClick={()=>setPage('Sheet music')}>{practiceScoreName?'Change sheet music':'Choose sheet music'} ↗</button></div>
+   <div className="practice-music-choice">{practiceScoreName?<div className="practice-score-loaded"><strong>{practiceScoreName}</strong><span>Your sheet music is ready to use.</span></div>:<div><strong>No sheet music selected</strong><span>You can still practise with the microphone or keyboard.</span></div>}<button type="button" className="btn" onClick={()=>{setPracticeLibrarySearch('');setPracticeLibraryPicker(true)}}>{practiceScoreName?'Change sheet music':'Choose sheet music'} ↗</button></div>
   </div></div>
   <div className="practice-step"><div className="practice-step-number">2</div><div className="practice-step-content"><span className="eyebrow">PRACTICE STYLE</span><h3>How do you want to practise?</h3><div className="practice-style-options">
    <button type="button" className={'practice-style-card '+(practiceMode==='normal'?'selected':'')} aria-pressed={practiceMode==='normal'} onClick={()=>setPracticeMode('normal')}><span className="practice-style-icon">♫</span><strong>Free practice</strong><span>Play naturally, record your performance and review detected notes.</span><i>{practiceMode==='normal'?'Selected ✓':'Select free practice'}</i></button>
