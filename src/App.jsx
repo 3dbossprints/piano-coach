@@ -191,16 +191,14 @@ export default function App(){
  const [libraryPlayback,setLibraryPlayback]=useState({id:null,kind:'',paused:true});
  const audioLibraryRefs=useRef({}),songAudioRefs=useRef({}),tempoDetectionCacheRef=useRef({});
  useEffect(()=>{
-  const applyTempo=audio=>{
+  const apply=(id,audio)=>{
    if(!audio)return;
-   const sourceTempo=tempoDetectionCacheRef.current[audio.dataset?.songId]||120;
-   const rate=getSongPlaybackRate(songTempo,songMeter,sourceTempo);
-   audio.playbackRate=rate;
+   audio.playbackRate=getSongPlaybackRate(songTempo,songMeter,tempoDetectionCacheRef.current[id]||120);
    audio.preservesPitch=true;
    audio.webkitPreservesPitch=true;
   };
-  Object.values(songAudioRefs.current||{}).forEach(applyTempo);
-  Object.values(audioLibraryRefs.current||{}).forEach(applyTempo);
+  Object.entries(songAudioRefs.current||{}).forEach(([id,audio])=>apply(id,audio));
+  Object.entries(audioLibraryRefs.current||{}).forEach(([id,audio])=>apply(id,audio));
  },[songTempo,songMeter]);
 
  const musicDataInputRef=useRef(null);
