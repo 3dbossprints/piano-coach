@@ -2015,3 +2015,19 @@ button:disabled { cursor: not-allowed; opacity: .48; }
  .song-tempo-meta{grid-column:1/-1}
  .personal-score-actions,.sheet-library-actions{gap:6px}
 }
+
+
+/* Music Coach Library controls: compact transport icons and a native score page. */
+.personal-score-actions{flex-wrap:nowrap;align-items:center;gap:5px}
+.personal-score-actions .btn-dark{flex:0 0 auto}
+.personal-score-actions .compact-score-play,
+.personal-score-actions .compact-score-stop,
+.personal-score-actions .delete-score-button{flex:0 0 30px!important;width:30px!important;min-width:30px!important;height:30px!important;min-height:30px!important;padding:0!important;display:inline-flex;align-items:center;justify-content:center}
+.personal-score-actions .learn-library-button{flex:0 0 auto!important;min-height:30px!important;padding:6px 10px!important;font-size:11px!important}
+.personal-score-actions .text-button{flex:0 0 auto;white-space:nowrap;padding:5px 4px;font-size:11px}
+.musiccoach-native-preview{width:min(100%,420px);min-height:420px;aspect-ratio:210/297;margin:10px auto;padding:18px 12px;overflow:hidden;background:#fff;border:1px solid #d9d9d9;border-radius:3px;box-shadow:0 5px 18px rgba(20,20,20,.08)}
+.musiccoach-native-preview .staff-wrap{width:100%;max-width:100%;overflow:hidden}
+.musiccoach-native-preview .staff{width:100%;max-width:100%;overflow:hidden}
+.musiccoach-native-preview .staff svg{display:block;width:100%;max-width:100%;height:auto}
+.musiccoach-native-preview.fullscreen{width:min(100%,760px);min-height:75vh;aspect-ratio:auto;margin:0 auto}
+@media(max-width:620px){.personal-score-actions{gap:4px}.personal-score-actions .learn-library-button{padding:5px 7px!important}.musiccoach-native-preview{min-height:360px;padding:12px 8px}}
