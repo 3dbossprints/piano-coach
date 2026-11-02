@@ -141,7 +141,7 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
   let cancelled=false,renderer=null;
   async function render(){
    try{
-    if(!xml||!/<score-(?:partwise|timewise)\\b/i.test(xml))throw new Error('This file does not contain valid MusicXML.');
+    if(!xml||!/<score-(?:partwise|timewise)\b/i.test(xml))throw new Error('This file does not contain valid MusicXML.');
     renderer=new OpenSheetMusicDisplay(host.current,{autoResize:true,drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:true,backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false});
     await renderer.load(normalizeMusicXMLTitle(xml,title));if(cancelled)return;
     renderer.Zoom=1;renderer.render();rendererRef.current=renderer;
