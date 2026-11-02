@@ -21,7 +21,7 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
   const timeline = useMemo(() => parsed.measures ? buildKeystoneTimeline(parsed) : (parsed.timeline || []), [parsed]);
   const canvasRef = useRef(null), stageRef = useRef(null), rafRef = useRef(0);
   const runRef = useRef(null), pressedRef = useRef(new Set()), voicesRef = useRef(new Map());
-  const audioRef = useRef(null), midiRef = useRef(null), keyHeldRef = useRef({});
+  const audioRef = useRef(null), midiRef = useRef(null), keyHeldRef = useRef({}), timersRef = useRef(new Set());
   const [mode, setMode] = useState('learn'), [hands, setHands] = useState('both');
   const [speed, setSpeed] = useState(1), [bpm, setBpm] = useState(Math.max(20, Number(initialBpm) || 120));
   const [fromBar, setFromBar] = useState(1), [toBar, setToBar] = useState(9999);
@@ -54,7 +54,7 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
   }, []);
   const sound = useCallback((midi, on, id = String(midi)) => {
     const Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return;
-    if (!audioRef.current) audioRef.current = new Ctx();
+    if (!audioRef.current || audioRef.current.state === 'closed') audioRef.current = new Ctx();
     const ctx = audioRef.current;
     if (on) {
       stopVoice(id);
@@ -126,7 +126,7 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
     const activeIds=new Set(active.map(n=>n.orderIndex+':'+n.noteIndex+':'+n.t));
     const accompaniment=timeline.filter(n=>n.measure>=fromBar&&n.measure<=toBar&&!activeIds.has(n.orderIndex+':'+n.noteIndex+':'+n.t)).map(n=>({...n,played:false}));
     const start=Math.min(...active.map(n=>n.t)),end=Math.max(...active.map(n=>n.t+n.d));
-    const sourceBpm=Math.max(20,Number(parsed.bpm)||Number(initialBpm)||120),effectiveSpeed=speed*bpm/sourceBpm;
+    const sourceBpm=Math.max(20,Number(parsed.measures?.[0]?.bpm)||Number(initialBpm)||120),effectiveSpeed=speed*bpm/sourceBpm;
     runRef.current={mode,speed:effectiveSpeed,active,accompaniment,clock:start-3.2*effectiveSpeed,start,end,combo:0,maxCombo:0,points:0,wrong:[],auto:new Set(),stall:false,done:false,finishAt:0};
     setResult(null);setMessage(mode==='learn'?'Learn mode: the notes will wait for you.':'Perform mode: play along with the falling notes.');
     setTick(v=>v+1);
@@ -165,7 +165,7 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
           if(!run.stall){const next=run.active.find(n=>!n.res);run.clock=next?Math.min(run.clock+advance,Math.max(next.t,run.clock)):run.clock+advance;}
         }else run.clock+=advance;
         for(const n of run.active){if(!n.arrivedAt&&n.t<=run.clock)n.arrivedAt=now;if(run.mode==='perform'&&!n.res&&!n.missed&&run.clock>n.t+.4){n.missed=true;run.combo=0;}}
-        for(const n of run.accompaniment){if(!n.played&&run.clock>=n.t){n.played=true;const id='accompaniment-'+n.orderIndex+'-'+n.noteIndex;sound(n.midi,true,id);window.setTimeout(()=>sound(n.midi,false,id),Math.max(140,n.d*1000/run.speed));}}
+        for(const n of run.accompaniment){if(!n.played&&run.clock>=n.t){n.played=true;const id='accompaniment-'+n.orderIndex+'-'+n.noteIndex;sound(n.midi,true,id);const timer=window.setTimeout(()=>{timersRef.current.delete(timer);sound(n.midi,false,id);},Math.max(140,n.d*1000/run.speed));timersRef.current.add(timer);}}
         if(run.mode==='learn'&&run.active.every(n=>n.res&&!n.hold)){run.finishAt ||= now+700;if(now>run.finishAt)finishRun();}
         else if(run.mode==='perform'&&run.clock>run.end+.8)finishRun();
       }
@@ -217,12 +217,12 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
 
   useEffect(() => () => {
     if(runRef.current)runRef.current=null;
-    disconnectMidi();for(const id of [...voicesRef.current.keys()])stopVoice(id);
+    disconnectMidi();for(const timer of timersRef.current)clearTimeout(timer);timersRef.current.clear();for(const id of [...voicesRef.current.keys()])stopVoice(id);
     try{audioRef.current?.close();}catch{}
   }, [disconnectMidi,stopVoice]);
 
   const shiftKey = delta => setKeyStart(v=>Math.max(21,Math.min(108-COMPUTER_KEYS.length,v+delta)));
-  const finish = () => { onFinish?.(result); };
+  const finish = () => { const run=runRef.current;if(run){const hits=run.active.filter(n=>n.res),summary={score:Math.max(0,Math.round(100*hits.reduce((sum,n)=>sum+({perfect:1,good:.8,almost:.5}[n.res]||0),0)/Math.max(1,run.active.length))),hits:hits.length,total:run.active.length,perfect:hits.filter(n=>n.res==='perfect').length,good:hits.filter(n=>n.res==='good').length,almost:hits.filter(n=>n.res==='almost').length,wrong:run.wrong.length,maxCombo:run.maxCombo,mode:run.mode,hands,tempo:bpm,speed:run.speed,trouble:[]};runRef.current=null;onFinish?.(summary);}else onFinish?.(result); };
 
   return <div className="keystone-engine" role="dialog" aria-modal="true" aria-label="Keystone Listen and Learn engine">
     <header className="keystone-head"><div><span className="eyebrow">LISTEN & LEARN · KEYSTONE ENGINE</span><h2>{title}</h2><p>{parsed.error?'Using the imported note events because the original MusicXML could not be parsed: '+parsed.error:'MusicXML timing, repeats and endings are loaded into the lesson.'}</p></div><button type="button" className="btn" onClick={onClose}>Close ✕</button></header>
@@ -240,6 +240,6 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
     <div className="keystone-status" role="status">{message}</div>
     <div className="keystone-footer"><span>{timeline.length} note events · {availableBars.length} bars · {midiConnected?'MIDI connected: '+midiName:'MIDI not connected'}</span><button className="btn" onClick={midiConnected?disconnectMidi:connectMidi}>{midiConnected?'Disconnect MIDI':'Connect MIDI piano'}</button><span>Computer keys: Z S X D C V G B H N J M · Q 2 W 3 E R 5 T 6 Y 7 U</span></div>
     {result&&<section className="keystone-result"><div><strong>Score</strong><b>{result.score}</b></div><div><strong>Notes</strong><b>{result.hits}/{result.total}</b></div><div><strong>Perfect</strong><b>{result.perfect}</b></div><div><strong>Wrong keys</strong><b>{result.wrong}</b></div><div><strong>Best streak</strong><b>{result.maxCombo}</b></div>{result.trouble.length>0&&<div className="keystone-trouble"><strong>Where to practise</strong>{result.trouble.map(x=><span key={x.bar}>Bar {x.bar}: {x.notes.join(', ')}</span>)}</div>}<div className="keystone-result-actions"><button className="btn" onClick={()=>setResult(null)}>Dismiss result</button><button className="btn btn-dark" onClick={finish}>Finish lesson</button></div></section>}
-    {!result&&<div className="keystone-finish-row"><button className="btn" onClick={onClose}>Continue later</button><button className="btn btn-dark" onClick={()=>{if(runRef.current)stopRun();onFinish?.(result);}}>Finish lesson</button></div>}
+    {!result&&<div className="keystone-finish-row"><button className="btn" onClick={onClose}>Continue later</button><button className="btn btn-dark" onClick={finish}>Finish lesson</button></div>}
   </div>;
 }
