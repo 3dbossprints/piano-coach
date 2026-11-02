@@ -115,6 +115,10 @@ function renderLearnFullscreenControls(props){const {bpm,setBpm,scoreNotation,li
 function renderLearnFallingNote(n,i,phrase,bpm){if(n.rest)return null;const match=(n.note||'').match(/^([A-G])(#|b)?(-?\d)$/);const lane=match?Math.max(0,['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'].indexOf(match[1]+(match[2]||''))):0;const beatOffset=Math.max(0,Number(n._start||0)-Number(phrase[0]?._start||0));const beat=Math.max(.25,Number(n.beats)||1);return <div key={n.id||i} className={'falling-note '+(n.staff===2||n.hand==='left'?'falling-note-left':'falling-note-right')+(i===0?' falling-note-next':'')} style={{left:((lane+.5)/12*100)+'%',top:'0px',height:Math.max(28,beat*28)+'px',animationDuration:'2.2s',animationDelay:(beatOffset*60/bpm)+'s'}}><span>{n.note||'Rest'}</span></div>}
 function musicXmlHasTempo(xml){return /<sound\b[^>]*\btempo=|<metronome[\s\S]*?<per-minute>/i.test(String(xml||''));}
 function requireVexFormatter(){return (globalThis.VexFlow&&globalThis.VexFlow.Formatter)||class {joinVoices(v){return this} format(){} };}
+function isValidMusicXML(xmlText){
+ if(typeof xmlText!=='string'||!/<score-(?:partwise|timewise)\b/i.test(xmlText))return false;
+ try{const doc=new DOMParser().parseFromString(xmlText,'application/xml');return !doc.querySelector('parsererror')&&!!doc.documentElement&&/^score-(?:partwise|timewise)$/i.test(doc.documentElement.localName)}catch{return false}
+}
 function normalizeMusicXMLTitle(xmlText,title){
  if(!xmlText)return xmlText;
  const parser=new DOMParser(),doc=parser.parseFromString(String(xmlText),'application/xml');
@@ -208,7 +212,7 @@ function MusicXMLPreview({xml,title='Sheet music',onExpand}) {
   let cancelled=false,renderer=null;
   async function render(){
    try{
-    if(!xml||!/<score-(?:partwise|timewise)\b/i.test(xml))throw new Error('Invalid MusicXML');
+    if(!isValidMusicXML(xml))throw new Error('This score has no valid embedded MusicXML. Its editable note data is still saved, but a notation preview could not be generated.');
     renderer=new OpenSheetMusicDisplay(host.current,{autoResize:true,drawTitle:false,drawSubtitle:false,drawComposer:false,drawPartNames:false,backend:'svg',stretchLastSystemLine:true,renderSingleHorizontalStaffline:false});
     await renderer.load(normalizeMusicXMLTitle(xml,title));
     if(cancelled)return;
@@ -363,9 +367,10 @@ export default function App(){
  const targets=useMemo(()=>parseMusicSequence(expected),[expected]);
  const actual=events;
  const loadedScoreMusicXML=useMemo(()=>{
-  if(scoreNotation?.sourceMusicXML)return scoreNotation.sourceMusicXML;
+  if(isValidMusicXML(scoreNotation?.sourceMusicXML))return scoreNotation.sourceMusicXML;
   if(!loadedScoreNotes.length)return '';
   try{return midiNotesToMusicXML(loadedScoreNotes,bpm,timeSignature,songTitle||'Music Coach score')}catch{return ''}
+ }
  },[scoreNotation,loadedScoreNotes,bpm,timeSignature,songTitle]);
  const comparison=useMemo(()=>compareSequences(expected,actual),[expected,actual]);
  useEffect(()=>{Tone.getDestination().volume.value=20*Math.log10(Math.max(.01,volume/100));},[volume]);
