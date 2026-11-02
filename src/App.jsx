@@ -370,7 +370,6 @@ export default function App(){
   if(isValidMusicXML(scoreNotation?.sourceMusicXML))return scoreNotation.sourceMusicXML;
   if(!loadedScoreNotes.length)return '';
   try{return midiNotesToMusicXML(loadedScoreNotes,bpm,timeSignature,songTitle||'Music Coach score')}catch{return ''}
- }
  },[scoreNotation,loadedScoreNotes,bpm,timeSignature,songTitle]);
  const comparison=useMemo(()=>compareSequences(expected,actual),[expected,actual]);
  useEffect(()=>{Tone.getDestination().volume.value=20*Math.log10(Math.max(.01,volume/100));},[volume]);
