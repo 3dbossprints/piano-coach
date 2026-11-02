@@ -191,6 +191,13 @@ export default function App(){
  const [archiveResults,setArchiveResults]=useState([]),[commonsResults,setCommonsResults]=useState([]),[sourceSearchStatus,setSourceSearchStatus]=useState('');
  const [libraryPlayback,setLibraryPlayback]=useState({id:null,kind:'',paused:true});
  const audioLibraryRefs=useRef({}),songAudioRefs=useRef({}),tempoDetectionCacheRef=useRef({});
+
+
+ const musicDataInputRef=useRef(null);
+ const [scoreNotation,setScoreNotation]=useState(null),[scoreSourceAsset,setScoreSourceAsset]=useState(null);
+ const [loadedScoreNotes,setLoadedScoreNotes]=useState([]);
+ const [musicCoachBusy,setMusicCoachBusy]=useState(false),[musicCoachStatus,setMusicCoachStatus]=useState('Upload a clear PNG or PDF score to create an editable .musiccoach file.'),[musicCoachAnalysis,setMusicCoachAnalysis]=useState(''),[musicCoachNotes,setMusicCoachNotes]=useState([]);
+ const [conversionSavedNotice,setConversionSavedNotice]=useState(false),[songTempo,setSongTempo]=useState(120),[songMeter,setSongMeter]=useState('4/4'),[songTempoStatus,setSongTempoStatus]=useState('Source tempo is detected when a recording starts playing.');
  useEffect(()=>{
   const apply=(id,audio)=>{
    if(!audio)return;
@@ -201,12 +208,6 @@ export default function App(){
   Object.entries(songAudioRefs.current||{}).forEach(([id,audio])=>apply(id,audio));
   Object.entries(audioLibraryRefs.current||{}).forEach(([id,audio])=>apply(id,audio));
  },[songTempo,songMeter]);
-
- const musicDataInputRef=useRef(null);
- const [scoreNotation,setScoreNotation]=useState(null),[scoreSourceAsset,setScoreSourceAsset]=useState(null);
- const [loadedScoreNotes,setLoadedScoreNotes]=useState([]);
- const [musicCoachBusy,setMusicCoachBusy]=useState(false),[musicCoachStatus,setMusicCoachStatus]=useState('Upload a clear PNG or PDF score to create an editable .musiccoach file.'),[musicCoachAnalysis,setMusicCoachAnalysis]=useState(''),[musicCoachNotes,setMusicCoachNotes]=useState([]);
- const [conversionSavedNotice,setConversionSavedNotice]=useState(false),[songTempo,setSongTempo]=useState(120),[songMeter,setSongMeter]=useState('4/4'),[songTempoStatus,setSongTempoStatus]=useState('Source tempo is detected when a recording starts playing.');
  const [musicCoachMarkings,setMusicCoachMarkings]=useState([]);
  const [events,setEvents]=useState([]);
  const [expected,setExpected]=useState('C4 D4 E4 G4');
