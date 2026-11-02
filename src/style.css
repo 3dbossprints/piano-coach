@@ -1961,3 +1961,19 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .practice-library-picker-item>.btn{flex:0 0 auto;min-width:88px;justify-content:center}
 .practice-library-picker-list>.empty-state{grid-column:1/-1}
 @media(max-width:700px){.practice-library-picker-backdrop{padding:8px}.practice-library-picker{max-height:calc(100dvh - 16px);padding:16px;border-radius:16px;gap:13px}.practice-library-picker-header{align-items:flex-start}.practice-library-picker-header .btn{padding:8px 10px}.practice-library-picker-list{grid-template-columns:1fr}.practice-library-picker-item{padding:11px;gap:10px}.practice-library-picker-icon{flex-basis:36px;width:36px;height:42px}.practice-library-picker-item>.btn{min-width:78px}}
+
+
+/* Camera capture for the sheet music converter */
+.converter-input-actions{display:flex;align-items:stretch;gap:12px;flex-wrap:wrap;margin:18px 0}
+.converter-input-actions .musiccoach-upload{flex:1 1 320px;margin:0}
+.converter-camera-button{min-height:52px;justify-content:center;gap:9px;padding-inline:22px}
+.score-camera-backdrop{position:fixed;inset:0;z-index:1300;display:grid;place-items:center;padding:clamp(10px,3vw,28px);background:rgba(13,20,16,.68);backdrop-filter:blur(6px)}
+.score-camera-dialog{display:flex;flex-direction:column;gap:15px;width:min(820px,100%);max-height:calc(100dvh - 24px);overflow:auto;padding:clamp(16px,3vw,26px);border:1px solid var(--line,#e5e2da);border-radius:20px;background:var(--panel,#fff);box-shadow:0 28px 90px rgba(0,0,0,.28)}
+.score-camera-header{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+.score-camera-header h3{margin:5px 0;font-size:clamp(21px,3vw,28px)}
+.score-camera-header p{margin:0;max-width:560px}
+.score-camera-preview{display:grid;place-items:center;overflow:hidden;min-height:240px;max-height:min(58vh,620px);aspect-ratio:4/3;border-radius:14px;background:#101512}
+.score-camera-preview video{display:block;width:100%;height:100%;max-height:min(58vh,620px);object-fit:contain}
+.score-camera-placeholder{padding:28px;color:#f5f5f5;text-align:center}
+.score-camera-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+@media(max-width:620px){.converter-input-actions{display:grid;grid-template-columns:1fr}.converter-input-actions .musiccoach-upload{width:100%}.converter-camera-button{width:100%}.score-camera-backdrop{padding:7px}.score-camera-dialog{max-height:calc(100dvh - 14px);padding:14px;border-radius:15px}.score-camera-header{gap:8px}.score-camera-header .btn{white-space:nowrap;padding:8px 10px}.score-camera-preview{min-height:190px;aspect-ratio:3/4}.score-camera-preview video{max-height:52vh}.score-camera-actions{display:grid;grid-template-columns:1fr 1fr}.score-camera-actions .btn{justify-content:center}}
