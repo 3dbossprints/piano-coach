@@ -933,7 +933,7 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
     const raw=await response.text();
     if(ext.endsWith('.musiccoach')){
      const score=item.score||decodeMusicCoach(raw);
-     xmlText=score.sourceMusicXML||score.notation?.sourceMusicXML||score.musicxml||scoreNotesToMusicXML(score);
+     setFullscreenScore({kind:'musiccoach',notes:score.notes||[],title:item.name||score.title||'Music Coach score'});return;
     }else xmlText=raw;
    }
    if(!xmlText||!/<score-partwise|<score-timewise/i.test(xmlText))throw new Error('No renderable sheet notation was found in this file.');
