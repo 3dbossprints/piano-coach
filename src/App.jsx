@@ -239,7 +239,7 @@ function LibraryScorePreview({item,onExpand}) {
     const response=await fetch(item.data);if(!response.ok)throw new Error('Could not read the saved score.');
     let xml='';
     if(/\.(mid|midi)$/i.test(name)){const parsed=parseStandardMidi(await response.arrayBuffer());xml=midiNotesToMusicXML(parsed.notes,parsed.bpm,'4/4',item.name||'Imported MIDI');}
-    else{const raw=await response.text();if(/\.musiccoach$/i.test(name)){const score=item.score||decodeMusicCoach(raw);xml=score.notation?.sourceMusicXML||midiNotesToMusicXML(score.notes||[],score.bpm||120,score.timeSignature||'4/4',score.title||item.name||'Sheet music');}else xml=raw;}
+    else{const raw=await response.text();if(/\.musiccoach$/i.test(name)){const score=item.score||decodeMusicCoach(raw);const embedded=score.notation?.sourceMusicXML;xml=isValidMusicXML(embedded)?embedded:midiNotesToMusicXML(score.notes||[],score.bpm||120,score.timeSignature||'4/4',score.title||item.name||'Sheet music');}else xml=raw;}
     if(!xml||!/<score-(?:partwise|timewise)\b/i.test(xml))throw new Error('This saved file does not contain renderable notation.');
     if(!cancelled)setPreview({kind:'xml',value:xml,error:''});
    }catch(error){if(!cancelled)setPreview({kind:'error',value:null,error:error?.message||'Could not preview this score.'})}
