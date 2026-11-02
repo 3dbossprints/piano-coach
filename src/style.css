@@ -2083,3 +2083,22 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .expanded-score-rendered svg{display:block;width:100%!important;max-width:100%!important;height:auto!important}
 .expanded-score-rendered .osmd-container{width:100%!important;max-width:100%!important}
 @media(max-width:700px){.score-fullscreen-panel{width:100vw;height:100dvh;max-height:100dvh;border-radius:0}.expanded-score-toolbar{padding:8px;gap:6px;flex-wrap:wrap}.expanded-score-progress{order:3;width:100%}.expanded-score-rendered{padding:12px 8px}.expanded-score-controls .btn,.expanded-score-toolbar>.btn{padding:8px 10px;font-size:12px}}
+
+
+/* Listen & Learn input panel: clear, usable microphone and MIDI controls. */
+.keystone-input-panel{display:grid;gap:10px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.keystone-input-heading{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.keystone-input-heading>div{display:grid;gap:4px}
+.keystone-input-heading strong{font-size:14px;color:var(--ink)}
+.keystone-input-heading span:not(.keystone-input-state){font-size:12px;color:var(--muted)}
+.keystone-input-state{font-size:10px;font-weight:800;letter-spacing:.08em;color:#7c7167;background:#f3eee8;border-radius:999px;padding:7px 10px;white-space:nowrap}
+.keystone-input-state.is-live{color:#216b49;background:#e9f6ed}
+.keystone-input-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.keystone-mic-meter{display:flex;align-items:center;gap:8px;min-width:180px;flex:1;font-size:11px;color:var(--muted)}
+.keystone-mic-meter>div{height:7px;flex:1;overflow:hidden;border-radius:99px;background:#ece8e1}
+.keystone-mic-meter i{display:block;height:100%;border-radius:99px;background:#397354;transition:width .12s}
+.keystone-mic-meter b{min-width:30px;text-align:right;color:var(--ink)}
+.keystone-input-status{margin:0;font-size:11px;color:var(--muted)}
+.keystone-engine{gap:14px}
+.keystone-stage{height:min(55vh,540px);min-height:300px}
+@media(max-width:700px){.keystone-input-heading{align-items:flex-start;flex-direction:column}.keystone-mic-meter{flex-basis:100%}.keystone-input-actions>.btn{flex:1}}
