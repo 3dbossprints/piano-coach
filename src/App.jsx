@@ -164,6 +164,33 @@ function MusicXMLPreview({xml,title='Sheet music',onExpand}) {
  return <section className="musicxml-preview" onDoubleClick={()=>onExpand?.()} title={onExpand?"Double-click to expand sheet music":undefined}><p className="muted small" role="status">{status}</p><div ref={ref} className="musicxml-rendered"/></section>
 }
 
+function LibraryScorePreview({item,onExpand}) {
+ const [preview,setPreview]=useState({kind:'loading',value:null,error:''});
+ useEffect(()=>{
+  let cancelled=false;
+  async function load(){
+   try{
+    const name=String(item?.name||'').toLowerCase();
+    if(!item?.data)throw new Error('The saved file has no source data.');
+    if(/\.pdf$/i.test(name)){if(!cancelled)setPreview({kind:'pdf',value:item.data,error:''});return;}
+    if(/\.(png|jpe?g|webp|svg)$/i.test(name)){if(!cancelled)setPreview({kind:'image',value:item.data,error:''});return;}
+    const response=await fetch(item.data);if(!response.ok)throw new Error('Could not read the saved score.');
+    let xml='';
+    if(/\.(mid|midi)$/i.test(name)){const parsed=parseStandardMidi(await response.arrayBuffer());xml=midiNotesToMusicXML(parsed.notes,parsed.bpm,'4/4',item.name||'Imported MIDI');}
+    else{const raw=await response.text();if(/\.musiccoach$/i.test(name)){const score=item.score||decodeMusicCoach(raw);xml=score.notation?.sourceMusicXML||midiNotesToMusicXML(score.notes||[],score.bpm||120,score.timeSignature||'4/4',score.title||item.name||'Sheet music');}else xml=raw;}
+    if(!xml||!/<score-(?:partwise|timewise)\b/i.test(xml))throw new Error('This saved file does not contain renderable notation.');
+    if(!cancelled)setPreview({kind:'xml',value:xml,error:''});
+   }catch(error){if(!cancelled)setPreview({kind:'error',value:null,error:error?.message||'Could not preview this score.'})}
+  }
+  load();return()=>{cancelled=true};
+ },[item?.id,item?.name,item?.data,item?.score]);
+ if(preview.kind==='loading')return <div className="personal-score-art library-score-loading">Preparing sheet music…</div>;
+ if(preview.kind==='pdf')return <div className="personal-score-art library-score-source"><iframe title={item.name} src={preview.value} loading="lazy"/></div>;
+ if(preview.kind==='image')return <div className="personal-score-art library-score-source"><img src={preview.value} alt={'Preview of '+item.name}/></div>;
+ if(preview.kind==='xml')return <div className="personal-score-art library-score-notation"><MusicXMLPreview xml={preview.value} title={item.name} onExpand={onExpand}/></div>;
+ return <div className="personal-score-art library-score-error" role="status"><strong>Preview unavailable</strong><small>{preview.error}</small></div>;
+}
+
 // Sequence tokens support note durations and rests: C4/q D4/h R/q E4/e. Plain notes default to quarters.
 function parseMusicSequence(input){const lengths={w:4,whole:4,h:2,half:2,q:1,quarter:1,e:.5,eighth:.5,s:.25,sixteenth:.25};return String(input).trim().split(/[\s,;]+/).filter(Boolean).map((token,index)=>{const m=token.match(/^([A-Ga-g][#b♯♭]?[-]?\d+|r|rest)(?:[/:=](whole|half|quarter|eighth|sixteenth|w|h|q|e|s))?$/i);if(!m)return null;const rest=/^(r|rest)$/i.test(m[1]),midi=rest?null:noteToMidi(m[1]),beats=lengths[(m[2]||'q').toLowerCase()]||1;return {token,note:rest?'rest':m[1],midi,rest,beats,index};}).filter(Boolean)}
 function encodeMusicCoach(score){
@@ -1288,7 +1315,7 @@ return <div className="shell"><aside className="sidebar"><a className="brand" hr
  <label className="upload-score personal-score-upload"><span>Import sheet music</span><input type="file" accept=".musiccoach,.musicxml,.xml,.mid,.midi,.pdf,.png,.jpg,.jpeg,.webp,.svg,application/vnd.recordare.musicxml+xml,image/png,image/jpeg,image/webp,application/pdf,application/xml,text/xml" onChange={e=>{const file=e.target.files?.[0];if(file)handleScoreUpload(file,{target:'Sheet music',download:false});e.target.value=''}}/></label><div className="song-tempo-controls"><div className="song-tempo-value"><label htmlFor="song-tempo-slider">Tempo</label><strong>{songTempo} BPM</strong></div><input id="song-tempo-slider" type="range" min="20" max="240" step="1" value={songTempo} onChange={e=>changeSongTempo(e.target.value)}/><label className="song-meter-label">Time signature<select value={songMeter} onChange={e=>{const next=e.target.value;songMeterRef.current=next;setSongMeter(next);Object.entries(songAudioRefs.current).forEach(([id,audio])=>{if(audio){audio.playbackRate=getSongPlaybackRate(songTempoRef.current,next,tempoDetectionCacheRef.current[id]);audio.preservesPitch=true;audio.webkitPreservesPitch=true}});Object.entries(audioLibraryRefs.current).forEach(([id,audio])=>{if(audio){audio.playbackRate=getSongPlaybackRate(songTempoRef.current,next,tempoDetectionCacheRef.current[id]);audio.preservesPitch=true;audio.webkitPreservesPitch=true}})}}><option>4/4</option><option>2/4</option><option>3/4</option><option>4/8</option><option>6/8</option><option>3/8</option><option>2/2</option><option>3/2</option></select></label><span className="song-tempo-meta" role="status">{songTempoStatus}</span></div>
  <div className="personal-score-grid">
   {visibleSheetMusicFiles.length?visibleSheetMusicFiles.map((item,i)=>{const playable=isPlayableSheetMusicItem(item);return <article className="personal-score-card" key={item.id||item.name||i} onDoubleClick={()=>openLibrarySheetFullscreen(item)} title="Double-click to expand sheet music">
-   <div className="personal-score-art" aria-hidden="true"><span>{/\.pdf$/i.test(item.name)?'PDF':/\.(png|jpe?g|webp|svg)$/i.test(item.name)?'IMAGE':/\.(mid|midi)$/i.test(item.name)?'MIDI':/\.(musicxml|xml)$/i.test(item.name)?'𝄞':'♫'}</span><div className="personal-score-staff"><i/><i/><i/><i/><i/></div></div>
+   <LibraryScorePreview item={item} onExpand={()=>openLibrarySheetFullscreen(item)}/>
    <div className="personal-score-meta"><strong title={item.name}>{item.name||'Untitled score'}</strong><span>{item.type||'Sheet music'} · {(item.size||0)>=1024*1024?((item.size||0)/1024/1024).toFixed(1)+' MB':Math.max(1,Math.round((item.size||0)/1024))+' KB'}</span></div>
    <div className="personal-score-actions sheet-music-action-row">
     {playable?<><button type="button" className="btn btn-dark icon-action compact-score-play" aria-label={libraryPlayback.id===item.id&&libraryPlayback.kind==="tone"&&!libraryPlayback.paused?'Pause':'Play'} onClick={e=>{e.stopPropagation();toggleScoreLibraryPlayback(item)}}>{libraryPlayback.id===item.id&&libraryPlayback.kind==="tone"&&!libraryPlayback.paused?'Ⅱ':'▶'}</button><button type="button" className="btn icon-action compact-score-stop" aria-label="Stop" onClick={e=>{e.stopPropagation();stopLibraryItem(item)}}>■</button></>:<span className="muted small">Preview only · not playable</span>}
