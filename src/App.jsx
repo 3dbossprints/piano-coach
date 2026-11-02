@@ -208,7 +208,7 @@ function MusicXMLPreview({xml,title='Sheet music',onExpand}) {
   let cancelled=false,renderer=null;
   async function render(){
    try{
-    if(!xml||!/<score-(?:partwise|timewise)\\b/i.test(xml))throw new Error('Invalid MusicXML');
+    if(!xml||!/<score-(?:partwise|timewise)\b/i.test(xml))throw new Error('Invalid MusicXML');
     renderer=new OpenSheetMusicDisplay(host.current,{autoResize:true,drawTitle:false,drawSubtitle:false,drawComposer:false,drawPartNames:false,backend:'svg',stretchLastSystemLine:true,renderSingleHorizontalStaffline:false});
     await renderer.load(normalizeMusicXMLTitle(xml,title));
     if(cancelled)return;
