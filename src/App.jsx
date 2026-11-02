@@ -223,7 +223,7 @@ function MusicXMLPreview({xml,title='Sheet music',onExpand}) {
   render();
   return()=>{cancelled=true;try{renderer?.clear()}catch{}if(host.current)host.current.innerHTML=''};
  },[xml,title]);
- return <div className="musicxml-preview-compact"><div ref={host} className="musicxml-rendered"/>{error&&<small role="status">{error}</small>}<button type="button" className="btn btn-small" onClick={onExpand}>Expand sheet ↗</button></div>;
+ return <div className="musicxml-preview-compact"><div ref={host} className="musicxml-rendered"/>{error&&<small role="status">{error}</small>}{onExpand&&<button type="button" className="btn btn-small" onClick={onExpand}>Expand sheet ↗</button>}</div>;
 }
 
 function LibraryScorePreview({item,onExpand}) {
