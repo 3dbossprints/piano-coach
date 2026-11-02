@@ -617,13 +617,13 @@ async function captureScorePhoto(){
 async function convertScoreToMusicCoach(file,options={}){
   if(!file||musicCoachBusy)return;
   const ext=file.name.toLowerCase();
-  if(/\\.(mid|midi)$/i.test(file.name)){await handleMidiUpload(file,{...options,target:options.target||'Score converter'});return}
-  if(/\\.(mp3|m4a|mp4|webm)$/i.test(file.name)){
+  if(/\.(mid|midi)$/i.test(file.name)){await handleMidiUpload(file,{...options,target:options.target||'Score converter'});return}
+  if(/\.(mp3|m4a|mp4|webm)$/i.test(file.name)){
    setMusicCoachBusy(true);setMusicCoachAnalysis('');setMusicCoachNotes([]);
    try{
     const {transcribeAudioFile}=await import('./audio-to-score.js');
     const result=await transcribeAudioFile(file,message=>setMusicCoachStatus(message));
-    const title=(file.name.replace(/\\.(mp3|m4a|mp4|webm)$/i,'').trim()||'Audio transcription');
+    const title=(file.name.replace(/\.(mp3|m4a|mp4|webm)$/i,'').trim()||'Audio transcription');
     const midiFile=new File([result.midiBlob],title+'.mid',{type:'audio/midi'});
     const imported=await handleMidiUpload(midiFile,{...options,target:options.target||'Score converter'});
     if(imported===false)throw new Error('The generated MIDI could not be imported as a score.');
@@ -951,7 +951,7 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
  function handleScoreUpload(file,options={}){
   if(!file)return;
   const name=file.name.toLowerCase(),target=options.target||'Sheet music';
-  if(/\\.(mp3|m4a|mp4|webm)$/i.test(name)){convertScoreToMusicCoach(file,{...options,target,download:false});return}
+  if(/\.(mp3|m4a|mp4|webm)$/i.test(name)){convertScoreToMusicCoach(file,{...options,target,download:false});return}
   if(!isSheetMusicLibraryItem({name:file.name})){setStatus('Choose a sheet music file: MusicXML, MIDI, .musiccoach, PDF or a score image.');return}
   if(name.endsWith('.mid')||name.endsWith('.midi')){handleMidiUpload(file,{target});return}
   if(name.endsWith('.musiccoach')||name.endsWith('.musicxml')||name.endsWith('.xml')){importMusicXML(file,{target,download:!!options.download});return}
