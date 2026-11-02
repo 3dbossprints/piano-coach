@@ -387,12 +387,13 @@ export default function App(){
   if(!tutorQuestion.trim()||tutorBusy)return;setTutorBusy(true);setTutorAnswer('');setTutorStatus('Loading the on-device AI model; first use may download model files.');
   try{if(!window.PianoCoachAI)await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='/ai-tutor.js';script.onload=resolve;script.onerror=()=>reject(new Error('AI tutor script failed to load'));document.head.appendChild(script)});const prompt='Piano practice data: mode '+mode+'; target '+expected+'; recent detected notes '+events.slice(-20).map(e=>e.note+' at '+e.time+'s').join(', ')+'; pitch match '+comparison.correct+' of '+comparison.total+' target notes. Learner asks: '+tutorQuestion+'. Give specific, encouraging advice using only this evidence.';const result=await window.PianoCoachAI.ask(prompt,{onProgress:p=>setTutorStatus(p.message||'AI is working…')});setTutorAnswer(result.answer);setTutorStatus('Local AI ready · '+(result.device||'browser model'));}catch(e){setTutorStatus('AI unavailable: '+e.message)}finally{setTutorBusy(false)}
  }
- function audioComSearchUrl(query){return 'https://audio.com/search?search_text='+encodeURIComponent(String(query||'').trim())+'&sort=relevance'}
 function getSongPlaybackRate(tempo,meter,sourceTempo){
- const denominator=Number(String(meter||'4/4').split('/')[1])||4;
- const targetQuarterBpm=(Number(tempo)||120)*4/denominator;
- if(!Number.isFinite(Number(sourceTempo))||Number(sourceTempo)<=0)return 1;
- return Math.max(.1,Math.min(4,targetQuarterBpm/Number(sourceTempo)));
+ const [numeratorRaw,denominatorRaw]=String(meter||'4/4').split('/');
+ const numerator=Number(numeratorRaw)||4,denominator=Number(denominatorRaw)||4;
+ const compound=denominator===8&&numerator>=6&&numerator%3===0;
+ const targetQuarterBpm=(Number(tempo)||120)*(compound?1.5:4/denominator);
+ const referenceBpm=Number(sourceTempo)>0?Number(sourceTempo):120;
+ return Math.max(.1,Math.min(4,targetQuarterBpm/referenceBpm));
 }
 async function detectSongTempo(song){
  if(!song?.preview)return null;
