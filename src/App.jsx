@@ -200,6 +200,28 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
  return <section className="expanded-score-player"><div className="expanded-score-toolbar"><div className="expanded-score-controls"><button className="btn btn-dark" onClick={play}>{playing?'Ⅱ Pause':'▶ Play'}</button><button className="btn" onClick={stop}>■ Stop</button><button className="btn" onClick={toggleMute}>{muted?'Unmute':'Mute'}</button></div><div className="expanded-score-progress"><strong>{activeMeasure?('Bar '+activeMeasure):'Ready'}</strong><span>{status}</span></div><button className="btn" onClick={onClose}>Close ✕</button></div><div ref={host} className="musicxml-rendered expanded-score-rendered"/></section>
 }
 
+
+function MusicXMLPreview({xml,title='Sheet music',onExpand}) {
+ const host=useRef(null);
+ const [error,setError]=useState('');
+ useEffect(()=>{
+  let cancelled=false,renderer=null;
+  async function render(){
+   try{
+    if(!xml||!/<score-(?:partwise|timewise)\\b/i.test(xml))throw new Error('Invalid MusicXML');
+    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:true,drawTitle:false,drawSubtitle:false,drawComposer:false,drawPartNames:false,backend:'svg',stretchLastSystemLine:true,renderSingleHorizontalStaffline:false});
+    await renderer.load(normalizeMusicXMLTitle(xml,title));
+    if(cancelled)return;
+    renderer.Zoom=0.72;
+    renderer.render();
+   }catch(e){if(!cancelled)setError(e?.message||'Could not render notation');}
+  }
+  render();
+  return()=>{cancelled=true;try{renderer?.clear()}catch{}if(host.current)host.current.innerHTML=''};
+ },[xml,title]);
+ return <div className="musicxml-preview-compact"><div ref={host} className="musicxml-rendered"/>{error&&<small role="status">{error}</small>}<button type="button" className="btn btn-small" onClick={onExpand}>Expand sheet ↗</button></div>;
+}
+
 function LibraryScorePreview({item,onExpand}) {
  const [preview,setPreview]=useState({kind:'loading',value:null,error:''});
  useEffect(()=>{
