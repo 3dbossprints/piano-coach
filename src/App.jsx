@@ -175,7 +175,15 @@ function scoreNotesToMusicXML(score){
  const mk=(hand,id,clef)=>{const ns=notes.filter(n=>(n.hand||((Number(n.midi??noteToMidi(n.note))<60)?'left':'right'))===hand).sort((a,b)=>(Number(a.time)||0)-(Number(b.time)||0));const body=ns.map(n=>{const m=String(n.note).match(/^([A-G])(#|b)?(-?\\d+)$/i);if(!m)return '';return '<note><pitch><step>'+m[1].toUpperCase()+'</step>'+(m[2]==='#'?'<alter>1</alter>':m[2]==='b'?'<alter>-1</alter>':'')+'<octave>'+m[3]+'</octave></pitch><duration>'+Math.max(1,Math.round((Number(n.duration)||.5)*8))+'</duration><type>eighth</type></note>';}).join('');return '<part id="'+id+'"><measure number="1"><attributes><divisions>8</divisions><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>'+clef+'</sign><line>'+(clef==='G'?2:4)+'</line></clef></attributes>'+body+'</measure></part>';};
  return '<?xml version="1.0"?><score-partwise version="3.1"><part-list><score-part id="P1"><part-name>Right hand</part-name></score-part><score-part id="P2"><part-name>Left hand</part-name></score-part></part-list>'+mk('right','P1','G')+mk('left','P2','F')+'</score-partwise>';
 }
-function decodeMusicCoach(text){const source=String(text||'');const header='MUSICCOACH-SCORE/2\n';if(!source.startsWith(header))throw new Error('Unsupported .musiccoach file. This version requires the new Music Coach score format.');const score=JSON.parse(source.slice(header.length));if(score.format!=='musiccoach'||score.version!==2||!Array.isArray(score.notes))throw new Error('The .musiccoach score data is incomplete or invalid.');return score}
+function decodeMusicCoach(text){
+ const source=String(text||'').replace(/^\uFEFF/,'').trimStart();
+ const headers=['MUSICCOACH-SCORE/2\n','PIANOCOACH-MIX/1\n'];
+ const header=headers.find(value=>source.startsWith(value));
+ let score;
+ try{score=JSON.parse(header?source.slice(header.length):source)}catch{throw new Error('This .musiccoach file is not valid JSON score data.')}
+ if(score?.format!=='musiccoach'||!Array.isArray(score.notes))throw new Error('The .musiccoach score data is incomplete or invalid.');
+ return score;
+}
 export default function App(){
  const [page,setPage]=useState('Dashboard');
  const [compactViewport,setCompactViewport]=useState(()=>typeof window!=='undefined'&&window.innerWidth<900);
