@@ -190,6 +190,19 @@ export default function App(){
  const [archiveResults,setArchiveResults]=useState([]),[commonsResults,setCommonsResults]=useState([]),[sourceSearchStatus,setSourceSearchStatus]=useState('');
  const [libraryPlayback,setLibraryPlayback]=useState({id:null,kind:'',paused:true});
  const audioLibraryRefs=useRef({}),songAudioRefs=useRef({}),tempoDetectionCacheRef=useRef({});
+ useEffect(()=>{
+  const applyTempo=audio=>{
+   if(!audio)return;
+   const sourceTempo=tempoDetectionCacheRef.current[audio.dataset?.songId]||120;
+   const rate=getSongPlaybackRate(songTempo,songMeter,sourceTempo);
+   audio.playbackRate=rate;
+   audio.preservesPitch=true;
+   audio.webkitPreservesPitch=true;
+  };
+  Object.values(songAudioRefs.current||{}).forEach(applyTempo);
+  Object.values(audioLibraryRefs.current||{}).forEach(applyTempo);
+ },[songTempo,songMeter]);
+
  const musicDataInputRef=useRef(null);
  const [scoreNotation,setScoreNotation]=useState(null),[scoreSourceAsset,setScoreSourceAsset]=useState(null);
  const [loadedScoreNotes,setLoadedScoreNotes]=useState([]);
