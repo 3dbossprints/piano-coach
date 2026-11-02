@@ -227,6 +227,7 @@ export default function App(){
  const [scoreImageUrl,setScoreImageUrl]=useState('');
  const [cameraOpen,setCameraOpen]=useState(false),[cameraError,setCameraError]=useState(''),[cameraBusy,setCameraBusy]=useState(false);
  const cameraVideoRef=useRef(null),cameraStreamRef=useRef(null);
+ useEffect(()=>()=>{if(cameraStreamRef.current)cameraStreamRef.current.getTracks().forEach(track=>track.stop());},[]);
  const [scoreImageName,setScoreImageName]=useState('');
  const [scoreIsPdf,setScoreIsPdf]=useState(false);
  const [scoreOcrStatus,setScoreOcrStatus]=useState('No score loaded yet. Upload a PDF/image or import MusicXML to begin.');
