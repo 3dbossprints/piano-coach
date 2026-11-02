@@ -68,3 +68,25 @@ test('valid Music Coach and MIDI data are accepted for playback', () => {
   assert.equal(isPlayableSheetMusicItem({ name: 'piece.musiccoach', data: coach }), true);
   assert.equal(isPlayableSheetMusicItem({ name: 'piece.mid', data: midi }), true);
 });
+
+test('current versioned Music Coach score envelope remains playable', () => {
+  const payload = { format: 'musiccoach', version: 2, notes: [{ note: 'C4', midi: 60, time: 0, duration: 0.5 }] };
+  const content = 'MUSICCOACH-SCORE/2\n' + JSON.stringify(payload);
+  const item = {
+    name: 'versioned.musiccoach',
+    type: 'application/vnd.musiccoach.score+json',
+    data: 'data:application/vnd.musiccoach.score+json;base64,' + Buffer.from(content).toString('base64')
+  };
+  assert.equal(isSheetMusicLibraryItem(item), true);
+  assert.equal(isPlayableSheetMusicItem(item), true);
+});
+
+test('legacy versioned Music Coach scores remain playable', () => {
+  const payload = { format: 'musiccoach', version: 2, notes: [{ note: 'D4', midi: 62, time: 0, duration: 0.5 }] };
+  const content = 'PIANOCOACH-MIX/1\n' + JSON.stringify(payload);
+  const item = {
+    name: 'legacy.musiccoach',
+    data: 'data:application/json;base64,' + Buffer.from(content).toString('base64')
+  };
+  assert.equal(isPlayableSheetMusicItem(item), true);
+});
