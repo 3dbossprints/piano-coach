@@ -183,7 +183,7 @@ export default function App(){
  const [cookiePrefs,setCookiePrefs]=useState(()=>{try{return JSON.parse(localStorage.getItem('pc_cookie_prefs')||'{"essential":true,"preferences":false,"analytics":false}')}catch{return {essential:true,preferences:false,analytics:false}}});
  const [cookieSettingsOpen,setCookieSettingsOpen]=useState(false);
  const [practiceStarted,setPracticeStarted]=useState(false),[songTitle,setSongTitle]=useState(''),[practiceMinutes,setPracticeMinutes]=useState('15'),[reflection,setReflection]=useState(''),[practiceFeedback,setPracticeFeedback]=useState(''),[remainingSeconds,setRemainingSeconds]=useState(0);
- const [libraryFiles,setLibraryFiles]=useState(()=>{try{return (JSON.parse(localStorage.getItem('pc_files')||'[]')||[]).filter(isSheetMusicLibraryItem)}catch{return[]}});
+ const [libraryFiles,setLibraryFiles]=useState(()=>{try{const value=JSON.parse(localStorage.getItem('pc_files')||'[]');return (Array.isArray(value)?value:[]).filter(isSheetMusicLibraryItem)}catch{return[]}});
  const [libraryHydrated,setLibraryHydrated]=useState(false),[scoreLibraryExpanded,setScoreLibraryExpanded]=useState(false);
  const [extraTool,setExtraTool]=useState('keyboard');
  const [keyboardStart,setKeyboardStart]=useState('C3'),[keyboardOctaves,setKeyboardOctaves]=useState(3);
@@ -246,9 +246,9 @@ export default function App(){
  const [scoreIsPdf,setScoreIsPdf]=useState(false);
  const [scoreOcrStatus,setScoreOcrStatus]=useState('No score loaded yet. Upload a PDF/image or import MusicXML to begin.');
  const [scoreOcrWarning,setScoreOcrWarning]=useState('');
- const [sessions,setSessions]=useState(()=>{try{return JSON.parse(localStorage.getItem('pc_sessions')||'[]')}catch{return[]}});
+ const [sessions,setSessions]=useState(()=>{try{const value=JSON.parse(localStorage.getItem('pc_sessions')||'[]');return Array.isArray(value)?value:[]}catch{return[]}});
  const [editingSessionId,setEditingSessionId]=useState(null),[libraryTab,setLibraryTab]=useState('recordings');
- const [saved,setSaved]=useState(()=>{try{return JSON.parse(localStorage.getItem('pc_studies')||'[]')}catch{return[]}});
+ const [saved,setSaved]=useState(()=>{try{const value=JSON.parse(localStorage.getItem('pc_studies')||'[]');return Array.isArray(value)?value:[]}catch{return[]}});
  const synth=useRef(null), mic=useRef(null), analyser=useRef(null), micStream=useRef(null), raf=useRef(null), beatLoop=useRef(null), sequenceLoop=useRef(null), startTime=useRef(0), sessionEvents=useRef([]), recorderRef=useRef(null), chunksRef=useRef([]), recordingTimer=useRef(null), autoAnalyzeRef=useRef(false), analyseBlobRef=useRef(null), practiceTimerRef=useRef(null), midiPlaybackRef=useRef(null);
  const [targetIndex,setTargetIndex]=useState(0);
  const learnProgressRef=useRef(0),learnPhraseOffsetRef=useRef(0),learnNoteLockRef=useRef(0),learnModeRef=useRef(false),learnChordHitsRef=useRef({key:'',hits:[]}),learnMidiAccessRef=useRef(null);
