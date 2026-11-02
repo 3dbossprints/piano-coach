@@ -1,4 +1,4 @@
-import { audioToMidiDefaults, convertAudioToMidi } from '@musicbento/audio-to-midi';
+import { AudioToMidiConverter, audioToMidiDefaults, convertAudioToMidi } from '@musicbento/audio-to-midi';
 
 const AUDIO_EXTENSIONS = /\.(mp3|m4a|mp4|webm)$/i;
 const MAX_AUDIO_BYTES = 100 * 1024 * 1024;
@@ -88,12 +88,35 @@ export async function transcribeAudioFile(file, onProgress) {
     audioFile = await extractMp4Audio(file, onProgress);
   }
   onProgress?.('Loading the local audio transcription model. The first conversion may take a little longer…');
-  const result = await convertAudioToMidi(audioFile, audioToMidiDefaults, {
-    onProgress(progress) {
-      const percent = Math.max(0, Math.min(100, Math.round(Number(progress) * 100)));
-      onProgress?.('Transcribing audio into notes… ' + percent + '%');
+  const options = {
+    onStatus(status) {
+      const messages = {
+        'loading-model': 'Loading the local transcription model…',
+        'decoding-audio': 'Reading the audio track…',
+        'transcribing': 'Detecting notes and chords…',
+        'preparing-midi': 'Building the MIDI note sequence…'
+      };
+      onProgress?.(messages[status] || 'Converting recording…');
     },
-  });
+    onProgress(progress) {
+      const value = Number(progress);
+      if (Number.isFinite(value)) {
+        const percent = Math.max(0, Math.min(100, Math.round(value * 100)));
+        onProgress?.('Transcribing audio into notes… ' + percent + '%');
+      }
+    },
+  };
+  let result;
+  try {
+    result = await convertAudioToMidi(audioFile, audioToMidiDefaults, options);
+  } catch (error) {
+    const detail = String(error?.message || error);
+    const gpuFailure = /webgl|webgpu|gpu|shader|context lost|backend.*initial/i.test(detail);
+    if (!gpuFailure) throw error;
+    onProgress?.('Graphics acceleration is unavailable. Retrying transcription with the CPU backend…');
+    const cpuConverter = new AudioToMidiConverter({ ...audioToMidiDefaults, backend: 'cpu' });
+    result = await cpuConverter.convert(audioFile, options);
+  }
   const midiBlob = result?.midiBlob || (result?.midiBytes
     ? new Blob([result.midiBytes], { type: 'audio/midi' })
     : null);
