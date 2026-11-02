@@ -4,6 +4,7 @@ import { Renderer, Stave, StaveNote, Voice, Formatter } from 'vexflow';
 import { midiToNote, noteToMidi, parseSequence, compareSequences, clampKeyboardStartMidi, assignMidiHands } from './music.js';
 import GradePlanner from './GradePlannerSimple.jsx';
 import { isPlayableSheetMusicItem, isSheetMusicLibraryItem, loadBrowserScoreLibrary, saveBrowserScoreLibrary } from './score-library.js';
+import KeystoneLearnEngine from './KeystoneLearnEngine.jsx';
 
 const KEYMAP = {a:'C4',w:'C#4',s:'D4',e:'D#4',d:'E4',f:'F4',t:'F#4',g:'G4',y:'G#4',h:'A4',u:'A#4',j:'B4',k:'C5'};
 const EXAMPLES = [{name:'Warm-up scale',notes:'C4 D4 E4 F4 G4 A4 B4 C5'},{name:'Gentle arpeggio',notes:'C4 E4 G4 C5 G4 E4 C4'},{name:'Five-note pattern',notes:'C4 D4 E4 D4 C4'}];
@@ -703,22 +704,22 @@ async function requestLocalAudioCoachFeedback(blob,title,targetNotes,detectedNot
  function beginPractice(){setEvents([]);sessionEvents.current=[];setPracticeFeedback('');if(!referenceSong?.preview)setReferenceStatus('No reference recording selected. Choose a playable recording in Sheet Music search to compare your performance.');setPracticeStarted(true);setRemainingSeconds(Math.max(60,Number(practiceMinutes||15)*60));setStatus('Practice started · microphone will activate');startTime.current=Date.now();setTimeout(async()=>{await startMic();setTimeout(()=>{if(micStream.current)startRecording()},300)},350)}
  function disconnectLearnMidi(){const access=learnMidiAccessRef.current;if(access){for(const input of access.inputs.values())input.onmidimessage=null;access.onstatechange=null;}learnMidiAccessRef.current=null;setLearnMidiConnected(false);setLearnMidiName('');}
  async function connectLearnMidi(){if(!navigator.requestMIDIAccess){setLearnMessage('Web MIDI is not supported in this browser. Use Chrome or Edge on HTTPS, or continue with the microphone.');return;}try{const access=await navigator.requestMIDIAccess();if(!learnModeRef.current)return;const inputs=[...access.inputs.values()];if(!inputs.length){setLearnMessage('No MIDI piano was found. Connect your keyboard to this computer by USB, then retry.');return;}const onMessage=event=>{const data=event.data||[],command=(Number(data[0])||0)&0xf0,note=Number(data[1]),velocity=Number(data[2]);if(command!==0x90||velocity<=0||note<0||note>127)return;const name=midiToNote(note),entry={id:crypto.randomUUID?.()||String(Date.now()+Math.random()),note:name,midi:note,time:((Date.now()-startTime.current)/1000).toFixed(2),timeMs:Date.now(),source:'midi'};sessionEvents.current.push(entry);setEvents([...sessionEvents.current]);if(learnModeRef.current)checkLearnNote(name,note,'midi');};learnMidiAccessRef.current=access;inputs.forEach(input=>input.onmidimessage=onMessage);access.onstatechange=()=>{const current=[...access.inputs.values()];current.forEach(input=>input.onmidimessage=onMessage);if(!current.length){setLearnMidiConnected(false);setLearnMidiName('');setLearnMessage('MIDI piano disconnected. Reconnect it to continue accurate chord checking.');}};setLearnMidiConnected(true);setLearnMidiName(inputs.map(input=>input.name||input.manufacturer||'MIDI input').join(', '));setLearnMessage('MIDI piano connected. Chords and both hands can now be checked from individual key presses.');}catch(e){setLearnMessage('Could not connect MIDI: '+(e.message||'Check browser permissions and reconnect your piano.'));}}
- function finishLearnSession(completed=false){
-  learnModeRef.current=false;disconnectLearnMidi();setLearnListenMode(false);setSheetPianoOpen(false);
-  stopMic();stopPlayback();stopMetro();releaseAllKeys();try{synth.current?.releaseAll(Tone.now());synth.current?.dispose();synth.current=null}catch{}
-  const seconds=Math.max(0,learnSeconds);
-  if(seconds>0||loadedScoreNotes.length>0||expected.trim()){
-    const session={id:editingSessionId||Date.now(),date:new Date().toISOString(),lastPractisedAt:new Date().toISOString(),
-      song:songTitle||'Listen & Learn lesson',minutes:Math.round(seconds/60*10)/10,practiceSeconds:seconds,notes:events.length,
-      reflection:'Listen & Learn lesson',feedback:completed?'Completed guided score practice':'Saved to continue later',
-      practiceMode:'learn',learnProgressBeat:learnPhraseOffsetRef.current,learnHand,learnChunkDivision,
-      loadedScoreNotes:loadedScoreNotes.map(n=>({...n})),scoreNotation:scoreNotation||null,
-      expected,bpm,timeSignature,events:events.map(e=>({...e}))};
-    setSessions(prev=>[session,...prev.filter(s=>s.id!==session.id)]);
-    setStatus(completed?'Listen & Learn completed · '+Math.floor(seconds/60)+' min saved':'Listen & Learn saved · ready to continue later');
-  }else setStatus(completed?'Listen & Learn finished':'Listen & Learn closed');
-  setEditingSessionId(null);setPracticeStarted(false);setLearnSeconds(0);setLearnBarProgress(0);
-}
+ function finishLearnSession(completed=false,keystoneResult=null){
+   learnModeRef.current=false;disconnectLearnMidi();setLearnListenMode(false);setSheetPianoOpen(false);
+   stopMic();stopPlayback();stopMetro();releaseAllKeys();try{synth.current?.releaseAll(Tone.now());synth.current?.dispose();synth.current=null}catch{}
+   const seconds=Math.max(0,learnSeconds);
+   if(seconds>0||loadedScoreNotes.length>0||expected.trim()){
+     const session={id:editingSessionId||Date.now(),date:new Date().toISOString(),lastPractisedAt:new Date().toISOString(),
+       song:songTitle||'Listen & Learn lesson',minutes:Math.round(seconds/60*10)/10,practiceSeconds:seconds,notes:keystoneResult?.hits??events.length,
+       reflection:'Listen & Learn lesson',feedback:completed?(keystoneResult?('Completed Keystone lesson · '+keystoneResult.score+'/100'):'Completed guided score practice'):'Saved to continue later',
+       practiceMode:'learn',learnProgressBeat:learnPhraseOffsetRef.current,learnHand,learnChunkDivision,
+       loadedScoreNotes:loadedScoreNotes.map(n=>({...n})),scoreNotation:scoreNotation||null,
+       keystoneResult:keystoneResult||null,expected,bpm,timeSignature,events:events.map(e=>({...e}))};
+     setSessions(prev=>[session,...prev.filter(s=>s.id!==session.id)]);
+     setStatus(completed?'Listen & Learn completed · '+(keystoneResult?keystoneResult.score+'/100 · ':'')+Math.floor(seconds/60)+' min saved':'Listen & Learn saved · ready to continue later');
+   }else setStatus(completed?'Listen & Learn finished':'Listen & Learn closed');
+   setEditingSessionId(null);setPracticeStarted(false);setLearnSeconds(0);setLearnBarProgress(0);
+ }
 function skipLearnBar(){
   const meter=String(timeSignature||'4/4').split('/').map(Number),barBeats=Math.max(.5,(meter[0]||4)*4/(meter[1]||4));
   const chunkBeats=barBeats/Math.max(1,learnChunkDivision),nextOffset=learnPhraseOffsetRef.current+chunkBeats,all=getLearnEvents().filter(n=>!n.rest&&n.midi!==null);
@@ -736,12 +737,12 @@ function resumeSavedSession(session){
   setEvents(restored);sessionEvents.current=restored;setReflection(session.reflection||'');setPracticeFeedback(session.feedback||'');
   if(session.practiceMode==='learn'){
     const notes=Array.isArray(session.loadedScoreNotes)?session.loadedScoreNotes:[];
-    setLoadedScoreNotes(notes);setScoreNotation(session.scoreNotation||null);setLearnHand(session.learnHand||'both');setLearnChunkDivision([1,2,4].includes(Number(session.learnChunkDivision))?Number(session.learnChunkDivision):1);
-    learnPhraseOffsetRef.current=Math.max(0,Number(session.learnProgressBeat)||0);learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};
-    setLearnPhraseOffset(learnPhraseOffsetRef.current);setLearnBarProgress(0);setLearnSeconds(Math.max(0,Number(session.practiceSeconds)||0));
-    setPracticeMode('learn');setPracticeStarted(true);setLearnListenMode(true);setSheetPianoOpen(true);learnModeRef.current=true;
-    setPage('Practice');setLearnMessage('Welcome back. Your saved bar is ready to practise.');setStatus('Resuming Listen & Learn');
-    setTimeout(async()=>{if(learnModeRef.current){startTime.current=Date.now();await startMic();if(learnModeRef.current)playLearnPhrase();else stopMic()}},250);return;
+    setLoadedScoreNotes(notes);setScoreNotation(session.scoreNotation||null);
+    setLearnHand(session.learnHand||'both');setLearnChunkDivision([1,2,4].includes(Number(session.learnChunkDivision))?Number(session.learnChunkDivision):1);
+    learnPhraseOffsetRef.current=0;learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};
+    setLearnPhraseOffset(0);setLearnBarProgress(0);setLearnSeconds(Math.max(0,Number(session.practiceSeconds)||0));
+    setPracticeMode('learn');setPracticeStarted(false);setLearnListenMode(true);setSheetPianoOpen(true);learnModeRef.current=true;
+    setPage('Practice');setLearnMessage('Saved score reopened in Keystone. Choose the bar range and press Start to continue practising.');setStatus('Resuming Keystone Listen & Learn');return;
   }
   setPracticeMode('normal');setRemainingSeconds(15*60);setPracticeStarted(true);startTime.current=Date.now();
   setPage('Practice');setStatus('Revisiting saved practice session');
@@ -777,8 +778,17 @@ const measures=selected.map(n=>n.measure==null?NaN:Number(n.measure)).filter(Num
 }
 function getLearnPhrase(){const meter=String(timeSignature||'4/4').split('/').map(Number),barBeats=Math.max(.5,(meter[0]||4)*4/(meter[1]||4)),goal=barBeats/Math.max(1,learnChunkDivision),offset=learnPhraseOffsetRef.current;return getLearnEvents().filter(n=>n._start>=offset-0.0001&&n._start<offset+goal-0.0001)}
  async function playLearnPhrase(){if(!learnModeRef.current)return;const phrase=getLearnPhrase();if(!phrase.length){setLearnMessage('You completed this score. Finish the lesson to save your practice.');return}await ensureSynth();if(!learnModeRef.current)return;stopPlayback();setLearnAnimationKey(v=>v+1);const origin=phrase[0]._start??0,now=Tone.now()+1.92;setLearnMessage('Playing the score at '+bpm+' BPM. Listen, then play the phrase.');phrase.forEach(n=>{if(!n.rest&&n.midi!==null){const beatOffset=n._start!==undefined?Math.max(0,n._start-origin):0;synth.current?.triggerAttackRelease(midiToNote(n.midi),Math.max(.12,(Number(n.beats)||1)*60/bpm*.92),now+beatOffset*60/bpm)}});setStatus('Playing score phrase at '+bpm+' BPM');}
- async function toggleLearnSession(){if(learnListenMode){finishLearnSession();return}if(!loadedScoreNotes?.length&&!parseMusicSequence(expected).length){setLearnMessage('Add notes or import a MusicXML score before starting.');return}setEditingSessionId(null);startTime.current=Date.now();learnModeRef.current=true;learnProgressRef.current=0;learnPhraseOffsetRef.current=0;learnNoteLockRef.current=0;learnChordHitsRef.current={key:'',hits:[]};setLearnBarProgress(0);setLearnPhraseOffset(0);const meter=String(timeSignature||'4/4').split('/').map(Number),barBeats=Math.max(.5,(meter[0]||4)*4/(meter[1]||4)),firstBar=getLearnEvents().filter(n=>!n.rest&&n._start<barBeats);setLearnChunkDivision(firstBar.length>16?4:firstBar.length>8?2:1);setLearnSeconds(0);sessionEvents.current=[];setEvents([]);setSheetPianoOpen(true);setLearnListenMode(true);setLearnMessage('Requesting microphone access…');setStatus('Starting Learn & Listen');try{await startMic();if(!learnModeRef.current){stopMic();return}if(micStream.current){setLearnMessage(learnHand==='both'&&!learnMidiConnected?'Listen to the phrase. For accurate simultaneous chords and both hands, connect your piano by USB MIDI; microphone mode detects one pitch at a time.':'Listen to the phrase, then play the notes on your piano.');await playLearnPhrase()}else{setLearnMessage('Microphone access is needed to check your playing. Allow access, then press Connect microphone.')}}catch(e){setLearnMessage('Could not start the microphone. Allow microphone access, then try again.')}}
-  function stopLibraryAudioOnly(reset=true){
+ function toggleLearnSession(){
+   if(learnListenMode){finishLearnSession();return}
+   if(!loadedScoreNotes?.length&&!parseMusicSequence(expected).length){setLearnMessage('Add notes or import a MusicXML score before starting.');return}
+   setEditingSessionId(null);startTime.current=Date.now();learnModeRef.current=true;
+   learnProgressRef.current=0;learnPhraseOffsetRef.current=0;learnNoteLockRef.current=0;learnChordHitsRef.current={key:'',hits:[]};
+   setLearnBarProgress(0);setLearnPhraseOffset(0);setLearnSeconds(0);sessionEvents.current=[];setEvents([]);
+   setSheetPianoOpen(true);setLearnListenMode(true);
+   setLearnMessage('Keystone engine ready. Select Learn or Perform, then press Start.');
+   setStatus('Keystone Listen & Learn ready');
+ }
+function stopLibraryAudioOnly(reset=true){
   for(const audio of Object.values(audioLibraryRefs.current||{})){if(!audio)continue;try{audio.pause();if(reset)audio.currentTime=0}catch{}}
   setLibraryPlayback(current=>current.kind==='audio'?{id:null,kind:'',paused:true}:current);
  }
@@ -1046,6 +1056,7 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
   if(hasLater)setTimeout(()=>{if(learnModeRef.current)playLearnPhrase()},500);
  }
  function keyboardDown(e){
+  if(learnListenMode)return;
   const active=document.activeElement;
   if(e.repeat||e.metaKey||e.ctrlKey||e.altKey||['INPUT','TEXTAREA','SELECT'].includes(active?.tagName)||active?.isContentEditable)return;
   const key=KEYMAP[String(e.key||'').toLowerCase()];
@@ -1109,40 +1120,16 @@ async function playMidiLibraryFile(item){try{stopLibraryAudioOnly();if(midiPlayb
  const sheetMusicFiles=libraryFiles.filter(isSheetMusicLibraryItem).sort((a,b)=>new Date(b.added||0)-new Date(a.added||0));
  const visibleSheetMusicFiles=sheetMusicFiles;
  const renderLearnFullscreen = () => {
-  if(!learnListenMode||!sheetPianoOpen)return null;
-  const meter=String(timeSignature||'4/4').split('/').map(Number),barBeats=Math.max(.5,(meter[0]||4)*4/(meter[1]||4)),chunkBeats=barBeats/Math.max(1,learnChunkDivision);
-  const allNotes=getLearnEvents().filter(n=>!n.rest&&n.midi!==null),barNotes=getLearnPhrase().filter(n=>!n.rest&&n.midi!==null);
-  const minMidi=allNotes.length?Math.min(...allNotes.map(n=>Number(n.midi))):48,maxMidi=allNotes.length?Math.max(...allNotes.map(n=>Number(n.midi))):72;
-  const octaveCount=Math.max(1,Math.min(8,Math.ceil((maxMidi-minMidi+1)/12))),rawRangeStart=Math.floor(minMidi/12)*12,rangeStart=Math.max(21,Math.min(rawRangeStart,109-octaveCount*12)),rangeEnd=Math.min(109,rangeStart+octaveCount*12);
-  const visibleKeys=allKeys.filter(k=>k.midi>=rangeStart&&k.midi<rangeEnd),whiteKeys=visibleKeys.filter(k=>!k.black),whiteWidth=100/Math.max(1,whiteKeys.length),noteWidth=100/Math.max(1,rangeEnd-rangeStart);
-  const offset=learnPhraseOffsetRef.current,position=offset+learnProgressRef.current;
-  const first=barNotes.find(n=>n._start>=position-0.0001)||barNotes[0],activeGroup=first?barNotes.filter(n=>Math.abs(n._start-first._start)<0.0001):[];
-  const totalBars=Math.max(1,Math.ceil(allNotes.reduce((m,n)=>Math.max(m,n._start+(Number(n.beats)||1)),0)/barBeats)),barNumber=Math.min(totalBars,Math.floor(offset/barBeats)+1),chunkNumber=Math.floor((offset%barBeats)/chunkBeats)+1;
-  const chooseHand=hand=>{setLearnHand(hand);setLearnChunkDivision(1);learnPhraseOffsetRef.current=0;learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};setLearnPhraseOffset(0);setLearnBarProgress(0);setLearnAnimationKey(v=>v+1);setLearnMessage(hand==='both'?'Both hands selected. Use MIDI for reliable simultaneous chord checking.':(hand==='left'?'Left hand selected. Practise the bass part.':'Right hand selected. Practise the melody.'));};
-  return <div className="learn-fullscreen" role="dialog" aria-modal="true" aria-label="Listen and Learn piano practice">
-    <header className="learn-fullscreen-head"><div><div className="eyebrow">PIANO COACH · LISTEN & LEARN <span className="learn-beta-pill">BETA</span></div><h2>{songTitle||'Your piece'}</h2><p>{learnMidiConnected?'MIDI piano connected · accurate chord input':listening?'Microphone connected · play the highlighted notes':'Connect a microphone or MIDI piano to begin'}</p></div><button className="learn-close" onClick={()=>finishLearnSession(false)} aria-label="Close and save for later">✕</button></header>
-    <div className="learn-fullscreen-body learn-studio"><div className="learn-studio-strip"><span><i className="learn-studio-live"/> LIVE PRACTICE</span><span>{octaveCount} OCTAVES</span><span>{bpm} BPM</span><span>{learnHand==='both'?'BOTH HANDS':learnHand.toUpperCase()+' HAND'}</span></div>
-      <section className="learn-top-panel">
-        <div className="learn-top-copy"><span className="learn-live-dot"/><div><strong>{learnMessage}</strong><small>Bar {barNumber} of {totalBars}{learnChunkDivision>1?' · Section '+chunkNumber+'/'+learnChunkDivision:''} · {Math.floor(learnSeconds/60)}:{String(learnSeconds%60).padStart(2,'0')} elapsed</small></div></div>
-        <div className="learn-top-actions"><button className="btn btn-dark" onClick={playLearnPhrase}>{learnChunkDivision>1?'▶ Hear this section':'▶ Hear this bar'}</button><button className="btn" onClick={skipLearnBar}>{learnChunkDivision>1?'Skip section →':'Skip bar →'}</button></div>
-        <div className="learn-hand-controls" role="group" aria-label="Choose which hand to practise"><span>HANDS</span><button type="button" className={learnHand==='left'?'active':''} aria-pressed={learnHand==='left'} onClick={()=>chooseHand('left')}>Left</button><button type="button" className={learnHand==='right'?'active':''} aria-pressed={learnHand==='right'} onClick={()=>chooseHand('right')}>Right</button><button type="button" className={learnHand==='both'?'active':''} aria-pressed={learnHand==='both'} onClick={()=>chooseHand('both')}>Both</button></div>
-        <label className="learn-chunk-control">Section size <select value={learnChunkDivision} onChange={e=>{const value=Number(e.target.value);setLearnChunkDivision(value);learnPhraseOffsetRef.current=Math.floor(learnPhraseOffsetRef.current/barBeats)*barBeats;learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};setLearnPhraseOffset(learnPhraseOffsetRef.current);setLearnBarProgress(0);setLearnAnimationKey(v=>v+1);setLearnMessage(value===1?'Full bar selected.':value===2?'Half-bar sections selected.':'Quarter-bar sections selected.')}}><option value={1}>Full bar</option><option value={2}>Half a bar</option><option value={4}>Quarter of a bar</option></select></label><div className="learn-bar-progress"><i style={{width:Math.min(100,learnBarProgress/chunkBeats*100)+'%'}}/></div>
-      </section>
-      <section className="learn-roll-stage"><div className="learn-roll-stage-head"><div><span className="eyebrow">PIANO ROLL</span><strong>Follow the notes down to the keys</strong></div><div className="learn-hand-legend"><span><i className="legend-right"/> Right hand</span><span><i className="legend-left"/> Left hand</span></div></div><div className="learn-piano-roll" aria-label="Falling note piano roll"><div className="learn-roll-grid" style={{backgroundSize:whiteWidth+'% 100%,100% 38px'}}>
-        {barNotes.map((n,i)=>{const midi=Number(n.midi),distance=Math.max(0,Number(n._start)-offset),height=Math.max(18,(Number(n.beats)||1)*38),isCurrent=activeGroup.some(x=>x.id===n.id||x._index===n._index),isBlack=!!visibleKeys.find(k=>k.midi===midi)?.black,whiteBefore=whiteKeys.filter(k=>k.midi<midi).length,left=isBlack?whiteBefore*whiteWidth-whiteWidth*.31:whiteBefore*whiteWidth,width=isBlack?whiteWidth*.62:whiteWidth,fallDistance=distance*58,top=291-height-fallDistance,fallDuration=Math.max(.08,distance*60/Math.max(30,bpm));return <div key={(n.id||n._index||i)+'-'+learnAnimationKey} className={'learn-roll-note '+(isCurrent?'is-current ':'')+(n.hand==='left'?'hand-left':'hand-right')} style={{left:left+'%',width:'calc('+width+'% - 2px)',top:top+'px',height:height+'px','--note-height':height+'px','--fall-distance':fallDistance+'px',animationDuration:fallDuration+'s',animationDelay:'0s'}}><span>{n.note||midiToNote(midi)}</span></div>})}
-        <div className="learn-roll-hitline"><span>PLAY HERE</span></div>
-      </div></div></section>
-      <section className="learn-keyboard-section"><div className="learn-keyboard-heading"><span>PLAYING KEYBOARD</span><span>{octaveCount} octave{octaveCount===1?'':'s'} · {midiToNote(rangeStart)}–{midiToNote(rangeEnd-1)}</span></div>
-        <div className="piano-scroll learn-keyboard-scroll"><div className="piano learn-keyboard" style={{'--keyboard-white-key-width':whiteWidth+'%'}}>
-          {whiteKeys.map(k=><button key={k.midi} className={'white-key '+(heldKeys[k.note]?'is-held':'')} style={{flex:'0 0 '+whiteWidth+'%',width:whiteWidth+'%',minWidth:0}} aria-label={k.note} onPointerDown={e=>{e.preventDefault();e.currentTarget.setPointerCapture?.(e.pointerId);pressKey(k.note)}} onPointerUp={()=>releaseKey(k.note)} onPointerCancel={()=>releaseKey(k.note)} onLostPointerCapture={()=>releaseKey(k.note)}><span>{k.note}</span></button>)}
-          {visibleKeys.filter(k=>k.black).map(k=><button key={k.midi} className={'black-key '+(heldKeys[k.note]?'is-held':'')} style={{left:(whiteKeys.filter(w=>w.midi<k.midi).length*whiteWidth)+'%',width:(whiteWidth*.62)+'%',transform:'translateX(-50%)'}} aria-label={k.note} onPointerDown={e=>{e.preventDefault();e.currentTarget.setPointerCapture?.(e.pointerId);pressKey(k.note)}} onPointerUp={()=>releaseKey(k.note)} onPointerCancel={()=>releaseKey(k.note)} onLostPointerCapture={()=>releaseKey(k.note)}><span>{k.note}</span></button>)}
-        </div></div><div className="learn-keyboard-hint">Play the highlighted notes on your piano, or use a connected MIDI keyboard. Microphone pitch detection checks one pitch at a time.</div>
-      </section>
-      <div className="learn-session-controls">{renderLearnTempoControl(bpm,setBpm)}<button className="btn" onClick={listening?stopMic:startMic}>{listening?'Disconnect microphone':'Connect microphone'}</button><button className="btn" onClick={learnMidiConnected?disconnectLearnMidi:connectLearnMidi}>{learnMidiConnected?'Disconnect MIDI':'Connect MIDI piano'}</button><button className="btn" onClick={()=>finishLearnSession(false)}>Continue later</button><button className="btn btn-dark" onClick={()=>finishLearnSession(true)}>Finish session</button></div>
-      <p className="learn-session-footnote">Incorrect notes keep the current bar in place. Complete its notes to move forward, or skip the bar. Progress is saved when you continue later or finish.</p>
-    </div>
-  </div>;
-};
+   if(!learnListenMode||!sheetPianoOpen)return null;
+   const meter=String(timeSignature||'4/4').split('/').map(Number),barBeats=Math.max(.5,(meter[0]||4)*4/(meter[1]||4));
+   let cursor=0;
+   const engineNotes=loadedScoreNotes.length?loadedScoreNotes:targets.map((n,i)=>{
+     const beats=Number(n.beats)||1,midi=n.midi??(n.rest?null:noteToMidi(n.note));
+     const entry={...n,id:n.id||'sequence-'+i,midi,time:cursor*60/Math.max(20,bpm),duration:beats*60/Math.max(20,bpm),measure:Math.floor(cursor/barBeats)+1,hand:Number(midi)<60?'left':'right'};
+     cursor+=beats;return entry;
+   });
+   return <KeystoneLearnEngine xml={scoreNotation?.sourceMusicXML||''} notes={engineNotes} bpm={bpm} timeSignature={timeSignature} title={songTitle||'Your piece'} onFinish={summary=>finishLearnSession(true,summary)} onClose={()=>finishLearnSession(false)} />;
+  };
 return <div className="shell"><aside className="sidebar"><a className="brand" href="#" onClick={e=>{e.preventDefault();setPage('Dashboard')}}><img className="brand-logo-mark" src="/assets/piano-coach-logo-mark.svg" alt=""/> <span>Piano Coach<small>Listen · Learn · Play</small></span></a><div className="nav-label">WORKSPACE</div>{nav.map(n=><button key={n} className={'nav-item '+(page===n?'active':'')} onClick={()=>setPage(n)}><span>{({'Dashboard':'⌂','Practice':'♫','Sheet music':'♬','Score converter':'⇄','Grade plan':'◎','Extras':'✦'})[n]}</span>{n}</button>)}<div className="sidebar-tools"><button title="Download all data (.musicdata)" aria-label="Download all data" onClick={downloadMusicData}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 17v3h16v-3"/></svg></button><button title="Restore data from .musicdata" aria-label="Upload backup data" onClick={()=>musicDataInputRef.current?.click()}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 16V4m-5 5 5-5 5 5M4 17v3h16v-3"/></svg></button><input ref={musicDataInputRef} type="file" accept=".musicdata,application/vnd.piano-coach.musicdata+json,application/json" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)importMusicData(f);e.target.value=''}}/><button title="Delete local data" aria-label="Delete local data" onClick={()=>{if(confirm('Deleting your saved website data will permanently remove your practice sessions, saved studies and Library items from this device. This cannot be undone. Delete your data?')){setSessions([]);setSaved([]);setLibraryFiles([]);for(const k of ['pc_sessions','pc_studies','pc_files'])localStorage.removeItem(k);setStatus('Local data cleared')}}}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m-11 0 1 14h12l1-14M10 10v6m4-6v6"/></svg></button></div><div className="sidebar-logo"><a href="https://jws.l.cd" target="_blank" rel="noopener noreferrer" aria-label="Open your requested website"><img src="/assets/user-corner-logo.svg" alt="Open website"/></a></div></aside>
  <main className="main">{compactViewport&&!continueOnSmallScreen&&<div className="device-size-overlay" role="dialog" aria-modal="true" aria-labelledby="device-size-title"><section className="device-size-card"><div className="device-size-icon">⌘</div><div className="eyebrow">BEST EXPERIENCE</div><h2 id="device-size-title">Use a computer or iPad for Music Coach</h2><p>Some tools — especially Listen & Learn, sheet music conversion and the piano keyboard — need a larger screen to work comfortably. We recommend opening Music Coach on a computer or iPad.</p><p className="device-size-warning">You can still continue on this screen, but parts of the app may be cramped or may not function as expected.</p><div className="device-size-actions"><button className="btn btn-dark" onClick={()=>setContinueOnSmallScreen(true)}>Continue on this screen</button><span>Recommended: screen width of 900px or more</span></div></section></div>}<header className="topbar"><div><div className="eyebrow">YOUR PERSONAL MUSIC STUDIO</div><h1>{page==='Practice'?'Play, listen, improve.':page==='Dashboard'?'A little practice goes a long way.':page}</h1></div><div className="top-actions"><span className="status-chip"><i/> {status}</span><button className="btn btn-dark" onClick={()=>{setPage('Practice');setStatus('Ready to play')}}>＋ New session</button></div></header>
  {page==='Practice'&&practiceLibraryPicker&&<div className="practice-library-picker-backdrop" role="dialog" aria-modal="true" aria-labelledby="practice-library-picker-title">
