@@ -34,7 +34,15 @@ function decodeDataUri(item) {
 
 export function isPlayableSheetMusicItem(item) {
   if (!isSheetMusicLibraryItem(item)) return false;
-  if (item.kind === 'practice-score' && Array.isArray(item.score?.notes) && item.score.notes.length > 0) return true;
+  const hasPlayableNotes = score => Array.isArray(score?.notes) && score.notes.some(note =>
+    !note?.rest && (
+      (typeof note?.note === 'string' && note.note.trim().length > 0) ||
+      (note?.midi != null && Number.isFinite(Number(note.midi)))
+    )
+  );
+  // Some restored/older Library entries already contain their parsed score object
+  // and do not need to be rejected merely because their original data URI is absent.
+  if (hasPlayableNotes(item.score)) return true;
   const name = item.name.toLowerCase();
   const isMusicCoach = name.endsWith('.musiccoach') || item.type === 'application/vnd.piano-coach.musiccoach';
   const isMusicXml = /\.(musicxml|xml)$/i.test(name);
@@ -66,10 +74,7 @@ export function isPlayableSheetMusicItem(item) {
       : JSON.parse(payload);
     return score?.format === 'musiccoach' &&
       Array.isArray(score.notes) &&
-      score.notes.some(note => !note?.rest && (
-        (typeof note?.note === 'string' && note.note.trim().length > 0) ||
-        Number.isFinite(Number(note?.midi))
-      ));
+      hasPlayableNotes(score);
   } catch {
     return false;
   }
