@@ -19,7 +19,8 @@
     "tone": "15.1.22",
     "vexflow": "5.0.0",
     "pdfjs-dist": "4.10.38",
-    "@musicbento/audio-to-midi": "1.0.0"
+    "@musicbento/audio-to-midi": "1.0.0",
+    "opensheetmusicdisplay": "1.9.2"
   },
   "devDependencies": {}
 }
