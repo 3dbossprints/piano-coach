@@ -126,10 +126,11 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
     const activeIds=new Set(active.map(n=>n.orderIndex+':'+n.noteIndex+':'+n.t));
     const accompaniment=timeline.filter(n=>n.measure>=fromBar&&n.measure<=toBar&&!activeIds.has(n.orderIndex+':'+n.noteIndex+':'+n.t)).map(n=>({...n,played:false}));
     const start=Math.min(...active.map(n=>n.t)),end=Math.max(...active.map(n=>n.t+n.d));
-    runRef.current={mode,speed,active,accompaniment,clock:start-3.2*speed,start,end,combo:0,maxCombo:0,points:0,wrong:[],auto:new Set(),stall:false,done:false,finishAt:0};
+    const sourceBpm=Math.max(20,Number(parsed.bpm)||Number(initialBpm)||120),effectiveSpeed=speed*bpm/sourceBpm;
+    runRef.current={mode,speed:effectiveSpeed,active,accompaniment,clock:start-3.2*effectiveSpeed,start,end,combo:0,maxCombo:0,points:0,wrong:[],auto:new Set(),stall:false,done:false,finishAt:0};
     setResult(null);setMessage(mode==='learn'?'Learn mode: the notes will wait for you.':'Perform mode: play along with the falling notes.');
     setTick(v=>v+1);
-  }, [selected,timeline,fromBar,toBar,mode,speed,stopRun]);
+  }, [selected,timeline,fromBar,toBar,mode,speed,bpm,parsed,initialBpm,stopRun]);
 
   const finishRun = useCallback(() => {
     const run=runRef.current;if(!run||run.done)return;
@@ -184,7 +185,7 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
       if(run&&run.clock<-.2){ctx.font='600 62px system-ui';ctx.textAlign='center';ctx.fillText(String(Math.ceil(-run.clock/run.speed)),W/2,fh/2);ctx.textAlign='left';}
       if(run?.stall){ctx.fillStyle='#ff9a8d';ctx.font='13px system-ui';ctx.textAlign='center';ctx.fillText('Paused — play the correct note to continue',W/2,fh-90);ctx.textAlign='left';}
       if(run?.popup&&now-run.popup.at<800){ctx.globalAlpha=1-(now-run.popup.at)/800;ctx.fillStyle=run.popup.good?'#7fe0b4':'#ff9a8d';ctx.font='600 26px system-ui';ctx.textAlign='center';ctx.fillText(run.popup.text,W/2,fh*.42);ctx.textAlign='left';ctx.globalAlpha=1;}
-      ctx.restore?.();if(run&&run.mode==='perform'){const progress=Math.max(0,Math.min(100,(run.clock-run.start)/(run.end-run.start||1)*100));ctx.fillStyle='#e0b25a';ctx.fillRect(0,0,W*progress/100,3);}
+      if(run&&run.mode==='perform'){const progress=Math.max(0,Math.min(100,(run.clock-run.start)/(run.end-run.start||1)*100));ctx.fillStyle='#e0b25a';ctx.fillRect(0,0,W*progress/100,3);}
       rafRef.current=requestAnimationFrame(drawFrame);
     };
     rafRef.current=requestAnimationFrame(drawFrame);
@@ -221,7 +222,7 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
   }, [disconnectMidi,stopVoice]);
 
   const shiftKey = delta => setKeyStart(v=>Math.max(21,Math.min(108-COMPUTER_KEYS.length,v+delta)));
-  const finish = () => { const summary=result; onFinish?.(summary); };
+  const finish = () => { onFinish?.(result); };
 
   return <div className="keystone-engine" role="dialog" aria-modal="true" aria-label="Keystone Listen and Learn engine">
     <header className="keystone-head"><div><span className="eyebrow">LISTEN & LEARN · KEYSTONE ENGINE</span><h2>{title}</h2><p>{parsed.error?'Using the imported note events because the original MusicXML could not be parsed: '+parsed.error:'MusicXML timing, repeats and endings are loaded into the lesson.'}</p></div><button type="button" className="btn" onClick={onClose}>Close ✕</button></header>
@@ -239,6 +240,6 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
     <div className="keystone-status" role="status">{message}</div>
     <div className="keystone-footer"><span>{timeline.length} note events · {availableBars.length} bars · {midiConnected?'MIDI connected: '+midiName:'MIDI not connected'}</span><button className="btn" onClick={midiConnected?disconnectMidi:connectMidi}>{midiConnected?'Disconnect MIDI':'Connect MIDI piano'}</button><span>Computer keys: Z S X D C V G B H N J M · Q 2 W 3 E R 5 T 6 Y 7 U</span></div>
     {result&&<section className="keystone-result"><div><strong>Score</strong><b>{result.score}</b></div><div><strong>Notes</strong><b>{result.hits}/{result.total}</b></div><div><strong>Perfect</strong><b>{result.perfect}</b></div><div><strong>Wrong keys</strong><b>{result.wrong}</b></div><div><strong>Best streak</strong><b>{result.maxCombo}</b></div>{result.trouble.length>0&&<div className="keystone-trouble"><strong>Where to practise</strong>{result.trouble.map(x=><span key={x.bar}>Bar {x.bar}: {x.notes.join(', ')}</span>)}</div>}<div className="keystone-result-actions"><button className="btn" onClick={()=>setResult(null)}>Dismiss result</button><button className="btn btn-dark" onClick={finish}>Finish lesson</button></div></section>}
-    {!result&&<div className="keystone-finish-row"><button className="btn" onClick={onClose}>Continue later</button><button className="btn btn-dark" onClick={()=>{if(runRef.current)stopRun();setResult({score:0,hits:0,total:selected.length,perfect:0,good:0,almost:0,wrong:0,maxCombo:0,mode,hands,tempo:bpm,speed,trouble:[]});}}>Finish lesson</button></div>}
+    {!result&&<div className="keystone-finish-row"><button className="btn" onClick={onClose}>Continue later</button><button className="btn btn-dark" onClick={()=>{if(runRef.current)stopRun();onFinish?.(result);}}>Finish lesson</button></div>}
   </div>;
 }
