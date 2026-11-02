@@ -510,7 +510,7 @@ export default function App(){
  }
  async function askTutor(){
   if(!tutorQuestion.trim()||tutorBusy)return;setTutorBusy(true);setTutorAnswer('');setTutorStatus('Loading the on-device AI model; first use may download model files.');
-  try{if(!window.PianoCoachAI)await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='/ai-tutor.js';script.onload=resolve;script.onerror=()=>reject(new Error('AI tutor script failed to load'));document.head.appendChild(script)});const prompt='Piano practice data: mode '+mode+'; target '+expected+'; recent detected notes '+events.slice(-20).map(e=>e.note+' at '+e.time+'s').join(', ')+'; pitch match '+comparison.correct+' of '+comparison.total+' target notes. Learner asks: '+tutorQuestion+'. Give specific, encouraging advice using only this evidence.';const result=await window.PianoCoachAI.ask(prompt,{onProgress:p=>setTutorStatus(p.message||'AI is working…')});setTutorAnswer(result.answer);setTutorStatus('Local AI ready · '+(result.device||'browser model'));}catch(e){setTutorStatus('AI unavailable: '+e.message)}finally{setTutorBusy(false)}
+  try{const assistant=await ensurePianoCoachAI();const prompt='Piano practice data: mode '+mode+'; target '+expected+'; recent detected notes '+events.slice(-20).map(e=>e.note+' at '+e.time+'s').join(', ')+'; pitch match '+comparison.correct+' of '+comparison.total+' target notes. Learner asks: '+tutorQuestion+'. Give specific, encouraging advice using only this evidence.';const result=await Promise.race([assistant.ask(prompt,{onProgress:p=>setTutorStatus(p.message||'AI is working…')}),new Promise((_,reject)=>setTimeout(()=>reject(new Error('The AI tutor did not respond within 90 seconds. Please retry.')),90000))]);setTutorAnswer(result.answer);setTutorStatus('Local AI ready · '+(result.device||'browser model'));}catch(e){setTutorStatus('AI unavailable: '+e.message)}finally{setTutorBusy(false)}
  }
 function changeSongTempo(value){
   const next=Math.max(20,Math.min(240,Number(value)||120));
@@ -1233,13 +1233,26 @@ async function playMidiLibraryFile(item){
   }catch(e){setStatus('Could not restore backup: '+(e?.message||'invalid file'))}
  }
  function shiftKeyboardStart(delta){const midi=clampKeyboardStartMidi(keyboardStart,keyboardOctaves);const base=clampKeyboardStartMidi(midi+delta,keyboardOctaves);setKeyboardStart(midiToNote(base))}
+ async function ensurePianoCoachAI(){
+  if(window.PianoCoachAI?.ask)return window.PianoCoachAI;
+  const existing=document.querySelector('script[data-piano-coach-ai]');
+  if(existing)existing.remove();
+  await new Promise((resolve,reject)=>{
+   const script=document.createElement('script');script.src='/ai-tutor.js?load='+Date.now();script.async=true;
+   const timer=setTimeout(()=>{script.remove();reject(new Error('The local music assistant took too long to load. Please retry.'))},90000);
+   script.onload=()=>{clearTimeout(timer);resolve()};
+   script.onerror=()=>{clearTimeout(timer);reject(new Error('Music assistant could not be loaded'))};
+   document.head.appendChild(script);
+  });
+  if(!window.PianoCoachAI?.ask)throw new Error('The AI script loaded but did not initialise the assistant.');
+  return window.PianoCoachAI;
+ }
  async function sendMusicChat(){
   const question=musicChatInput.trim();if(!question||musicChatBusy)return;
   setMusicChat(v=>[...v,{role:'user',content:question}]);setMusicChatInput('');setMusicChatBusy(true);
   try{
-   if(!window.PianoCoachAI){await new Promise((resolve,reject)=>{const old=document.querySelector('script[data-piano-coach-ai]');if(old){old.addEventListener('load',resolve,{once:true});old.addEventListener('error',reject,{once:true});return}const script=document.createElement('script');script.src='/ai-tutor.js';script.dataset.pianoCoachAi='true';script.onload=resolve;script.onerror=()=>reject(new Error('Music assistant could not be loaded'));document.head.appendChild(script)});}
-   if(!window.PianoCoachAI?.ask)throw new Error('Music assistant is unavailable');
-   const result=await window.PianoCoachAI.ask(question,{history:musicChat.slice(-8)});setMusicChat(v=>[...v,{role:'assistant',content:result.answer||'I could not produce an answer.'}]);
+   const assistant=await ensurePianoCoachAI();
+   const result=await Promise.race([assistant.ask(question,{history:musicChat.slice(-8)}),new Promise((_,reject)=>setTimeout(()=>reject(new Error('The assistant did not respond within 90 seconds. Please retry.')),90000))]);setMusicChat(v=>[...v,{role:'assistant',content:result.answer||'I could not produce an answer.'}]);
   }catch(e){setMusicChat(v=>[...v,{role:'assistant',content:'Assistant unavailable: '+e.message}])}finally{setMusicChatBusy(false)}
  }
  function startVoiceQuestion(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){setTutorStatus('Voice input is not supported in this browser.');return}const rec=new SR();rec.lang='en-GB';rec.onresult=e=>setTutorQuestion(v=>(v+' '+e.results[0][0].transcript).trim());rec.start()}
