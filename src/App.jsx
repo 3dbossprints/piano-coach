@@ -141,7 +141,7 @@ function MusicXMLPreview({xml,title='Sheet music',onExpand}) {
   let cancelled=false,renderer=null;
   async function render(){
    try{
-    if(!xml||!/<score-(?:partwise|timewise)\\b/i.test(xml))throw new Error('This file does not contain valid MusicXML score data.');
+    if(!xml||!/<score-(?:partwise|timewise)\b/i.test(xml))throw new Error('This file does not contain valid MusicXML score data.');
     if(!ref.current) return;
     ref.current.innerHTML='';
     renderer=new OpenSheetMusicDisplay(ref.current,{
@@ -204,7 +204,7 @@ function encodeMusicCoach(score){
 function scoreNotesToMusicXML(score){
  const notes=Array.isArray(score?.notes)?score.notes.filter(n=>n.note&&!n.rest):[];
  if(!notes.length)return '';
- const mk=(hand,id,clef)=>{const ns=notes.filter(n=>(n.hand||((Number(n.midi??noteToMidi(n.note))<60)?'left':'right'))===hand).sort((a,b)=>(Number(a.time)||0)-(Number(b.time)||0));const body=ns.map(n=>{const m=String(n.note).match(/^([A-G])(#|b)?(-?\\d+)$/i);if(!m)return '';return '<note><pitch><step>'+m[1].toUpperCase()+'</step>'+(m[2]==='#'?'<alter>1</alter>':m[2]==='b'?'<alter>-1</alter>':'')+'<octave>'+m[3]+'</octave></pitch><duration>'+Math.max(1,Math.round((Number(n.duration)||.5)*8))+'</duration><type>eighth</type></note>';}).join('');return '<part id="'+id+'"><measure number="1"><attributes><divisions>8</divisions><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>'+clef+'</sign><line>'+(clef==='G'?2:4)+'</line></clef></attributes>'+body+'</measure></part>';};
+ const mk=(hand,id,clef)=>{const ns=notes.filter(n=>(n.hand||((Number(n.midi??noteToMidi(n.note))<60)?'left':'right'))===hand).sort((a,b)=>(Number(a.time)||0)-(Number(b.time)||0));const body=ns.map(n=>{const m=String(n.note).match(/^([A-G])(#|b)?(-?\d+)$/i);if(!m)return '';return '<note><pitch><step>'+m[1].toUpperCase()+'</step>'+(m[2]==='#'?'<alter>1</alter>':m[2]==='b'?'<alter>-1</alter>':'')+'<octave>'+m[3]+'</octave></pitch><duration>'+Math.max(1,Math.round((Number(n.duration)||.5)*8))+'</duration><type>eighth</type></note>';}).join('');return '<part id="'+id+'"><measure number="1"><attributes><divisions>8</divisions><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>'+clef+'</sign><line>'+(clef==='G'?2:4)+'</line></clef></attributes>'+body+'</measure></part>';};
  return '<?xml version="1.0"?><score-partwise version="3.1"><part-list><score-part id="P1"><part-name>Right hand</part-name></score-part><score-part id="P2"><part-name>Left hand</part-name></score-part></part-list>'+mk('right','P1','G')+mk('left','P2','F')+'</score-partwise>';
 }
 function decodeMusicCoach(text){
