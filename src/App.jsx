@@ -134,34 +134,70 @@ function normalizeMusicXMLTitle(xmlText,title){
  if(movement&&isGeneric(movement.textContent))movement.textContent=safeTitle;
  return new XMLSerializer().serializeToString(doc);
 }
-function MusicXMLPreview({xml,title='Sheet music',onExpand}) {
- const ref=useRef(null);
- const [status,setStatus]=useState('Rendering the complete score…');
+function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
+ const host=useRef(null),rendererRef=useRef(null),partRef=useRef(null),playerRef=useRef(null),measureEventsRef=useRef([]);
+ const [status,setStatus]=useState('Preparing score…'),[playing,setPlaying]=useState(false),[muted,setMuted]=useState(false),[activeMeasure,setActiveMeasure]=useState(0);
  useEffect(()=>{
   let cancelled=false,renderer=null;
   async function render(){
    try{
-    if(!xml||!/<score-(?:partwise|timewise)\b/i.test(xml))throw new Error('This file does not contain valid MusicXML score data.');
-    if(!ref.current) return;
-    ref.current.innerHTML='';
-    renderer=new OpenSheetMusicDisplay(ref.current,{
-     autoResize:true,drawTitle:true,drawSubtitle:true,drawComposer:true,
-     drawPartNames:true,followCursor:false,backend:'svg',
-     stretchLastSystemLine:false,renderSingleHorizontalStaffline:false
-    });
-    await renderer.load(normalizeMusicXMLTitle(xml,title));
-    if(cancelled)return;
-    renderer.Zoom=0.8;
-    renderer.render();
-    if(!cancelled)setStatus(title+' · complete score');
-   }catch(e){
-    if(!cancelled)setStatus('The score could not be rendered: '+(e?.message||String(e)));
-   }
+    if(!xml||!/<score-(?:partwise|timewise)\\b/i.test(xml))throw new Error('This file does not contain valid MusicXML.');
+    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:true,drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:true,backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false});
+    await renderer.load(normalizeMusicXMLTitle(xml,title));if(cancelled)return;
+    renderer.Zoom=1;renderer.render();rendererRef.current=renderer;
+    setStatus('Full score loaded');
+   }catch(e){if(!cancelled)setStatus('Could not render score: '+(e?.message||String(e)));}
   }
   render();
-  return()=>{cancelled=true;try{renderer?.clear()}catch{}if(ref.current)ref.current.innerHTML=''};
+  return()=>{cancelled=true;stop();try{renderer?.clear()}catch{}rendererRef.current=null;if(host.current)host.current.innerHTML=''};
  },[xml,title]);
- return <section className="musicxml-preview" onDoubleClick={()=>onExpand?.()} title={onExpand?"Double-click to expand sheet music":undefined}><p className="muted small" role="status">{status}</p><div ref={ref} className="musicxml-rendered"/></section>
+ function stop(){try{Tone.Transport.stop();Tone.Transport.cancel();partRef.current?.dispose();playerRef.current?.dispose();}catch{}partRef.current=null;playerRef.current=null;setPlaying(false);setActiveMeasure(0)}
+ function parseEvents(){
+  const doc=new DOMParser().parseFromString(xml,'application/xml');if(doc.querySelector('parsererror'))throw new Error('Invalid MusicXML');
+  const parts=[...doc.querySelectorAll('score-partwise > part')];if(!parts.length)throw new Error('No score parts found');
+  const tempo=Number(doc.querySelector('sound[tempo]')?.getAttribute('tempo')||doc.querySelector('metronome per-minute')?.textContent)||120;
+  let numerator=4,denominator=4,divisions=1,barStarts=[],events=[];
+  const first=parts[0];let elapsed=0;
+  [...first.querySelectorAll(':scope > measure')].forEach((measure,index)=>{
+   const attrs=measure.querySelector(':scope > attributes');const div=Number(attrs?.querySelector(':scope > divisions')?.textContent);if(div>0)divisions=div;
+   const beats=Number(attrs?.querySelector(':scope > time > beats')?.textContent);const beatType=Number(attrs?.querySelector(':scope > time > beat-type')?.textContent);if(beats>0)numerator=beats;if(beatType>0)denominator=beatType;
+   const beatsPerBar=numerator*4/denominator;barStarts.push({measure:index+1,seconds:elapsed*60/tempo});
+   let cursor=0,max=0;
+   [...measure.children].forEach(node=>{
+    if(node.localName==='backup'||node.localName==='forward'){const d=Number(node.querySelector(':scope > duration')?.textContent)||0;cursor=node.localName==='backup'?Math.max(0,cursor-d):cursor+d;max=Math.max(max,cursor);return;}
+    if(node.localName!=='note')return;
+    const d=Number(node.querySelector(':scope > duration')?.textContent)||divisions,rest=!!node.querySelector(':scope > rest'),pitch=node.querySelector(':scope > pitch'),step=pitch?.querySelector(':scope > step')?.textContent,alter=Number(pitch?.querySelector(':scope > alter')?.textContent)||0,octave=pitch?.querySelector(':scope > octave')?.textContent,chord=!!node.querySelector(':scope > chord');
+    const name=step&&octave!==undefined?step+(alter===1?'#':alter===-1?'b':alter===2?'##':alter===-2?'bb':'')+octave:null;
+    const onset=chord?Math.max(0,cursor-d):cursor;
+    if(name&&!rest)events.push({time:(elapsed+onset/divisions)*60/tempo,name,duration:Math.max(.06,d/divisions*60/tempo),measure:index+1,velocity:.82});
+    if(!chord)cursor+=d;max=Math.max(max,cursor);
+   });
+   elapsed+=Math.max(max/divisions,beatsPerBar);
+  });
+  return {events,barStarts,tempo};
+ }
+ async function play(){
+  if(playing){Tone.Transport.pause();setPlaying(false);return;}
+  try{
+   await Tone.start();
+   if(Tone.Transport.state==='paused'){Tone.Transport.start();setPlaying(true);return;}
+   stop();
+   const data=parseEvents();if(!data.events.length)throw new Error('No playable notes in this score.');
+   const player=new Tone.PolySynth(Tone.Synth).toDestination();player.mute=muted;playerRef.current=player;
+   const events=data.events.map(n=>({time:Math.round(n.time*data.tempo/60*Tone.Transport.PPQ)+'i',name:n.name,duration:Math.max(1,Math.round(n.duration*data.tempo/60*Tone.Transport.PPQ))+'i',velocity:n.velocity}));
+   const part=new Tone.Part((time,n)=>player.triggerAttackRelease(n.name,n.duration,time,n.velocity),events);part.start(0);partRef.current=part;
+   measureEventsRef.current=data.barStarts.map(bar=>Tone.Transport.scheduleOnce(()=>{
+    setActiveMeasure(bar.measure);
+    const cursor=rendererRef.current?.cursor;
+    try{cursor?.show();const el=cursor?.cursorElement;if(el){const parent=host.current?.querySelector('.musicxml-rendered')||host.current;const y=el.getBoundingClientRect().top-parent.getBoundingClientRect().top+parent.scrollTop;parent.scrollTo({top:Math.max(0,y-100),behavior:'smooth'});}}catch{}
+   },Math.round(bar.seconds*data.tempo/60*Tone.Transport.PPQ)+'i'));
+   Tone.Transport.bpm.value=data.tempo;Tone.Transport.position=0;Tone.Transport.start();setPlaying(true);setStatus('Playing · '+data.tempo+' BPM');
+   const end=Math.max(...data.events.map(n=>n.time+n.duration))+.2;
+   Tone.Transport.scheduleOnce(()=>{stop();setStatus('Playback finished');},Math.round(end*data.tempo/60*Tone.Transport.PPQ)+'i');
+  }catch(e){setStatus('Playback error: '+(e?.message||String(e)));stop();}
+ }
+ function toggleMute(){const next=!muted;setMuted(next);if(playerRef.current)playerRef.current.mute=next;}
+ return <section className="expanded-score-player"><div className="expanded-score-toolbar"><div className="expanded-score-controls"><button className="btn btn-dark" onClick={play}>{playing?'Ⅱ Pause':'▶ Play'}</button><button className="btn" onClick={stop}>■ Stop</button><button className="btn" onClick={toggleMute}>{muted?'Unmute':'Mute'}</button></div><div className="expanded-score-progress"><strong>{activeMeasure?('Bar '+activeMeasure):'Ready'}</strong><span>{status}</span></div><button className="btn" onClick={onClose}>Close ✕</button></div><div ref={host} className="musicxml-rendered expanded-score-rendered"/></section>
 }
 
 function LibraryScorePreview({item,onExpand}) {
