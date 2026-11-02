@@ -41,8 +41,18 @@ async function extractMp4Audio(file, onProgress) {
     const capture = video.captureStream || video.mozCaptureStream;
     if (!capture) throw new Error('This browser cannot extract the audio track from MP4. Try MP3 or M4A instead.');
     sourceStream = capture.call(video);
+    // Chromium may not expose the audio track until the media element starts
+    // playback. Prime the stream, then rewind before recording so the beginning
+    // of the soundtrack is not lost.
+    await video.play();
     const audioTracks = sourceStream.getAudioTracks();
     if (!audioTracks.length) throw new Error('No audio track was found in this MP4 video.');
+    video.pause();
+    if (video.currentTime > 0.01) {
+      const seeked = waitForMediaEvent(video, 'seeked', 'Could not rewind the MP4 video.');
+      video.currentTime = 0;
+      await seeked;
+    }
     const audioOnlyStream = new MediaStream(audioTracks);
     const mimeType = ['audio/webm;codecs=opus', 'audio/webm'].find(type => MediaRecorder.isTypeSupported(type));
     if (!mimeType) throw new Error('This browser cannot create a temporary audio stream for MP4 conversion.');
@@ -111,7 +121,8 @@ export async function transcribeAudioFile(file, onProgress) {
     result = await convertAudioToMidi(audioFile, audioToMidiDefaults, options);
   } catch (error) {
     const detail = String(error?.message || error);
-    const gpuFailure = /webgl|webgpu|gpu|shader|context lost|backend.*initial/i.test(detail);
+    const errorCode = String(error?.code || '');
+    const gpuFailure = /webgl|webgpu|gpu|shader|context lost|backend/i.test(detail + ' ' + errorCode);
     if (!gpuFailure) throw error;
     onProgress?.('Graphics acceleration is unavailable. Retrying transcription with the CPU backend…');
     const cpuConverter = new AudioToMidiConverter({ ...audioToMidiDefaults, backend: 'cpu' });
