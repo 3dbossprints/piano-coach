@@ -2067,3 +2067,19 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .library-score-source iframe,.library-score-source img{width:100%;height:100%;border:0;object-fit:contain;background:#fff;}
 .library-score-loading,.library-score-error{height:150px;min-height:150px;padding:14px;text-align:center;flex-direction:column;gap:8px;overflow-wrap:anywhere;}
 .library-score-error small{font-size:10px;color:var(--muted);}
+
+
+/* Expanded score: page-filling notation with a persistent transport bar. */
+.score-fullscreen-panel{width:min(96vw,1500px);height:96vh;max-height:96vh;display:flex;flex-direction:column;overflow:hidden}
+.score-fullscreen-panel>header{flex:0 0 auto}
+.score-fullscreen-content{flex:1 1 auto;min-height:0;overflow:auto;padding:0!important;background:#f4f5f7}
+.expanded-score-player{min-height:100%;display:flex;flex-direction:column;background:#f4f5f7}
+.expanded-score-toolbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:rgba(255,255,255,.97);border-bottom:1px solid #d9dde4;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.expanded-score-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.expanded-score-progress{display:flex;align-items:center;gap:12px;min-width:0;color:#263244}
+.expanded-score-progress strong{white-space:nowrap;font-size:14px}
+.expanded-score-progress span{font-size:12px;color:#667085;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.expanded-score-rendered{width:100%;max-width:none;min-height:100%;height:auto;overflow:visible;background:#fff;padding:24px clamp(12px,3vw,48px);box-sizing:border-box}
+.expanded-score-rendered svg{display:block;width:100%!important;max-width:100%!important;height:auto!important}
+.expanded-score-rendered .osmd-container{width:100%!important;max-width:100%!important}
+@media(max-width:700px){.score-fullscreen-panel{width:100vw;height:100dvh;max-height:100dvh;border-radius:0}.expanded-score-toolbar{padding:8px;gap:6px;flex-wrap:wrap}.expanded-score-progress{order:3;width:100%}.expanded-score-rendered{padding:12px 8px}.expanded-score-controls .btn,.expanded-score-toolbar>.btn{padding:8px 10px;font-size:12px}}
