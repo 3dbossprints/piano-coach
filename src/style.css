@@ -1982,3 +1982,36 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 
 /* Refined sheet-music workflow */
 .conversion-saved-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:13px 16px;margin:14px 0;border:1px solid #cbdcc9;border-radius:12px;background:#f4faf2;color:#274b2e}.conversion-saved-banner>span{flex:1 1 240px}.conversion-saved-banner .btn{white-space:nowrap}.sheet-music-action-row{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;padding-top:12px;margin-top:12px;border-top:1px solid var(--line,#e8e8e3)}.sheet-music-action-row .icon-action{width:38px;height:36px;min-width:38px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:16px}.sheet-music-action-row .text-button{padding:7px 4px;font-weight:650}.sheet-music-action-row .learn-library-button{margin-left:auto}.personal-score-card{min-width:0}.personal-score-meta strong{overflow-wrap:anywhere}.musicxml-preview{max-width:100%;max-height:480px;overflow:auto;padding:14px;background:#f3f2ed;border:1px solid #e3e1d9;border-radius:12px}.musicxml-rendered{width:100%;max-width:100%;overflow:auto;display:flex;justify-content:center;align-items:flex-start}.musicxml-rendered svg{display:block;max-width:100%!important;height:auto!important;max-height:420px}.score-review-card .musicxml-preview{max-height:440px}.score-review-card .musicxml-rendered svg{max-height:390px}.song-tempo-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px 16px;padding:14px 16px;margin:14px 0;background:var(--surface-soft,#f5f5f0);border:1px solid var(--line,#e7e7df);border-radius:12px}.song-tempo-controls label{font-weight:650}.song-tempo-controls input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--accent,#345b43)}.song-tempo-controls select{min-width:100px}.song-tempo-meta{font-size:12px;color:var(--muted)}.audio-reference-result{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.audio-reference-result audio{min-width:180px;max-width:360px;flex:1 1 240px}.search-not-found-cta{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:18px;margin-top:22px;border:1px dashed var(--line,#d9ddd4);border-radius:14px;background:var(--surface-soft,#f8f8f4)}@media(max-width:620px){.sheet-music-action-row{gap:7px}.sheet-music-action-row .learn-library-button{margin-left:auto}.conversion-saved-banner{align-items:flex-start}.song-tempo-controls{grid-template-columns:1fr}.song-tempo-controls input[type=range]{grid-column:1}.score-review-card .musicxml-preview{max-height:360px}.score-review-card .musicxml-rendered svg{max-height:320px}}
+
+
+/* Compact Music Search tempo control directly below Import sheet music. */
+.song-tempo-controls{
+ display:grid;
+ grid-template-columns:minmax(0,1fr) auto;
+ align-items:center;
+ gap:8px 18px;
+ margin:12px 0 20px;
+ padding:12px 15px;
+ border:1px solid var(--line,#e7e7df);
+ border-radius:12px;
+ background:var(--surface-soft,#f7f7f3);
+}
+.song-tempo-value{grid-column:1;grid-row:1;display:flex;align-items:baseline;gap:9px;min-width:0}
+.song-tempo-value label,.song-meter-label{font-size:11px;font-weight:700;color:var(--muted)}
+.song-tempo-value strong{font-size:16px;line-height:1.2;color:var(--ink,#27352b);font-variant-numeric:tabular-nums}
+.song-tempo-controls input[type=range]{grid-column:1;grid-row:2;width:100%;min-width:90px;margin:0;accent-color:var(--accent,#345b43)}
+.song-meter-label{grid-column:2;grid-row:1/span 2;display:grid;gap:5px;min-width:112px;align-self:center}
+.song-meter-label select{width:100%;padding:8px 10px;border:1px solid var(--line,#deded6);border-radius:8px;background:var(--panel,#fff);color:var(--ink,#27352b);font:inherit;font-size:12px}
+.song-tempo-meta{grid-column:1/-1;font-size:10px;color:var(--muted);line-height:1.35}
+.personal-score-actions .compact-score-play,.sheet-library-actions .compact-score-play{width:29px!important;min-width:29px!important;height:29px!important;min-height:29px!important;padding:0!important;border-radius:8px!important}
+.personal-score-actions .compact-score-play svg,.sheet-library-actions .compact-score-play svg{width:13px;height:13px}
+.delete-score-button{display:inline-flex;align-items:center;justify-content:center;flex:0 0 30px;width:30px;min-width:30px;height:30px;padding:0;border:1px solid #f0caca;border-radius:8px;background:#fff5f5;color:#c62828;cursor:pointer}
+.delete-score-button:hover{background:#ffe8e8;border-color:#df9a9a;color:#a31515}
+.personal-score-actions .delete-score-button,.sheet-library-actions .delete-score-button{margin-left:0}
+@media(max-width:620px){
+ .song-tempo-controls{grid-template-columns:minmax(0,1fr) 104px;gap:8px 12px;padding:11px}
+ .song-meter-label{grid-column:2;grid-row:1/span 2;min-width:0}
+ .song-meter-label select{width:104px}
+ .song-tempo-meta{grid-column:1/-1}
+ .personal-score-actions,.sheet-library-actions{gap:6px}
+}
