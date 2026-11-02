@@ -252,12 +252,12 @@ function LibraryScorePreview({item,onExpand}) {
 // Sequence tokens support note durations and rests: C4/q D4/h R/q E4/e. Plain notes default to quarters.
 function parseMusicSequence(input){const lengths={w:4,whole:4,h:2,half:2,q:1,quarter:1,e:.5,eighth:.5,s:.25,sixteenth:.25};return String(input).trim().split(/[\s,;]+/).filter(Boolean).map((token,index)=>{const m=token.match(/^([A-Ga-g][#b♯♭]?[-]?\d+|r|rest)(?:[/:=](whole|half|quarter|eighth|sixteenth|w|h|q|e|s))?$/i);if(!m)return null;const rest=/^(r|rest)$/i.test(m[1]),midi=rest?null:noteToMidi(m[1]),beats=lengths[(m[2]||'q').toLowerCase()]||1;return {token,note:rest?'rest':m[1],midi,rest,beats,index};}).filter(Boolean)}
 function encodeMusicCoach(score){
- const sourceNotation=score.notation||{};
- const nativeNotation={...sourceNotation};
- const generatedSource=['MIDI','Audio transcription','Recording transcription'].includes(sourceNotation.sourceFormat);
- if(!generatedSource)delete nativeNotation.sourceMusicXML;
+ // A .musiccoach file is the native container; its notation payload may still
+ // contain original MusicXML. Never discard that payload based on sourceFormat.
+ const nativeNotation={...(score?.notation||{})};
+ if(typeof nativeNotation.sourceMusicXML==='string')nativeNotation.sourceMusicXML=nativeNotation.sourceMusicXML.trim();
  const nativeScore={...score,format:'musiccoach',version:2,notation:nativeNotation};
- return 'MUSICCOACH-SCORE/2\n'+JSON.stringify(nativeScore,null,2);
+ return 'MUSICCOACH-SCORE/2\\n'+JSON.stringify(nativeScore,null,2);
 }
 function scoreNotesToMusicXML(score){
  const notes=Array.isArray(score?.notes)?score.notes.filter(n=>n.note&&!n.rest):[];
