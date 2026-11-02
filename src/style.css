@@ -2056,3 +2056,14 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .keystone-result-actions{display:flex;gap:8px;align-items:center;margin-left:auto}
 .keystone-finish-row{display:flex;justify-content:flex-end;gap:8px}
 @media(max-width:700px){.keystone-engine{inset:4px;padding:10px}.keystone-stage{height:48vh;min-height:260px}.keystone-controls{gap:8px}.keystone-controls>label{min-width:calc(50% - 8px);flex:1}.keystone-start{margin-left:0}.keystone-head{align-items:center}}
+
+/* Real sheet previews inside the Library cards. */
+.personal-score-art.library-score-notation{display:block;height:220px;min-height:220px;padding:0;background:#fff;overflow:auto;}
+.library-score-notation .musicxml-preview{margin:0;padding:6px;border:0;border-radius:0;min-height:100%;background:#fff;}
+.library-score-notation .musicxml-preview>p{font-size:9px;margin:0 0 4px;}
+.library-score-notation .musicxml-rendered{max-height:none;height:auto;max-width:100%;overflow:auto;}
+.library-score-notation .musicxml-rendered svg{max-width:none;display:block;}
+.personal-score-art.library-score-source{height:220px;min-height:220px;background:#fff;}
+.library-score-source iframe,.library-score-source img{width:100%;height:100%;border:0;object-fit:contain;background:#fff;}
+.library-score-loading,.library-score-error{height:150px;min-height:150px;padding:14px;text-align:center;flex-direction:column;gap:8px;overflow-wrap:anywhere;}
+.library-score-error small{font-size:10px;color:var(--muted);}
