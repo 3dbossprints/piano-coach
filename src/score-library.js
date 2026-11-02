@@ -54,13 +54,22 @@ export function isPlayableSheetMusicItem(item) {
     return hasHeader && trackCount > 0 && hasTrack;
   }
   if (isMusicXml) return /<score-(?:partwise|timewise)\b/i.test(decoded.text) && /<note\b/i.test(decoded.text);
+  // Music Coach files are versioned text containers, not bare JSON. Accept the
+  // current header and the earlier MIX header so existing Library items remain usable.
+  const text = decoded.text.replace(/^\uFEFF/, '');
+  const headers = ['MUSICCOACH-SCORE/2\n', 'PIANOCOACH-MIX/1\n'];
+  const header = headers.find(value => text.startsWith(value));
+  const payload = header ? text.slice(header.length) : text;
   try {
-    const payload = decoded.text.startsWith('PIANOCOACH-MIX/1\n')
-      ? decoded.text.slice('PIANOCOACH-MIX/1\n'.length)
-      : decoded.text;
-    const score = JSON.parse(payload);
-    return score?.format === 'musiccoach' && Array.isArray(score.notes) && score.notes.length > 0 &&
-      score.notes.some(note => note?.rest || note?.note || Number.isFinite(Number(note?.midi)));
+    const score = item.score && Array.isArray(item.score.notes)
+      ? item.score
+      : JSON.parse(payload);
+    return score?.format === 'musiccoach' &&
+      Array.isArray(score.notes) &&
+      score.notes.some(note => !note?.rest && (
+        (typeof note?.note === 'string' && note.note.trim().length > 0) ||
+        Number.isFinite(Number(note?.midi))
+      ));
   } catch {
     return false;
   }
