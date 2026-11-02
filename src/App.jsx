@@ -737,12 +737,12 @@ function resumeSavedSession(session){
   setEvents(restored);sessionEvents.current=restored;setReflection(session.reflection||'');setPracticeFeedback(session.feedback||'');
   if(session.practiceMode==='learn'){
     const notes=Array.isArray(session.loadedScoreNotes)?session.loadedScoreNotes:[];
-    setLoadedScoreNotes(notes);setScoreNotation(session.scoreNotation||null);setLearnHand(session.learnHand||'both');setLearnChunkDivision([1,2,4].includes(Number(session.learnChunkDivision))?Number(session.learnChunkDivision):1);
-    learnPhraseOffsetRef.current=Math.max(0,Number(session.learnProgressBeat)||0);learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};
-    setLearnPhraseOffset(learnPhraseOffsetRef.current);setLearnBarProgress(0);setLearnSeconds(Math.max(0,Number(session.practiceSeconds)||0));
-    setPracticeMode('learn');setPracticeStarted(true);setLearnListenMode(true);setSheetPianoOpen(true);learnModeRef.current=true;
-    setPage('Practice');setLearnMessage('Welcome back. Your saved bar is ready to practise.');setStatus('Resuming Listen & Learn');
-    setTimeout(async()=>{if(learnModeRef.current){startTime.current=Date.now();await startMic();if(learnModeRef.current)playLearnPhrase();else stopMic()}},250);return;
+    setLoadedScoreNotes(notes);setScoreNotation(session.scoreNotation||null);
+    setLearnHand(session.learnHand||'both');setLearnChunkDivision([1,2,4].includes(Number(session.learnChunkDivision))?Number(session.learnChunkDivision):1);
+    learnPhraseOffsetRef.current=0;learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};
+    setLearnPhraseOffset(0);setLearnBarProgress(0);setLearnSeconds(Math.max(0,Number(session.practiceSeconds)||0));
+    setPracticeMode('learn');setPracticeStarted(false);setLearnListenMode(true);setSheetPianoOpen(true);learnModeRef.current=true;
+    setPage('Practice');setLearnMessage('Saved score reopened in Keystone. Choose the bar range and press Start to continue practising.');setStatus('Resuming Keystone Listen & Learn');return;
   }
   setPracticeMode('normal');setRemainingSeconds(15*60);setPracticeStarted(true);startTime.current=Date.now();
   setPage('Practice');setStatus('Revisiting saved practice session');
