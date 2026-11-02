@@ -10,7 +10,7 @@ const midiFromKey = key => {
   return 12 * (Number(m[3]) + 1) + semitones[m[1].toUpperCase()] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0);
 };
 
-export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120, timeSignature = '4/4', title = 'Your piece', onFinish, onClose }) {
+export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120, timeSignature = '4/4', title = 'Your piece', onConnectMic, onDisconnectMic, microphoneListening = false, microphoneLevel = 0, microphoneStatus = 'Microphone is off', onFinish, onClose }) {
   const parsed = useMemo(() => {
     if (xml) {
       try { return parseKeystoneMusicXML(xml); }
@@ -236,9 +236,18 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
       <div className="keystone-key-controls"><span>Keys start · {midiName(keyStart)}</span><button className="btn" onClick={()=>shiftKey(-12)}>«</button><button className="btn" onClick={()=>shiftKey(-1)}>‹</button><button className="btn" onClick={()=>shiftKey(1)}>›</button><button className="btn" onClick={()=>shiftKey(12)}>»</button><button className="btn" onClick={()=>setKeyStart(Math.max(21,Math.floor(minMidi/12)*12))}>Auto</button></div>
       <button className="btn btn-dark keystone-start" onClick={startRun}>{runRef.current?'Stop':'Start'}</button>
     </div>
+    <div className="keystone-input-panel">
+      <div className="keystone-input-heading"><div><strong>Play on your piano</strong><span>Use your computer microphone for acoustic piano notes, or connect a MIDI keyboard for more precise note and chord detection.</span></div><span className={'keystone-input-state '+(microphoneListening?'is-live':'')}>{microphoneListening?'MICROPHONE ON':'MICROPHONE OFF'}</span></div>
+      <div className="keystone-input-actions">
+        <button type="button" className={'btn '+(microphoneListening?'':'btn-dark')} onClick={microphoneListening?onDisconnectMic:onConnectMic} disabled={!onConnectMic}>{microphoneListening?'Disconnect microphone':'🎙 Enable microphone'}</button>
+        <button type="button" className="btn" onClick={midiConnected?disconnectMidi:connectMidi}>{midiConnected?'Disconnect MIDI piano':'Connect MIDI piano'}</button>
+        <div className="keystone-mic-meter"><span>Input level</span><div><i style={{width:Math.max(0,Math.min(100,microphoneLevel))+'%'}}/></div><b>{Math.round(microphoneLevel)}%</b></div>
+      </div>
+      <p className="keystone-input-status" role="status">{microphoneStatus}{microphoneListening?' · Play one note clearly. For chords and both hands, use MIDI.':''}</p>
+    </div>
     <div className="keystone-stage" ref={stageRef}><canvas ref={canvasRef} onPointerDown={canvasDown} onPointerUp={canvasUp} onPointerCancel={canvasUp} onLostPointerCapture={canvasUp}/></div>
     <div className="keystone-status" role="status">{message}</div>
-    <div className="keystone-footer"><span>{timeline.length} note events · {availableBars.length} bars · {midiConnected?'MIDI connected: '+midiDeviceName:'MIDI not connected'}</span><button className="btn" onClick={midiConnected?disconnectMidi:connectMidi}>{midiConnected?'Disconnect MIDI':'Connect MIDI piano'}</button><span>Computer keys: Z S X D C V G B H N J M · Q 2 W 3 E R 5 T 6 Y 7 U</span></div>
+    <div className="keystone-footer"><span>{timeline.length} note events · {availableBars.length} bars · {midiConnected?'MIDI connected: '+midiDeviceName:'MIDI not connected'}</span><span>Computer keys: Z S X D C V G B H N J M · Q 2 W 3 E R 5 T 6 Y 7 U</span></div>
     {result&&<section className="keystone-result"><div><strong>Score</strong><b>{result.score}</b></div><div><strong>Notes</strong><b>{result.hits}/{result.total}</b></div><div><strong>Perfect</strong><b>{result.perfect}</b></div><div><strong>Wrong keys</strong><b>{result.wrong}</b></div><div><strong>Best streak</strong><b>{result.maxCombo}</b></div>{result.trouble.length>0&&<div className="keystone-trouble"><strong>Where to practise</strong>{result.trouble.map(x=><span key={x.bar}>Bar {x.bar}: {x.notes.join(', ')}</span>)}</div>}<div className="keystone-result-actions"><button className="btn" onClick={()=>setResult(null)}>Dismiss result</button><button className="btn btn-dark" onClick={finish}>Finish lesson</button></div></section>}
     {!result&&<div className="keystone-finish-row"><button className="btn" onClick={onClose}>Continue later</button><button className="btn btn-dark" onClick={finish}>Finish lesson</button></div>}
   </div>;
