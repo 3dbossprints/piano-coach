@@ -26,7 +26,7 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
   const [speed, setSpeed] = useState(1), [bpm, setBpm] = useState(Math.max(20, Number(initialBpm) || 120));
   const [fromBar, setFromBar] = useState(1), [toBar, setToBar] = useState(9999);
   const [keyStart, setKeyStart] = useState(48), [message, setMessage] = useState('Press Start when you are ready.');
-  const [midiName, setMidiName] = useState('Not connected'), [midiConnected, setMidiConnected] = useState(false);
+  const [midiDeviceName, setMidiDeviceName] = useState('Not connected'), [midiConnected, setMidiConnected] = useState(false);
   const [result, setResult] = useState(null), [tick, setTick] = useState(0);
   const [dimensions, setDimensions] = useState({ width: 900, height: 430 });
 
@@ -211,9 +211,9 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
 
   const connectMidi = useCallback(async () => {
     if(!navigator.requestMIDIAccess){setMessage('Web MIDI is unavailable in this browser. Use Chrome or Edge on HTTPS, or play the on-screen keys.');return;}
-    try{const access=await navigator.requestMIDIAccess();midiRef.current=access;const bind=()=>{const inputs=[...access.inputs.values()];inputs.forEach(input=>{input.onmidimessage=event=>{const [status,note,velocity]=event.data,cmd=status&0xf0;if(cmd===0x90&&velocity>0)noteDown(note);else if(cmd===0x80||(cmd===0x90&&velocity===0))noteUp(note);};});setMidiConnected(inputs.length>0);setMidiName(inputs.map(i=>i.name||i.manufacturer||'MIDI input').join(', ')||'No MIDI device found');};bind();access.onstatechange=bind;}catch(error){setMessage('Could not connect MIDI: '+error.message);}
+    try{const access=await navigator.requestMIDIAccess();midiRef.current=access;const bind=()=>{const inputs=[...access.inputs.values()];inputs.forEach(input=>{input.onmidimessage=event=>{const [status,note,velocity]=event.data,cmd=status&0xf0;if(cmd===0x90&&velocity>0)noteDown(note);else if(cmd===0x80||(cmd===0x90&&velocity===0))noteUp(note);};});setMidiConnected(inputs.length>0);setMidiDeviceName(inputs.map(i=>i.name||i.manufacturer||'MIDI input').join(', ')||'No MIDI device found');};bind();access.onstatechange=bind;}catch(error){setMessage('Could not connect MIDI: '+error.message);}
   }, [noteDown,noteUp]);
-  const disconnectMidi = useCallback(() => {const access=midiRef.current;if(access){for(const input of access.inputs.values())input.onmidimessage=null;access.onstatechange=null;}midiRef.current=null;setMidiConnected(false);setMidiName('Not connected');}, []);
+  const disconnectMidi = useCallback(() => {const access=midiRef.current;if(access){for(const input of access.inputs.values())input.onmidimessage=null;access.onstatechange=null;}midiRef.current=null;setMidiConnected(false);setMidiDeviceName('Not connected');}, []);
 
   useEffect(() => () => {
     if(runRef.current)runRef.current=null;
@@ -238,7 +238,7 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
     </div>
     <div className="keystone-stage" ref={stageRef}><canvas ref={canvasRef} onPointerDown={canvasDown} onPointerUp={canvasUp} onPointerCancel={canvasUp} onLostPointerCapture={canvasUp}/></div>
     <div className="keystone-status" role="status">{message}</div>
-    <div className="keystone-footer"><span>{timeline.length} note events · {availableBars.length} bars · {midiConnected?'MIDI connected: '+midiName:'MIDI not connected'}</span><button className="btn" onClick={midiConnected?disconnectMidi:connectMidi}>{midiConnected?'Disconnect MIDI':'Connect MIDI piano'}</button><span>Computer keys: Z S X D C V G B H N J M · Q 2 W 3 E R 5 T 6 Y 7 U</span></div>
+    <div className="keystone-footer"><span>{timeline.length} note events · {availableBars.length} bars · {midiConnected?'MIDI connected: '+midiDeviceName:'MIDI not connected'}</span><button className="btn" onClick={midiConnected?disconnectMidi:connectMidi}>{midiConnected?'Disconnect MIDI':'Connect MIDI piano'}</button><span>Computer keys: Z S X D C V G B H N J M · Q 2 W 3 E R 5 T 6 Y 7 U</span></div>
     {result&&<section className="keystone-result"><div><strong>Score</strong><b>{result.score}</b></div><div><strong>Notes</strong><b>{result.hits}/{result.total}</b></div><div><strong>Perfect</strong><b>{result.perfect}</b></div><div><strong>Wrong keys</strong><b>{result.wrong}</b></div><div><strong>Best streak</strong><b>{result.maxCombo}</b></div>{result.trouble.length>0&&<div className="keystone-trouble"><strong>Where to practise</strong>{result.trouble.map(x=><span key={x.bar}>Bar {x.bar}: {x.notes.join(', ')}</span>)}</div>}<div className="keystone-result-actions"><button className="btn" onClick={()=>setResult(null)}>Dismiss result</button><button className="btn btn-dark" onClick={finish}>Finish lesson</button></div></section>}
     {!result&&<div className="keystone-finish-row"><button className="btn" onClick={onClose}>Continue later</button><button className="btn btn-dark" onClick={finish}>Finish lesson</button></div>}
   </div>;
