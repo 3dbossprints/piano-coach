@@ -141,23 +141,52 @@ function normalizeMusicXMLTitle(xmlText,title){
 function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
  const host=useRef(null),rendererRef=useRef(null),partRef=useRef(null),playerRef=useRef(null),measureEventsRef=useRef([]);
  const [status,setStatus]=useState('Preparing score…'),[playing,setPlaying]=useState(false),[muted,setMuted]=useState(false),[activeMeasure,setActiveMeasure]=useState(0);
+ const [activePage,setActivePage]=useState(1),[totalPages,setTotalPages]=useState(1);
+ const activePageRef=useRef(1);
+ function getRenderedScorePages(){
+  if(!host.current)return [];
+  let pages=[...host.current.querySelectorAll('[id^="osmdCanvasPage"]')];
+  if(!pages.length)pages=[...host.current.querySelectorAll('.osmd-page,.osmdPage')];
+  if(!pages.length){const svg=host.current.querySelector(':scope > svg');if(svg)pages=[svg];}
+  return pages;
+ }
+ function showScorePage(pageNumber,scroll=true){
+  const pages=getRenderedScorePages();
+  const pageCount=Math.max(1,pages.length);
+  const next=Math.max(1,Math.min(pageCount,Number(pageNumber)||1));
+  pages.forEach((page,index)=>{
+   page.style.display=index===next-1?'block':'none';
+   page.setAttribute('aria-hidden',index===next-1?'false':'true');
+  });
+  activePageRef.current=next;
+  setActivePage(next);
+  if(scroll&&pages[next-1]){
+   const root=host.current?.closest('.score-fullscreen-content')||host.current?.parentElement;
+   if(root){
+    const top=pages[next-1].getBoundingClientRect().top-root.getBoundingClientRect().top+root.scrollTop-10;
+    root.scrollTo({top:Math.max(0,top),behavior:'smooth'});
+   }
+  }
+ }
  useEffect(()=>{
   let cancelled=false,renderer=null;
   async function render(){
    try{
     if(!xml||!/<score-(?:partwise|timewise)\b/i.test(xml))throw new Error('This file does not contain valid MusicXML.');
-    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:true,pageFormat:'A4_P',drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:true,cursorsOptions:[{type:3,color:'#8b73c7',alpha:.2,follow:true}],backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false,drawMeasureNumbers:true,drawPartAbbreviations:false});
+    host.current.style.width='100%';host.current.style.maxWidth='920px';host.current.style.margin='0 auto';
+    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:false,pageFormat:'A4_P',newPageFromXML:true,newSystemFromNewPageInXML:true,drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:false,cursorsOptions:[{type:3,color:'#8b73c7',alpha:.2,follow:false}],backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false,drawMeasureNumbers:true,drawPartAbbreviations:false});
     await renderer.load(normalizeMusicXMLTitle(xml,title));if(cancelled)return;
-    renderer.Zoom=0.92;renderer.render();rendererRef.current=renderer;
+    renderer.Zoom=1;renderer.render();rendererRef.current=renderer;
     renderer.enableOrDisableCursors(true);
     renderer.cursors?.forEach(cursor=>cursor.hide());
+    const pages=getRenderedScorePages();setTotalPages(Math.max(1,pages.length));showScorePage(1,false);
     setStatus('Full score loaded');
    }catch(e){if(!cancelled)setStatus('Could not render score: '+(e?.message||String(e)));}
   }
   render();
   return()=>{cancelled=true;stop();try{renderer?.clear()}catch{}rendererRef.current=null;if(host.current)host.current.innerHTML=''};
  },[xml,title]);
- function stop(){try{Tone.Transport.stop();Tone.Transport.cancel();partRef.current?.dispose();playerRef.current?.dispose();rendererRef.current?.cursors?.forEach(cursor=>cursor.hide());}catch{}partRef.current=null;playerRef.current=null;setPlaying(false);setActiveMeasure(0)}
+ function stop(){try{Tone.Transport.stop();Tone.Transport.cancel();partRef.current?.dispose();playerRef.current?.dispose();rendererRef.current?.cursors?.forEach(cursor=>cursor.hide());}catch{}partRef.current=null;playerRef.current=null;setPlaying(false);setActiveMeasure(0);showScorePage(1,false)}
  function parseEvents(){
   const doc=new DOMParser().parseFromString(xml,'application/xml');if(doc.querySelector('parsererror'))throw new Error('Invalid MusicXML');
   const parts=[...doc.querySelectorAll('score-partwise > part')];if(!parts.length)throw new Error('No score parts found');
@@ -195,7 +224,7 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
    measureEventsRef.current=data.barStarts.map(bar=>Tone.Transport.scheduleOnce(()=>{
     setActiveMeasure(bar.measure);
     const cursor=rendererRef.current?.cursors?.[0]||rendererRef.current?.cursor;
-    try{if(cursor){cursor.reset();cursor.show();let guard=0,iterator=cursor.Iterator||cursor.iterator;while(iterator&&Number(iterator.CurrentMeasureIndex)<bar.measure-1&&guard++<3000)cursor.next();}const el=cursor?.cursorElement;if(el){const parent=host.current?.closest('.score-fullscreen-content')||host.current?.parentElement||host.current;const y=el.getBoundingClientRect().top-parent.getBoundingClientRect().top+parent.scrollTop;parent.scrollTo({top:Math.max(0,y-90),behavior:'smooth'});}}catch{}
+    try{if(cursor){cursor.reset();cursor.show();let guard=0,iterator=cursor.Iterator||cursor.iterator;while(iterator&&Number(iterator.CurrentMeasureIndex)<bar.measure-1&&guard++<3000)cursor.next();const pageNumber=Number(cursor.updateCurrentPage?.()||cursor.currentPageNumber||1);if(pageNumber!==activePageRef.current)showScorePage(pageNumber,true);}}catch{}
    },Math.round(bar.seconds*data.tempo/60*Tone.Transport.PPQ)+'i'));
    Tone.Transport.bpm.value=data.tempo;Tone.Transport.position=0;Tone.Transport.start();setPlaying(true);setStatus('Playing · '+data.tempo+' BPM');
    const end=Math.max(...data.events.map(n=>n.time+n.duration))+.2;
@@ -203,7 +232,7 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
   }catch(e){setStatus('Playback error: '+(e?.message||String(e)));stop();}
  }
  function toggleMute(){const next=!muted;setMuted(next);const volume=playerRef.current?.volume;if(volume)volume.value=next?-96:0;}
- return <section className="expanded-score-player"><div className="expanded-score-toolbar"><div className="expanded-score-controls"><button className="btn btn-dark" onClick={play}>{playing?'Ⅱ Pause':'▶ Play'}</button><button className="btn" onClick={stop}>■ Stop</button><button className="btn" onClick={toggleMute}>{muted?'Unmute':'Mute'}</button></div><div className="expanded-score-progress"><strong>{activeMeasure?('Bar '+activeMeasure):'Ready'}</strong><span>{status}</span></div></div><div ref={host} className="musicxml-rendered expanded-score-rendered"/></section>
+ return <section className="expanded-score-player"><div className="expanded-score-toolbar"><div className="expanded-score-controls"><button className="btn btn-dark" onClick={play}>{playing?'Ⅱ Pause':'▶ Play'}</button><button className="btn" onClick={stop}>■ Stop</button><button className="btn" onClick={toggleMute}>{muted?'Unmute':'Mute'}</button></div><div className="expanded-score-progress"><strong>{activeMeasure?('Bar '+activeMeasure):'Ready'}</strong><button type="button" className="btn expanded-score-page-button" disabled={activePage<=1} onClick={()=>showScorePage(activePage-1,true)} aria-label="Previous sheet music page">‹</button><span>Page {activePage} of {totalPages} · {status}</span><button type="button" className="btn expanded-score-page-button" disabled={activePage>=totalPages} onClick={()=>showScorePage(activePage+1,true)} aria-label="Next sheet music page">›</button></div></div><div ref={host} className="musicxml-rendered expanded-score-rendered"/></section>
 }
 
 
@@ -229,9 +258,9 @@ function MusicXMLPreview({xml,title='Sheet music',onExpand}) {
 }
 
 function LibraryScorePreview({item}) {
- const name=String(item?.name||'').toLowerCase(),type=String(item?.type||'').toLowerCase();
- const isImage=/\.(png|jpe?g|webp|svg|gif)$/i.test(name)||type.startsWith('image/');
- const isAudio=item?.kind==='recording'||/\.(mp3|m4a|mp4|webm|wav|ogg|aac|flac)$/i.test(name)||type.startsWith('audio/');
+ const name=String(item?.name||'').toLowerCase(),type=String(item?.type||item?.mimeType||'').toLowerCase(),kind=String(item?.kind||'').toLowerCase();
+ const isImage=kind==='image'||/\.(png|jpe?g|webp|svg|gif|bmp|tiff?)$/i.test(name)||type.startsWith('image/');
+ const isAudio=['recording','audio','audio-recording','recording-audio'].includes(kind)||/\.(mp3|m4a|mp4|webm|wav|wave|ogg|oga|aac|flac|aiff?|opus)$/i.test(name)||type.startsWith('audio/')||type.startsWith('video/');
  return <div className={"personal-score-art library-file-type-icon "+(isImage?'is-image':isAudio?'is-audio':'is-music')} aria-label={isImage?'Image file':isAudio?'Audio recording':'Music file'}>
   {isImage?<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="9" y="11" width="46" height="42" rx="6" fill="none" stroke="currentColor" strokeWidth="3"/><circle cx="23" cy="25" r="5" fill="currentColor"/><path d="M13 47l14-14 9 9 7-7 9 12" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>:isAudio?<svg viewBox="0 0 72 64" aria-hidden="true"><path d="M5 24h8m-8 8h8m-8 8h8m46-16h8m-8 8h8m-8 8h8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity=".55"/><circle cx="36" cy="32" r="19" fill="none" stroke="currentColor" strokeWidth="3.5"/><circle cx="36" cy="32" r="6" fill="currentColor"/></svg>:<span className="library-music-note" aria-hidden="true">♫</span>}
  </div>;
@@ -1483,7 +1512,7 @@ return <div className="shell"><aside className="sidebar"><a className="brand" hr
  <div className="panel-head"><div><div className="eyebrow">YOUR COLLECTION</div><h2>Your sheet music</h2><p className="muted">Saved in this browser. Import a score once and it stays in your library between visits.</p></div><span className="tag">{sheetMusicFiles.length} saved</span></div>
  <label className="upload-score personal-score-upload"><span>Import sheet music</span><input type="file" accept=".musiccoach,.musicxml,.xml,.mid,.midi,.pdf,.png,.jpg,.jpeg,.webp,.svg,application/vnd.recordare.musicxml+xml,image/png,image/jpeg,image/webp,application/pdf,application/xml,text/xml" onChange={e=>{const file=e.target.files?.[0];if(file)handleScoreUpload(file,{target:'Sheet music',download:false});e.target.value=''}}/></label><div className="song-tempo-controls"><div className="song-tempo-value"><label htmlFor="song-tempo-slider">Tempo</label><strong>{songTempo} BPM</strong></div><input id="song-tempo-slider" type="range" min="20" max="240" step="1" value={songTempo} onChange={e=>changeSongTempo(e.target.value)}/><label className="song-meter-label">Time signature<select value={songMeter} onChange={e=>{const next=e.target.value;songMeterRef.current=next;setSongMeter(next);Object.entries(songAudioRefs.current).forEach(([id,audio])=>{if(audio){audio.playbackRate=getSongPlaybackRate(songTempoRef.current,next,tempoDetectionCacheRef.current[id]);audio.preservesPitch=true;audio.webkitPreservesPitch=true}});Object.entries(audioLibraryRefs.current).forEach(([id,audio])=>{if(audio){audio.playbackRate=getSongPlaybackRate(songTempoRef.current,next,tempoDetectionCacheRef.current[id]);audio.preservesPitch=true;audio.webkitPreservesPitch=true}})}}><option>4/4</option><option>2/4</option><option>3/4</option><option>4/8</option><option>6/8</option><option>3/8</option><option>2/2</option><option>3/2</option></select></label><span className="song-tempo-meta" role="status">{songTempoStatus}</span></div>
  <div className="personal-score-grid">
-  {visibleSheetMusicFiles.length?visibleSheetMusicFiles.map((item,i)=>{const playable=isPlayableSheetMusicItem(item);return <article className="personal-score-card" key={item.id||item.name||i} onDoubleClick={()=>openLibrarySheetFullscreen(item)} title="Double-click to expand sheet music">
+  {visibleSheetMusicFiles.length?visibleSheetMusicFiles.map((item,i)=>{const playable=isPlayableSheetMusicItem(item);return <article className="personal-score-card" key={item.id||item.name||i}>
    <LibraryScorePreview item={item} onExpand={()=>openLibrarySheetFullscreen(item)}/>
    <div className="personal-score-meta"><strong title={item.name}>{item.name||'Untitled score'}</strong><span>{item.type||'Sheet music'} · {(item.size||0)>=1024*1024?((item.size||0)/1024/1024).toFixed(1)+' MB':Math.max(1,Math.round((item.size||0)/1024))+' KB'}</span></div>
    <div className="personal-score-actions sheet-music-action-row">
