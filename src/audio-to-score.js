@@ -1,6 +1,6 @@
 import { AudioToMidiConverter, audioToMidiDefaults, convertAudioToMidi } from '@musicbento/audio-to-midi';
 
-const AUDIO_EXTENSIONS = /\.(mp3|m4a|mp4|webm)$/i;
+const AUDIO_EXTENSIONS = /\.(mp3|m4a|mp4|webm|wav)$/i;
 const MAX_AUDIO_BYTES = 100 * 1024 * 1024;
 const MAX_DURATION_SECONDS = 8 * 60;
 

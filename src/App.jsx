@@ -846,16 +846,35 @@ async function requestLocalAudioCoachFeedback(blob,title,targetNotes,detectedNot
  }
  async function transcribeAudioBlob(blob,onProgress=()=>{}){
   if(!blob?.size)throw new Error('The recording is empty. Record a short passage and try again.');
-  if(blob.size>45*1024*1024)throw new Error('This recording is too large to analyse safely. Please record a shorter practice (up to 3 minutes).');
-  const mime=String(blob.type||'audio/webm').toLowerCase();
-  const extension=mime.includes('mpeg')?'.mp3':mime.includes('mp4')?'.m4a':mime.includes('m4a')?'.m4a':'.webm';
-  const file=new File([blob],'piano-practice-recording'+extension,{type:mime});
+  if(blob.size>100*1024*1024)throw new Error('This audio file is larger than the 100 MB browser safety limit.');
   const {transcribeAudioFile}=await import('./audio-to-score.js');
-  const result=await transcribeAudioFile(file,onProgress);
-  const parsed=parseStandardMidi(await result.midiBlob.arrayBuffer());
-  const notes=parsed.notes.filter(n=>Number.isFinite(Number(n.midi))&&n.midi>=21&&n.midi<=108&&Number.isFinite(Number(n.time))&&Number(n.duration)>.04)
-   .map((n,i)=>({id:'ref-'+i,note:n.note,midi:n.midi,time:Number(n.time),duration:Number(n.duration),source:'reference'}));
-  return {notes,bpm:Math.max(20,Number(parsed.bpm)||120)};
+  const mime=String(blob.type||'audio/webm').toLowerCase();
+  const ext=mime.includes('mpeg')?'.mp3':mime.includes('mp4')?'.m4a':mime.includes('m4a')?'.m4a':mime.includes('wav')?'.wav':'.webm';
+  const ctx=new AudioContext();let audio;
+  try{audio=await ctx.decodeAudioData(await blob.arrayBuffer())}catch(e){await ctx.close().catch(()=>{});throw new Error('Could not decode this recording in the browser: '+(e.message||e))}
+  const chunk=160,overlap=4,stride=chunk-overlap,count=Math.max(1,Math.ceil(Math.max(0,audio.duration-overlap)/stride)),notes=[],tempos=[];
+  const wav=(from,to)=>{
+   const start=Math.floor(from*audio.sampleRate),end=Math.min(audio.length,Math.floor(to*audio.sampleRate)),length=end-start,buffer=new ArrayBuffer(44+length*2),v=new DataView(buffer);
+   const put=(p,s)=>{for(let i=0;i<s.length;i++)v.setUint8(p+i,s.charCodeAt(i))};
+   put(0,'RIFF');v.setUint32(4,36+length*2,true);put(8,'WAVE');put(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,audio.sampleRate,true);v.setUint32(28,audio.sampleRate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);put(36,'data');v.setUint32(40,length*2,true);
+   const channels=Array.from({length:audio.numberOfChannels},(_,i)=>audio.getChannelData(i));
+   for(let i=0;i<length;i++){let x=0;for(const c of channels)x+=c[start+i]||0;x=Math.max(-1,Math.min(1,x/channels.length));v.setInt16(44+i*2,x<0?x*32768:x*32767,true)}
+   return new Blob([buffer],{type:'audio/wav'});
+  };
+  try{
+   for(let i=0;i<count;i++){
+    const from=i*stride,to=Math.min(audio.duration,from+chunk),split=count>1;
+    onProgress(split?'Analysing section '+(i+1)+' of '+count+'…':'Preparing audio analysis…');
+    const part=split?wav(from,to):blob,file=new File([part],'music-coach-'+(i+1)+(split?'.wav':ext),{type:split?'audio/wav':mime});
+    const result=await transcribeAudioFile(file,msg=>onProgress(split?'Section '+(i+1)+'/'+count+' · '+msg:msg));
+    const parsed=parseStandardMidi(await result.midiBlob.arrayBuffer());tempos.push(Number(parsed.bpm)||120);
+    for(const n of parsed.notes){if(i>0&&Number(n.time)<overlap)continue;const time=Number(n.time)+from;if(Number.isFinite(n.midi)&&n.midi>=21&&n.midi<=108&&Number.isFinite(time)&&Number(n.duration)>.04)notes.push({id:'ref-'+i+'-'+notes.length,note:n.note,midi:n.midi,time,duration:Number(n.duration),source:'reference'})}
+   }
+  }finally{await ctx.close().catch(()=>{})}
+  notes.sort((a,b)=>a.time-b.time);
+  const clean=notes.filter((n,i,a)=>!i||n.midi!==a[i-1].midi||n.time-a[i-1].time>.08);
+  tempos.sort((a,b)=>a-b);
+  return {notes:clean,bpm:tempos[Math.floor(tempos.length/2)]||120,duration:audio.duration,sections:count};
  }
  function compareToSongReference(actualNotes,referenceNotes){if(!referenceNotes?.length||!actualNotes.length)return null;const a=actualNotes.map(n=>n.midi%12),b=referenceNotes.map(n=>n.midi%12);/* Catalogue previews are short excerpts. Align the shorter sequence inside the longer one so a full performance is not unfairly scored against only a 30-second preview. */const short=a.length<=b.length?a:b,long=a.length<=b.length?b:a;if(short.length<4)return null;let best=0,bestStart=0;const maxStart=Math.max(0,long.length-short.length);for(let start=0;start<=maxStart;start++){let matches=0;for(let i=0;i<short.length;i++)if(short[i]===long[start+i])matches++;const score=matches/short.length;if(score>best){best=score;bestStart=start}}return {score:Math.round(best*100),matched:Math.round(best*short.length),total:short.length,comparisonType:a.length===b.length?"sequence":"best matching excerpt",note:"Pitch-class alignment only; this is not a full-song or rhythm score.",offset:bestStart}}
  function beginPractice(){setEvents([]);sessionEvents.current=[];setPracticeFeedback('');if(!referenceSong?.preview)setReferenceStatus('No reference recording selected. Choose a playable recording in Sheet Music search to compare your performance.');setPracticeStarted(true);setRemainingSeconds(Math.max(60,Number(practiceMinutes||15)*60));setStatus('Practice started · microphone will activate');startTime.current=Date.now();setTimeout(async()=>{await startMic();setTimeout(()=>{if(micStream.current)startRecording()},300)},350)}
