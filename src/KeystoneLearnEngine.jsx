@@ -10,7 +10,7 @@ const midiFromKey = key => {
   return 12 * (Number(m[3]) + 1) + semitones[m[1].toUpperCase()] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0);
 };
 
-export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120, timeSignature = '4/4', title = 'Your piece', onConnectMic, onDisconnectMic, microphoneListening = false, microphoneLevel = 0, microphoneStatus = 'Microphone is off', onFinish, onClose }) {
+export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120, timeSignature = '4/4', title = 'Your piece', micInputRef, onConnectMic, onDisconnectMic, microphoneListening = false, microphoneLevel = 0, microphoneStatus = 'Microphone is off', onFinish, onClose }) {
   const parsed = useMemo(() => {
     if (xml) {
       try { return parseKeystoneMusicXML(xml); }
@@ -112,6 +112,14 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
   const noteUp = useCallback((midi) => {
     pressedRef.current.delete(midi);sound(midi,false);
   }, [sound]);
+
+  // Expose the engine's real note handlers to the microphone analyser in App.
+  // This keeps microphone and MIDI input on the exact same Learn/Perform path.
+  useEffect(() => {
+    if(!micInputRef)return;
+    micInputRef.current={noteDown,noteUp};
+    return()=>{if(micInputRef.current?.noteDown===noteDown)micInputRef.current=null;};
+  },[micInputRef,noteDown,noteUp]);
 
   const stopRun = useCallback(() => {
     runRef.current=null;pressedRef.current.forEach(m=>sound(m,false));pressedRef.current.clear();
@@ -243,7 +251,7 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
         <button type="button" className="btn" onClick={midiConnected?disconnectMidi:connectMidi}>{midiConnected?'Disconnect MIDI piano':'Connect MIDI piano'}</button>
         <div className="keystone-mic-meter"><span>Input level</span><div><i style={{width:Math.max(0,Math.min(100,microphoneLevel))+'%'}}/></div><b>{Math.round(microphoneLevel)}%</b></div>
       </div>
-      <p className="keystone-input-status" role="status">{microphoneStatus}{microphoneListening?' · Play one note clearly. For chords and both hands, use MIDI.':''}</p>
+      <p className="keystone-input-status" role="status">{microphoneStatus}{microphoneListening?' · Microphone input checks one stable note at a time. Acoustic piano chords are not reliably separable; connect MIDI for accurate chords and both hands.':''}</p>
     </div>
     <div className="keystone-stage" ref={stageRef}><canvas ref={canvasRef} onPointerDown={canvasDown} onPointerUp={canvasUp} onPointerCancel={canvasUp} onLostPointerCapture={canvasUp}/></div>
     <div className="keystone-status" role="status">{message}</div>

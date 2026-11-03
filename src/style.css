@@ -2102,3 +2102,21 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .keystone-engine{gap:14px}
 .keystone-stage{height:min(55vh,540px);min-height:300px}
 @media(max-width:700px){.keystone-input-heading{align-items:flex-start;flex-direction:column}.keystone-mic-meter{flex-basis:100%}.keystone-input-actions>.btn{flex:1}}
+
+
+/* Sheet-music library file-type icons and paginated paper styling. */
+.library-file-type-icon{min-height:112px;background:#f2f0ed!important;color:#59616a;display:flex;align-items:center;justify-content:center}
+.library-file-type-icon.is-image{background:#edf1f5!important;color:#647d91}
+.library-file-type-icon.is-audio{background:#f0edf6!important;color:#806ba0}
+.library-file-type-icon.is-music{background:#edf2ed!important;color:#607c68}
+.library-file-type-icon svg{width:58px;height:58px;display:block}
+.library-file-type-icon .library-music-note{font-family:Georgia,serif;font-size:62px;line-height:1;font-weight:400;color:inherit}
+.sheet-converter-cta{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:22px;padding:20px 22px;border:1px solid var(--line);border-radius:16px;background:#faf9f7}
+.sheet-converter-cta>div{display:grid;gap:5px}
+.sheet-converter-cta strong{font-size:15px;color:var(--ink)}
+.sheet-converter-cta span{font-size:13px;color:var(--muted)}
+.expanded-score-rendered{width:100%;max-width:100%;min-height:100%;height:auto;overflow:visible;background:#f1f0ee;padding:26px clamp(12px,3vw,48px);box-sizing:border-box}
+.expanded-score-rendered .osmd-page{margin:0 auto 28px!important;background:#fff!important;box-shadow:0 2px 14px rgba(30,30,30,.12);max-width:100%}
+.expanded-score-rendered .osmd-page svg{display:block;width:100%!important;height:auto!important}
+.expanded-score-rendered svg{display:block;width:100%!important;max-width:100%!important;height:auto!important}
+@media(max-width:700px){.sheet-converter-cta{align-items:flex-start;flex-direction:column;padding:16px}.sheet-converter-cta .btn{width:100%}.expanded-score-rendered{padding:12px 8px}.expanded-score-rendered .osmd-page{margin-bottom:16px!important}}
