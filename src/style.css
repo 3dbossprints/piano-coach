@@ -2120,3 +2120,27 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .expanded-score-rendered .osmd-page svg{display:block;width:100%!important;height:auto!important}
 .expanded-score-rendered svg{display:block;width:100%!important;max-width:100%!important;height:auto!important}
 @media(max-width:700px){.sheet-converter-cta{align-items:flex-start;flex-direction:column;padding:16px}.sheet-converter-cta .btn{width:100%}.expanded-score-rendered{padding:12px 8px}.expanded-score-rendered .osmd-page{margin-bottom:16px!important}}
+
+
+/* Expanded score: real A4 portrait pages, separated like printed sheet music. */
+.expanded-score-player{min-height:0;display:flex;flex-direction:column;height:100%}
+.expanded-score-rendered{background:#ece9e4!important;padding:26px clamp(12px,3vw,42px)!important;overflow:auto!important}
+.expanded-score-rendered .osmdCanvasPage,
+.expanded-score-rendered .osmdPage{
+  background:#fff!important;
+  margin:0 auto 28px!important;
+  box-shadow:0 2px 12px rgba(35,30,24,.14),0 0 0 1px rgba(35,30,24,.08);
+}
+.expanded-score-rendered .osmdCanvasPage:last-child,
+.expanded-score-rendered .osmdPage:last-child{margin-bottom:0!important}
+.expanded-score-rendered svg{display:block;margin:0 auto}
+.expanded-score-progress{display:flex;align-items:center;gap:12px;min-width:0}
+.expanded-score-progress strong{white-space:nowrap}
+.expanded-score-progress span{min-width:0}
+.library-file-type-icon{background:#f3f2ef!important}
+.library-file-type-icon.is-audio svg{width:66px;height:60px}
+@media(max-width:700px){
+ .expanded-score-rendered{padding:12px 6px!important}
+ .expanded-score-rendered .osmdCanvasPage,
+ .expanded-score-rendered .osmdPage{margin-bottom:16px!important}
+}
