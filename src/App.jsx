@@ -1222,8 +1222,8 @@ async function playMidiLibraryFile(item){
   const name=file.name.toLowerCase(),target=options.target||'Sheet music';
   if(/\.(mp3|m4a|mp4|webm)$/i.test(name)){convertScoreToMusicCoach(file,{...options,target,download:false});return}
   if(!isSheetMusicLibraryItem({name:file.name})){setStatus('Choose a sheet music file: MusicXML, MIDI, .musiccoach, PDF or a score image.');return}
-  if(name.endsWith('.mid')||name.endsWith('.midi')){handleMidiUpload(file,{target});return}
-  if(name.endsWith('.musiccoach')||name.endsWith('.musicxml')||name.endsWith('.xml')){importMusicXML(file,{target,download:!!options.download});return}
+  if(name.endsWith('.mid')||name.endsWith('.midi')){handleMidiUpload(file,{...options,target});return}
+  if(name.endsWith('.musiccoach')||name.endsWith('.musicxml')||name.endsWith('.xml')){importMusicXML(file,{...options,target,download:!!options.download});return}
   if(file.type==='application/pdf'||name.endsWith('.pdf')||file.type.startsWith('image/')||/\.(png|jpe?g|webp|svg)$/i.test(name)){convertScoreToMusicCoach(file,{target,download:!!options.download});return}
   setStatus('This file type cannot be converted to sheet music.');
  }
