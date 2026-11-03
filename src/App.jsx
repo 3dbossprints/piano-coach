@@ -365,6 +365,7 @@ export default function App(){
  const synth=useRef(null), mic=useRef(null), analyser=useRef(null), micStream=useRef(null), raf=useRef(null), beatLoop=useRef(null), sequenceLoop=useRef(null), startTime=useRef(0), sessionEvents=useRef([]), recorderRef=useRef(null), chunksRef=useRef([]), recordingTimer=useRef(null), autoAnalyzeRef=useRef(false), analyseBlobRef=useRef(null), practiceTimerRef=useRef(null), midiPlaybackRef=useRef(null);
  const [targetIndex,setTargetIndex]=useState(0);
  const learnProgressRef=useRef(0),learnPhraseOffsetRef=useRef(0),learnNoteLockRef=useRef(0),learnModeRef=useRef(false),learnChordHitsRef=useRef({key:'',hits:[]}),learnMidiAccessRef=useRef(null);
+ const learnMicInputRef=useRef(null),learnMicActiveNoteRef=useRef(null),learnMicCandidateRef=useRef(null),learnMicCandidateFramesRef=useRef(0),learnMicLastSeenRef=useRef(0);
  const heldKeysRef=useRef({});
  const heldComputerKeysRef=useRef({});
  const targets=useMemo(()=>parseMusicSequence(expected),[expected]);
@@ -425,17 +426,43 @@ export default function App(){
   if(!analyser.current||!micStream.current)return;
   const data=new Float32Array(analyser.current.fftSize);analyser.current.getFloatTimeDomainData(data);
   let sum=0;for(let i=0;i<data.length;i++)sum+=data[i]*data[i];const rms=Math.sqrt(sum/data.length);setLevel(Math.min(100,Math.round(rms*320)));
-  if(rms>.006){
+  let detectedMidi=null;
+  if(rms>.009){
    const freq=autoCorrelate(data,Tone.getContext().sampleRate);
-   if(freq>45&&freq<1500){
+   if(freq>65&&freq<1100){
     const midi=Math.round(69+12*Math.log2(freq/440));
-    if(midi>=21&&midi<=108){
-     const note=midiToNote(midi),last=sessionEvents.current[sessionEvents.current.length-1];
-     if(!last||last.note!==note||Date.now()-last.timeMs>500){
-      const event={id:crypto.randomUUID?.()||String(Date.now()+Math.random()),note,midi,time:((Date.now()-startTime.current)/1000).toFixed(2),timeMs:Date.now(),source:'microphone'};
-      sessionEvents.current.push(event);setEvents([...sessionEvents.current]);if(learnModeRef.current){checkLearnNote(note,midi)}else{const micCount=sessionEvents.current.filter(e=>e.source==='microphone').length;const expectedNote=targets[Math.min(micCount-1,targets.length-1)];if(liveFeedback&&targets.length){const matched=expectedNote?.midi===midi;setTargetIndex(Math.min(micCount,targets.length));setStatus(matched?'Live feedback · correct '+note:'Live feedback · heard '+note+' · expected '+(expectedNote?midiToNote(expectedNote.midi):'end of sequence'));}else setStatus('Detected '+note)}
-     }
+    if(midi>=36&&midi<=96)detectedMidi=midi;
+   }
+  }
+  if(learnModeRef.current&&learnMicInputRef.current){
+   const now=Date.now();
+   if(detectedMidi!==null){
+    learnMicLastSeenRef.current=now;
+    if(learnMicCandidateRef.current===detectedMidi)learnMicCandidateFramesRef.current++;
+    else{learnMicCandidateRef.current=detectedMidi;learnMicCandidateFramesRef.current=1;}
+    // Require a stable pitch over several audio frames to reject piano transients
+    // and short-lived harmonic jumps before passing a note to the learning engine.
+    if(learnMicCandidateFramesRef.current>=4&&learnMicActiveNoteRef.current!==detectedMidi){
+     if(learnMicActiveNoteRef.current!==null)learnMicInputRef.current?.noteUp(learnMicActiveNoteRef.current);
+     learnMicActiveNoteRef.current=detectedMidi;
+     learnMicInputRef.current?.noteDown(detectedMidi);
+     const note=midiToNote(detectedMidi),event={id:crypto.randomUUID?.()||String(Date.now()+Math.random()),note,midi:detectedMidi,time:((now-startTime.current)/1000).toFixed(2),timeMs:now,source:'microphone'};
+     sessionEvents.current.push(event);setEvents([...sessionEvents.current]);
     }
+   }else{
+    learnMicCandidateRef.current=null;learnMicCandidateFramesRef.current=0;
+    if(learnMicActiveNoteRef.current!==null&&now-learnMicLastSeenRef.current>180){
+     learnMicInputRef.current?.noteUp(learnMicActiveNoteRef.current);learnMicActiveNoteRef.current=null;
+    }
+   }
+  }else if(detectedMidi!==null){
+   const note=midiToNote(detectedMidi),last=sessionEvents.current[sessionEvents.current.length-1];
+   if(!last||last.note!==note||Date.now()-last.timeMs>500){
+    const event={id:crypto.randomUUID?.()||String(Date.now()+Math.random()),note,midi:detectedMidi,time:((Date.now()-startTime.current)/1000).toFixed(2),timeMs:Date.now(),source:'microphone'};
+    sessionEvents.current.push(event);setEvents([...sessionEvents.current]);
+    const micCount=sessionEvents.current.filter(e=>e.source==='microphone').length,expectedNote=targets[Math.min(micCount-1,targets.length-1)];
+    if(liveFeedback&&targets.length){const matched=expectedNote?.midi===detectedMidi;setTargetIndex(Math.min(micCount,targets.length));setStatus(matched?'Live feedback · correct '+note:'Live feedback · heard '+note+' · expected '+(expectedNote?midiToNote(expectedNote.midi):'end of sequence'));}
+    else setStatus('Detected '+note);
    }
   }
   raf.current=requestAnimationFrame(sampleMic);
@@ -444,6 +471,8 @@ export default function App(){
   if(recorderRef.current&&recorderRef.current.state!=='inactive'){try{recorderRef.current.stop()}catch{}}
   if(recordingTimer.current)clearInterval(recordingTimer.current);recordingTimer.current=null;
   if(raf.current)cancelAnimationFrame(raf.current);raf.current=null;
+  if(learnMicActiveNoteRef.current!==null){learnMicInputRef.current?.noteUp(learnMicActiveNoteRef.current);learnMicActiveNoteRef.current=null;}
+  learnMicCandidateRef.current=null;learnMicCandidateFramesRef.current=0;learnMicLastSeenRef.current=0;
   micStream.current?.getTracks().forEach(t=>t.stop());micStream.current=null;
   try{mic.current?.disconnect();analyser.current?.disconnect()}catch{}
   mic.current=null;analyser.current=null;setListening(false);setIsRecording(false);setLevel(0);setMicStatus('Microphone is off');
@@ -1434,7 +1463,7 @@ async function playMidiLibraryFile(item){
      const entry={...n,id:n.id||'sequence-'+i,midi,time:cursor*60/Math.max(20,bpm),duration:beats*60/Math.max(20,bpm),measure:Math.floor(cursor/barBeats)+1,hand:Number(midi)<60?'left':'right'};
      cursor+=beats;return entry;
    });
-   return <KeystoneLearnEngine xml={scoreNotation?.sourceMusicXML||''} notes={engineNotes} bpm={bpm} timeSignature={timeSignature} title={songTitle||'Your piece'} onConnectMic={startMic} onDisconnectMic={stopMic} microphoneListening={listening} microphoneLevel={level} microphoneStatus={micStatus} onFinish={summary=>finishLearnSession(true,summary)} onClose={()=>finishLearnSession(false)} />;
+   return <KeystoneLearnEngine xml={scoreNotation?.sourceMusicXML||''} notes={engineNotes} bpm={bpm} timeSignature={timeSignature} title={songTitle||'Your piece'} micInputRef={learnMicInputRef} onConnectMic={startMic} onDisconnectMic={stopMic} microphoneListening={listening} microphoneLevel={level} microphoneStatus={micStatus} onFinish={summary=>finishLearnSession(true,summary)} onClose={()=>finishLearnSession(false)} />;
   };
 return <div className="shell"><aside className="sidebar"><a className="brand" href="#" onClick={e=>{e.preventDefault();setPage('Dashboard')}}><img className="brand-logo-mark" src="/assets/piano-coach-logo-mark.svg" alt=""/> <span>Piano Coach<small>Listen · Learn · Play</small></span></a><div className="nav-label">WORKSPACE</div>{nav.map(n=><button key={n} className={'nav-item '+(page===n?'active':'')} onClick={()=>setPage(n)}><span>{({'Dashboard':'⌂','Practice':'♫','Sheet music':'♬','Score converter':'⇄','Grade plan':'◎','Extras':'✦'})[n]}</span>{n}</button>)}<div className="sidebar-tools"><button title="Download all data (.musicdata)" aria-label="Download all data" onClick={downloadMusicData}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 17v3h16v-3"/></svg></button><button title="Restore data from .musicdata" aria-label="Upload backup data" onClick={()=>musicDataInputRef.current?.click()}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 16V4m-5 5 5-5 5 5M4 17v3h16v-3"/></svg></button><input ref={musicDataInputRef} type="file" accept=".musicdata,application/vnd.piano-coach.musicdata+json,application/json" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)importMusicData(f);e.target.value=''}}/><button title="Delete local data" aria-label="Delete local data" onClick={()=>{if(confirm('Deleting your saved website data will permanently remove your practice sessions, saved studies and Library items from this device. This cannot be undone. Delete your data?')){setSessions([]);setSaved([]);setLibraryFiles([]);for(const k of ['pc_sessions','pc_studies','pc_files'])localStorage.removeItem(k);setStatus('Local data cleared')}}}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m-11 0 1 14h12l1-14M10 10v6m4-6v6"/></svg></button></div><div className="sidebar-logo"><a href="https://jws.l.cd" target="_blank" rel="noopener noreferrer" aria-label="Open your requested website"><img src="/assets/user-corner-logo.svg" alt="Open website"/></a></div></aside>
  <main className="main">{compactViewport&&!continueOnSmallScreen&&<div className="device-size-overlay" role="dialog" aria-modal="true" aria-labelledby="device-size-title"><section className="device-size-card"><div className="device-size-icon">⌘</div><div className="eyebrow">BEST EXPERIENCE</div><h2 id="device-size-title">Use a computer or iPad for Music Coach</h2><p>Some tools — especially Listen & Learn, sheet music conversion and the piano keyboard — need a larger screen to work comfortably. We recommend opening Music Coach on a computer or iPad.</p><p className="device-size-warning">You can still continue on this screen, but parts of the app may be cramped or may not function as expected.</p><div className="device-size-actions"><button className="btn btn-dark" onClick={()=>setContinueOnSmallScreen(true)}>Continue on this screen</button><span>Recommended: screen width of 900px or more</span></div></section></div>}<header className="topbar"><div><div className="eyebrow">YOUR PERSONAL MUSIC STUDIO</div><h1>{page==='Practice'?'Play, listen, improve.':page==='Dashboard'?'A little practice goes a long way.':page}</h1></div><div className="top-actions"><span className="status-chip"><i/> {status}</span><button className="btn btn-dark" onClick={()=>{setPage('Practice');setStatus('Ready to play')}}>＋ New session</button></div></header>
