@@ -98,15 +98,19 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
     const broken=run.active.find(n=>n.broken&&n.midi===midi);
     if(broken){broken.broken=false;broken.upAt=0;run.stall=false;setMessage('Keep holding the note.');setTick(v=>v+1);return;}
     if(run.active.some(n=>n.broken)){setMessage('Press the held note again to continue.');return;}
+    // Treat notes with the same onset as one chord. A chord may contain up to
+    // 13 notes, and MIDI note-on events arrive one after another even when the
+    // player physically presses them together.
     const next=run.active.find(n=>!n.res);
-    const pool=next?run.active.filter(n=>!n.res&&n.midi===midi&&n.t<=next.t+.06):[];
-    const early=pool.length&&pool[0].t-run.clock>.35*run.speed;
+    const chord=next?run.active.filter(n=>!n.res&&Math.abs(n.t-next.t)<=.08):[];
+    const pool=chord.filter(n=>n.midi===midi);
+    const early=pool.length>0&&next.t-run.clock>.35*run.speed;
     if(pool.length&&(!early||run.stall)){
       const note=pool[0];const latency=note.arrivedAt?(performance.now()-note.arrivedAt)/1000:0;note.latency=latency;run.stall=false;
       if(run.clock<note.t)run.clock=note.t;
       hit(note,note.bad?'almost':latency<.4?'perfect':'good');
-    }else if(early)bad(midi,'Too early — wait for the falling note');
-    else if(run.clock>=-.3)bad(midi,run.active.some(n=>!n.res&&n.midi===midi)?'Not yet — follow the note':'Wrong note');
+    }else if(early)bad(midi,'Too early — wait for the falling chord');
+    else if(run.clock>=-.3)bad(midi,chord.some(n=>n.midi===midi)?'Not yet — follow the chord':'Wrong note');
   }, [bad, hit, sound]);
 
   const noteUp = useCallback((midi) => {
@@ -251,7 +255,7 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
         <button type="button" className="btn" onClick={midiConnected?disconnectMidi:connectMidi}>{midiConnected?'Disconnect MIDI piano':'Connect MIDI piano'}</button>
         <div className="keystone-mic-meter"><span>Input level</span><div><i style={{width:Math.max(0,Math.min(100,microphoneLevel))+'%'}}/></div><b>{Math.round(microphoneLevel)}%</b></div>
       </div>
-      <p className="keystone-input-status" role="status">{microphoneStatus}{microphoneListening?' · Microphone input checks one stable note at a time. Acoustic piano chords are not reliably separable; connect MIDI for accurate chords and both hands.':''}</p>
+      <p className="keystone-input-status" role="status">{microphoneStatus}{microphoneListening?' · MIDI keyboards support chords of up to 13 simultaneous notes, including both hands. Microphone mode remains monophonic.':''}</p>
     </div>
     <div className="keystone-stage" ref={stageRef}><canvas ref={canvasRef} onPointerDown={canvasDown} onPointerUp={canvasUp} onPointerCancel={canvasUp} onLostPointerCapture={canvasUp}/></div>
     <div className="keystone-status" role="status">{message}</div>
