@@ -3,6 +3,24 @@ import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import './style.css';
 
+// Recover from stale Vite lazy-loaded chunks after a deployment. The failed import
+// still rejects to its caller; this reload simply gives the browser the new HTML
+// and matching hashed asset. A session guard prevents reload loops.
+if (typeof window !== 'undefined') {
+  window.addEventListener('vite:preloadError', event => {
+    event.preventDefault();
+    const key = 'pc_vite_preload_retry_at';
+    let previous = 0;
+    try { previous = Number(sessionStorage.getItem(key) || 0); } catch {}
+    if (Date.now() - previous > 30000) {
+      try { sessionStorage.setItem(key, String(Date.now())); } catch {}
+      window.location.reload();
+    } else {
+      console.error('Music Coach could not reload a missing module chunk. The import error will be shown in the app.', event);
+    }
+  });
+}
+
 class AppErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { error: null }; }
   static getDerivedStateFromError(error) { return { error }; }
