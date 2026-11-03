@@ -1375,7 +1375,6 @@ async function playMidiLibraryFile(item){
   if(hasLater)setTimeout(()=>{if(learnModeRef.current)playLearnPhrase()},500);
  }
  function keyboardDown(e){
-  if(learnListenMode)return;
   const active=document.activeElement;
   if(e.repeat||e.metaKey||e.ctrlKey||e.altKey||['INPUT','TEXTAREA','SELECT'].includes(active?.tagName)||active?.isContentEditable)return;
   const key=KEYMAP[String(e.key||'').toLowerCase()];
@@ -1399,7 +1398,7 @@ async function playMidiLibraryFile(item){
  function releaseAllKeys(){
   const notes=new Set([...Object.values(heldComputerKeysRef.current),...Object.keys(heldKeysRef.current).filter(n=>heldKeysRef.current[n])]);
   heldComputerKeysRef.current={};
-  notes.forEach(note=>{heldKeysRef.current[note]=false;const midi=noteToMidi(note);if(midi!==null&&synth.current){try{synth.current.triggerRelease(midiToNote(midi),Tone.now())}catch{}}});
+  notes.forEach(note=>{heldKeysRef.current[note]=false;const midi=noteToMidi(note);if(midi!==null){if(learnListenMode){learnMicInputRef.current?.noteUp?.(midi)}else if(synth.current){try{synth.current.triggerRelease(midiToNote(midi),Tone.now())}catch{}}}});
   if(synth.current){try{synth.current.releaseAll(Tone.now())}catch{}}
   heldKeysRef.current={};
   setHeldKeys({});
