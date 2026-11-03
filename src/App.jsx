@@ -818,7 +818,7 @@ async function convertScoreToMusicCoach(file,options={}){
  }
  function saveStudy(){const title=prompt('Name this score',songTitle||'My piano recording');if(!title?.trim())return;const id=Date.now(),parsed=events.length?events:parseMusicSequence(expected).map((n,i)=>({...n,id:'n'+i,time:i*60/bpm,duration:(n.beats||1)*60/bpm}));const score={format:'musiccoach',version:1,title:title.trim(),bpm,timeSignature,created:new Date().toISOString(),source:events.some(e=>e.source==='microphone')?'piano recording':'Piano Coach score',notes:parsed.map((n,i)=>({...n,id:n.id||'n'+i,rest:!!n.rest,beats:n.beats||Math.max(.25,(Number(n.duration)||60/bpm)/(60/bpm)),measure:n.measure||Math.floor(i/Math.max(1,Number(timeSignature.split('/')[0])))+1}))};const json=encodeMusicCoach(score),data='data:application/vnd.musiccoach.score+json;base64,'+btoa(unescape(encodeURIComponent(json)));setLibraryFiles(v=>[{id,name:title.trim()+'.musiccoach',type:'application/vnd.musiccoach.score+json',size:json.length,data,added:new Date().toISOString(),kind:'score',score},...v.filter(x=>x.name!==title.trim()+'.musiccoach')]);setSaved(prev=>[{id,title:title.trim(),notes:expected},...prev]);setSongTitle(title.trim());setLibraryTab('scores');setPage('Sheet music');setStatus('Saved editable score to Library as '+title.trim()+'.musiccoach')}
  function useStudy(s){setExpected(s.notes);setSongTitle(s.title);setPage('Extras');setStatus('Loaded '+s.title+' into the standalone note tracker')}
- function normaliseArchiveText(value){return String(value||'').toLowerCase().normalize('NFKD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
+ function normaliseArchiveText(value){return String(value||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
  async function findPracticeReferences(title){
   const query=String(title||'').trim();
   if(!query){setPracticeReferenceOpen(true);setPracticeReferenceResults([]);setPracticeReferenceError('Enter a song title or composer first.');return [];}
@@ -827,7 +827,7 @@ async function convertScoreToMusicCoach(file,options={}){
    const searchUrl='https://archive.org/advancedsearch.php?q='+encodeURIComponent('('+query.replace(/[()]/g,' ') +') AND mediatype:audio')+'&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&rows=40&page=1&output=json';
    const response=await fetch(searchUrl);if(!response.ok)throw new Error('Internet Archive returned HTTP '+response.status);
    const docs=(await response.json())?.response?.docs||[];
-   const wanted=normaliseArchiveText(query),tokens=wanted.split(/\\s+/).filter(Boolean);
+   const wanted=normaliseArchiveText(query),tokens=wanted.split(/\s+/).filter(Boolean);
    const ranked=docs.filter(item=>item.identifier).map(item=>{
     const titleText=normaliseArchiveText(item.title),creatorText=normaliseArchiveText(Array.isArray(item.creator)?item.creator.join(' '):item.creator);
     const matched=tokens.filter(token=>(titleText+' '+creatorText).includes(token)).length;
@@ -840,7 +840,7 @@ async function convertScoreToMusicCoach(file,options={}){
     try{
      const meta=await fetch('https://archive.org/metadata/'+encodeURIComponent(item.identifier));if(!meta.ok)return null;
      const data=await meta.json();
-     const files=(data.files||[]).filter(file=>/\\.(mp3|m4a|ogg|opus|wav|flac|aiff?)$/i.test(file.name||'')&&(!file.size||Number(file.size)>50000)&&!String(file.name||'').includes('__ia_thumb'));
+     const files=(data.files||[]).filter(file=>/\.(mp3|m4a|ogg|opus|wav|flac|aiff?)$/i.test(file.name||'')&&(!file.size||Number(file.size)>50000)&&!String(file.name||'').includes('__ia_thumb'));
      const priority=file=>({mp3:10,m4a:9,ogg:8,opus:7,wav:6,flac:5,aif:4,aiff:4}[(String(file.name||'').split('.').pop()||'').toLowerCase()]||0);
      files.sort((a,b)=>priority(b)-priority(a)||Number(b.size||0)-Number(a.size||0));
      const file=files[0];if(!file)return null;
