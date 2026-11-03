@@ -257,11 +257,13 @@ function MusicXMLPreview({xml,title='Sheet music',onExpand}) {
  return <div className="musicxml-preview-compact"><div ref={host} className="musicxml-rendered"/>{error&&<small role="status">{error}</small>}{onExpand&&<button type="button" className="btn btn-small" onClick={onExpand}>Expand sheet ↗</button>}</div>;
 }
 
-function LibraryScorePreview({item}) {
+function LibraryScorePreview({item,onExpand}) {
  const name=String(item?.name||'').toLowerCase(),type=String(item?.type||item?.mimeType||'').toLowerCase(),kind=String(item?.kind||'').toLowerCase();
+ const isMidi=/\.(mid|midi)$/i.test(name)||type==='audio/midi';
  const isImage=kind==='image'||/\.(png|jpe?g|webp|svg|gif|bmp|tiff?)$/i.test(name)||type.startsWith('image/');
- const isAudio=['recording','audio','audio-recording','recording-audio'].includes(kind)||/\.(mp3|m4a|mp4|webm|wav|wave|ogg|oga|aac|flac|aiff?|opus)$/i.test(name)||type.startsWith('audio/')||type.startsWith('video/');
- return <div className={"personal-score-art library-file-type-icon "+(isImage?'is-image':isAudio?'is-audio':'is-music')} aria-label={isImage?'Image file':isAudio?'Audio recording':'Music file'}>
+ const isAudio=!isMidi&&(['recording','audio','audio-recording','recording-audio'].includes(kind)||/\.(mp3|m4a|mp4|webm|wav|wave|ogg|oga|aac|flac|aiff?|opus)$/i.test(name)||type.startsWith('audio/')||type.startsWith('video/'));
+ const canExpand=!isAudio&&typeof onExpand==='function';
+ return <div className={"personal-score-art library-file-type-icon "+(isImage?'is-image':isAudio?'is-audio':'is-music')+(canExpand?' is-expandable':'')} aria-label={isImage?'Image file':isAudio?'Audio recording':'Music file'} title={canExpand?'Double-click to open sheet music':'File type'} role={canExpand?'button':undefined} tabIndex={canExpand?0:undefined} onDoubleClick={canExpand?onExpand:undefined} onKeyDown={canExpand?e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onExpand()}}:undefined} style={canExpand?{cursor:'zoom-in'}:undefined}>
   {isImage?<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="9" y="11" width="46" height="42" rx="6" fill="none" stroke="currentColor" strokeWidth="3"/><circle cx="23" cy="25" r="5" fill="currentColor"/><path d="M13 47l14-14 9 9 7-7 9 12" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>:isAudio?<svg viewBox="0 0 72 64" aria-hidden="true"><path d="M5 24h8m-8 8h8m-8 8h8m46-16h8m-8 8h8m-8 8h8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity=".55"/><circle cx="36" cy="32" r="19" fill="none" stroke="currentColor" strokeWidth="3.5"/><circle cx="36" cy="32" r="6" fill="currentColor"/></svg>:<span className="library-music-note" aria-hidden="true">♫</span>}
  </div>;
 }
