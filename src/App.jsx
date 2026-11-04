@@ -250,7 +250,7 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
       while(iterator&&Number(iterator.CurrentMeasureIndex)<bar.measure-1&&guard++<10000)measureCursor.next();
       measureCursor.update?.();
       const pageNumber=Number(measureCursor.updateCurrentPage?.()||measureCursor.currentPageNumber||1);
-      showScorePage(pageNumber,true);
+      if(pageNumber!==activePageRef.current)showScorePage(pageNumber,true);
      }
     }catch(error){console.warn('Could not update current measure highlight',error);}
    },Math.round(bar.seconds*data.tempo/60*Tone.Transport.PPQ)+'i'));
