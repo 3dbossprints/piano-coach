@@ -154,16 +154,30 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
   const pages=getRenderedScorePages();
   const pageCount=Math.max(1,pages.length);
   const next=Math.max(1,Math.min(pageCount,Number(pageNumber)||1));
+  // Display facing-page spreads (1–2, 3–4...) while keeping the exact
+  // playback page in the toolbar. On narrow screens CSS collapses to one.
+  const spreadStart=Math.floor((next-1)/2)*2+1;
+  const spreadEnd=Math.min(pageCount,spreadStart+1);
+  if(host.current){
+   host.current.classList.add('expanded-score-page-spread');
+   host.current.style.display='grid';
+   host.current.style.gridTemplateColumns='repeat(2,minmax(0,1fr))';
+   host.current.style.alignItems='start';
+   host.current.style.gap='clamp(12px,2vw,28px)';
+   host.current.style.maxWidth='1800px';
+  }
   pages.forEach((page,index)=>{
-   page.style.display=index===next-1?'block':'none';
-   page.setAttribute('aria-hidden',index===next-1?'false':'true');
+   const visible=index+1>=spreadStart&&index+1<=spreadEnd;
+   page.style.display=visible?'block':'none';
+   page.setAttribute('aria-hidden',visible?'false':'true');
+   page.setAttribute('data-score-page',String(index+1));
   });
   activePageRef.current=next;
   setActivePage(next);
-  if(scroll&&pages[next-1]){
+  if(scroll&&pages[spreadStart-1]){
    const root=host.current?.closest('.score-fullscreen-content')||host.current?.parentElement;
    if(root){
-    const top=pages[next-1].getBoundingClientRect().top-root.getBoundingClientRect().top+root.scrollTop-10;
+    const top=pages[spreadStart-1].getBoundingClientRect().top-root.getBoundingClientRect().top+root.scrollTop-10;
     root.scrollTo({top:Math.max(0,top),behavior:'smooth'});
    }
   }
@@ -174,7 +188,7 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
    try{
     if(!xml||!/<score-(?:partwise|timewise)\b/i.test(xml))throw new Error('This file does not contain valid MusicXML.');
     host.current.style.width='100%';host.current.style.maxWidth='920px';host.current.style.margin='0 auto';
-    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:false,pageFormat:'A4_P',newPageFromXML:true,newSystemFromNewPageInXML:true,drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:false,cursorsOptions:[{type:3,color:'#8b73c7',alpha:.2,follow:false}],backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false,drawMeasureNumbers:true,drawPartAbbreviations:false});
+    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:false,pageFormat:'A4_P',newPageFromXML:true,newSystemFromNewPageInXML:true,drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:false,cursorsOptions:[{type:3,color:'#f0b429',alpha:.34,follow:false}],backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false,drawMeasureNumbers:true,drawPartAbbreviations:false});
     await renderer.load(normalizeMusicXMLTitle(xml,title));if(cancelled)return;
     renderer.Zoom=1;renderer.render();rendererRef.current=renderer;
     renderer.enableOrDisableCursors(true);
@@ -223,8 +237,22 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
    const part=new Tone.Part((time,n)=>player.triggerAttackRelease(n.name,n.duration,time,n.velocity),events);part.start(0);partRef.current=part;
    measureEventsRef.current=data.barStarts.map(bar=>Tone.Transport.scheduleOnce(()=>{
     setActiveMeasure(bar.measure);
-    const cursor=rendererRef.current?.cursors?.[0]||rendererRef.current?.cursor;
-    try{if(cursor){cursor.reset();cursor.show();let guard=0,iterator=cursor.Iterator||cursor.iterator;while(iterator&&Number(iterator.CurrentMeasureIndex)<bar.measure-1&&guard++<3000)cursor.next();const pageNumber=Number(cursor.updateCurrentPage?.()||cursor.currentPageNumber||1);if(pageNumber!==activePageRef.current)showScorePage(pageNumber,true);}}catch{}
+    const osmd=rendererRef.current;
+    // OSMD cursor type 3 is the native current-measure area highlight.
+    // Re-seek from the beginning for each scheduled bar to prevent drift.
+    const measureCursor=osmd?.cursors?.find(c=>Number(c.CursorOptions?.type)===3)||osmd?.cursors?.[0]||osmd?.cursor;
+    try{
+     if(measureCursor){
+      measureCursor.reset();
+      measureCursor.show();
+      const iterator=measureCursor.Iterator||measureCursor.iterator;
+      let guard=0;
+      while(iterator&&Number(iterator.CurrentMeasureIndex)<bar.measure-1&&guard++<10000)measureCursor.next();
+      measureCursor.update?.();
+      const pageNumber=Number(measureCursor.updateCurrentPage?.()||measureCursor.currentPageNumber||1);
+      showScorePage(pageNumber,true);
+     }
+    }catch(error){console.warn('Could not update current measure highlight',error);}
    },Math.round(bar.seconds*data.tempo/60*Tone.Transport.PPQ)+'i'));
    Tone.Transport.bpm.value=data.tempo;Tone.Transport.position=0;Tone.Transport.start();setPlaying(true);setStatus('Playing · '+data.tempo+' BPM');
    const end=Math.max(...data.events.map(n=>n.time+n.duration))+.2;
