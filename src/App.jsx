@@ -154,21 +154,40 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
   const pages=getRenderedScorePages();
   const pageCount=Math.max(1,pages.length);
   const next=Math.max(1,Math.min(pageCount,Number(pageNumber)||1));
-  // Display facing-page spreads (1–2, 3–4...) while keeping the exact
-  // playback page in the toolbar. On narrow screens CSS collapses to one.
   const spreadStart=Math.floor((next-1)/2)*2+1;
   const spreadEnd=Math.min(pageCount,spreadStart+1);
+  const pageContainer=pages[0]?.parentElement||host.current;
   if(host.current){
    host.current.classList.add('expanded-score-page-spread');
-   host.current.style.display='grid';
-   host.current.style.gridTemplateColumns='repeat(2,minmax(0,1fr))';
-   host.current.style.alignItems='start';
-   host.current.style.gap='clamp(12px,2vw,28px)';
-   host.current.style.maxWidth='1800px';
+   host.current.style.width='100%';
+   host.current.style.maxWidth='none';
+   host.current.style.minWidth='0';
+   host.current.style.margin='0 auto';
+   host.current.style.boxSizing='border-box';
+  }
+  if(pageContainer){
+   pageContainer.classList.add('expanded-score-pages-grid');
+   pageContainer.style.display='grid';
+   pageContainer.style.gridTemplateColumns='repeat(2,minmax(0,1fr))';
+   pageContainer.style.alignItems='start';
+   pageContainer.style.gap='clamp(16px,2vw,34px)';
+   pageContainer.style.width='100%';
+   pageContainer.style.maxWidth='1800px';
+   pageContainer.style.margin='0 auto';
+   pageContainer.style.boxSizing='border-box';
   }
   pages.forEach((page,index)=>{
    const visible=index+1>=spreadStart&&index+1<=spreadEnd;
    page.style.display=visible?'block':'none';
+   page.style.width='100%';
+   page.style.minWidth='0';
+   page.style.maxWidth='none';
+   page.style.margin='0';
+   page.style.padding='0';
+   page.style.border='0';
+   page.style.boxShadow='0 2px 12px rgba(20,20,20,.10)';
+   page.style.background='#fff';
+   page.style.boxSizing='border-box';
    page.setAttribute('aria-hidden',visible?'false':'true');
    page.setAttribute('data-score-page',String(index+1));
   });
@@ -187,8 +206,8 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
   async function render(){
    try{
     if(!xml||!/<score-(?:partwise|timewise)\b/i.test(xml))throw new Error('This file does not contain valid MusicXML.');
-    host.current.style.width='100%';host.current.style.maxWidth='920px';host.current.style.margin='0 auto';
-    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:false,pageFormat:'A4_P',newPageFromXML:true,newSystemFromNewPageInXML:true,drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:false,cursorsOptions:[{type:3,color:'#f0b429',alpha:.34,follow:false}],backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false,drawMeasureNumbers:true,drawPartAbbreviations:false});
+    host.current.style.width='100%';host.current.style.maxWidth='none';host.current.style.minWidth='0';host.current.style.margin='0 auto';host.current.style.boxSizing='border-box';
+    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:false,pageFormat:'A4_P',newPageFromXML:true,newSystemFromNewPageInXML:true,drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:false,cursorsOptions:[{type:3,color:'#f0b429',alpha:.38,follow:true}],pageBackgroundColor:'#ffffff',backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false,drawMeasureNumbers:true,drawPartAbbreviations:false});
     await renderer.load(normalizeMusicXMLTitle(xml,title));if(cancelled)return;
     renderer.Zoom=1;renderer.render();rendererRef.current=renderer;
     renderer.enableOrDisableCursors(true);
@@ -238,21 +257,28 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
    measureEventsRef.current=data.barStarts.map(bar=>Tone.Transport.scheduleOnce(()=>{
     setActiveMeasure(bar.measure);
     const osmd=rendererRef.current;
-    // OSMD cursor type 3 is the native current-measure area highlight.
-    // Re-seek from the beginning for each scheduled bar to prevent drift.
+    // OSMD type 3 is the current-measure area. pageBackgroundColor makes
+    // OSMD place its cursor above the SVG; FollowCursor remains disabled.
     const measureCursor=osmd?.cursors?.find(c=>Number(c.CursorOptions?.type)===3)||osmd?.cursors?.[0]||osmd?.cursor;
     try{
      if(measureCursor){
-      measureCursor.reset();
+      const targetMeasureIndex=Math.max(0,bar.measure-1);
+      let currentMeasureIndex=Number(measureCursor.Iterator?.CurrentMeasureIndex);
+      if(!Number.isFinite(currentMeasureIndex)||targetMeasureIndex<currentMeasureIndex){
+       measureCursor.reset();
+       currentMeasureIndex=Number(measureCursor.Iterator?.CurrentMeasureIndex)||0;
+      }
       measureCursor.show();
-      const iterator=measureCursor.Iterator||measureCursor.iterator;
       let guard=0;
-      while(iterator&&Number(iterator.CurrentMeasureIndex)<bar.measure-1&&guard++<10000)measureCursor.next();
-      measureCursor.update?.();
+      while(Number(measureCursor.Iterator?.CurrentMeasureIndex)<targetMeasureIndex&&guard++<1000){
+       if(typeof measureCursor.nextMeasure==='function')measureCursor.nextMeasure();
+       else measureCursor.next();
+      }
+      measureCursor.update();
       const pageNumber=Number(measureCursor.updateCurrentPage?.()||measureCursor.currentPageNumber||1);
       if(pageNumber!==activePageRef.current)showScorePage(pageNumber,true);
      }
-    }catch(error){console.warn('Could not update current measure highlight',error);}
+    }catch(error){console.error('Current-measure highlight failed',error);}
    },Math.round(bar.seconds*data.tempo/60*Tone.Transport.PPQ)+'i'));
    Tone.Transport.bpm.value=data.tempo;Tone.Transport.position=0;Tone.Transport.start();setPlaying(true);setStatus('Playing · '+data.tempo+' BPM');
    const end=Math.max(...data.events.map(n=>n.time+n.duration))+.2;
