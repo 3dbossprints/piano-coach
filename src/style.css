@@ -2193,3 +2193,52 @@ button:disabled { cursor: not-allowed; opacity: .48; }
  .expanded-score-rendered .osmd-page,
  .expanded-score-rendered .osmdPage{margin-bottom:16px!important}
 }
+
+
+/* Expanded score: responsive facing-page layout. Two actual OSMD pages remain
+   individually framed and visibly separated as a spread on desktop. */
+.expanded-score-rendered.expanded-score-page-spread{
+  width:100%!important;
+  max-width:1800px!important;
+  padding:22px clamp(12px,2.2vw,36px) 34px!important;
+  margin:0 auto!important;
+  box-sizing:border-box!important;
+  background:#e9e7e2!important;
+}
+.expanded-score-rendered.expanded-score-page-spread [id^="osmdCanvasPage"],
+.expanded-score-rendered.expanded-score-page-spread .osmd-page,
+.expanded-score-rendered.expanded-score-page-spread .osmdPage{
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  margin:0!important;
+  padding:clamp(6px,1vw,14px)!important;
+  box-sizing:border-box!important;
+  align-self:start!important;
+  background:#fff!important;
+  border:1px solid #d6d2ca!important;
+  box-shadow:0 3px 16px rgba(33,29,22,.16),0 0 0 1px rgba(33,29,22,.05)!important;
+}
+.expanded-score-rendered.expanded-score-page-spread [id^="osmdCanvasPage"] svg,
+.expanded-score-rendered.expanded-score-page-spread .osmd-page svg,
+.expanded-score-rendered.expanded-score-page-spread .osmdPage svg{
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  height:auto!important;
+  margin:0!important;
+}
+@media(max-width:1000px){
+ .expanded-score-rendered.expanded-score-page-spread{
+  grid-template-columns:minmax(0,1fr)!important;
+  max-width:760px!important;
+  gap:16px!important;
+  padding:12px 8px 24px!important;
+ }
+}
+@media(max-width:700px){
+ .expanded-score-rendered.expanded-score-page-spread{padding:8px 5px 18px!important}
+ .expanded-score-rendered.expanded-score-page-spread [id^="osmdCanvasPage"],
+ .expanded-score-rendered.expanded-score-page-spread .osmd-page,
+ .expanded-score-rendered.expanded-score-page-spread .osmdPage{padding:4px!important}
+}
