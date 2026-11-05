@@ -2313,3 +2313,30 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .dashboard-quick-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:15px}.dashboard-quick-actions .dashboard-primary{margin:0}.dashboard-quick-actions .btn:not(.dashboard-primary){background:#fff;border-color:#e1e8df;color:#34473b}.dashboard-quick-actions .btn:not(.dashboard-primary):hover{background:#f5f8f3}@media(max-width:700px){.dashboard-quick-actions{display:grid;grid-template-columns:1fr 1fr}.dashboard-quick-actions .dashboard-primary{grid-column:1/-1}}
 
 .practice-search-hint,.learn-launch-disabled-hint{display:block;color:var(--muted);font-size:11px;line-height:1.5;margin:5px 0 0}.learn-launch-disabled-hint{flex-basis:100%;margin:10px 0 0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#f8faf6}
+
+/* Piano Coach workspace refinement: consistent containment, spacing and upload affordances. */
+.main{min-width:0;padding:clamp(18px,2.4vw,34px)}
+.main>.panel,.main>.sheet-music-workspace,.main>.practice-grid,.main>.dashboard-grid{min-width:0}
+.panel{padding:clamp(18px,2vw,28px);border:1px solid rgba(220,211,235,.95);border-radius:22px;box-shadow:0 8px 28px rgba(54,39,78,.055)}
+.panel>*+*{min-width:0}
+.panel .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:18px}
+.musiccoach-converter{display:flex;flex-direction:column;gap:14px;padding:clamp(20px,3vw,36px);border:1px solid #e4dced;border-radius:24px;background:rgba(255,255,255,.9);box-shadow:0 14px 42px rgba(67,48,92,.07)}
+.musiccoach-converter>.eyebrow{margin-top:4px}
+.musiccoach-converter>h2{margin:0;font-size:clamp(24px,3vw,32px);letter-spacing:-.8px}
+.musiccoach-converter>p{max-width:900px;margin:0;line-height:1.7}
+.musiccoach-converter .converter-input-actions{gap:14px;margin:8px 0 4px}
+.musiccoach-upload{position:relative;display:flex!important;flex:1 1 380px;min-height:170px!important;flex-direction:column;align-items:center!important;justify-content:center!important;gap:9px!important;margin:0!important;padding:26px!important;border:1.5px dashed #b9a9d4!important;border-radius:18px!important;background:linear-gradient(145deg,#fbf9ff,#f7f2ff)!important;color:var(--ink);text-align:center;transition:border-color .18s ease,background .18s ease,box-shadow .18s ease,transform .18s ease}
+.musiccoach-upload:hover,.musiccoach-upload:focus-within{border-color:#8e75c3!important;background:#f5efff!important;box-shadow:0 0 0 4px rgba(142,117,195,.1)}
+.musiccoach-upload.is-drag-active{border:2px solid #7657b7!important;background:#eee6ff!important;box-shadow:0 0 0 5px rgba(118,87,183,.13),0 12px 30px rgba(75,52,115,.1);transform:translateY(-1px)}
+.musiccoach-upload .musiccoach-upload-icon{display:grid;place-items:center;width:42px;height:42px;border:1px solid #e4daf3;border-radius:13px;background:#fff;color:#7054a8;font-size:25px}
+.musiccoach-upload strong{font-size:14px;line-height:1.4}
+.musiccoach-upload small{color:var(--muted);font-size:11px;line-height:1.5;font-weight:500}
+.musiccoach-upload input{width:min(100%,360px);max-width:100%;margin-top:6px;font-size:12px}
+.musiccoach-converter .score-review-grid{gap:16px;margin-top:8px}
+.musiccoach-converter .notation-guide{margin:4px 0;padding:18px;border:1px solid #e6deef;border-radius:16px;background:#fcfaff}
+.musiccoach-converter .conversion-saved-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:15px 17px;border:1px solid #cde5d5;border-radius:15px;background:#f2fbf5}
+.musiccoach-converter .conversion-saved-banner>span{flex:1 1 240px;line-height:1.55}
+.musiccoach-converter .musiccoach-progress{height:8px;margin:4px 0 10px;background:#eee9f4}
+.musiccoach-converter .musiccoach-progress span{background:linear-gradient(90deg,#8a70bd,#c08cb2)}
+.musiccoach-converter .tutor-answer{margin-top:6px;padding:16px 18px;border:1px solid #e7e0ef;border-radius:15px;background:#fbf9fe}
+@media(max-width:700px){.main{padding:14px}.panel{padding:17px;border-radius:17px}.musiccoach-converter{padding:17px;border-radius:18px}.musiccoach-upload{min-height:150px!important;padding:18px!important}.musiccoach-converter .conversion-saved-banner{align-items:stretch}.musiccoach-converter .conversion-saved-banner .btn{width:100%}}
