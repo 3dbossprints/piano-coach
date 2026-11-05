@@ -612,7 +612,9 @@ export default function App(){
   const refined=period-(a?bv/(2*a):0);return sampleRate/refined;
  }
  async function askTutor(){
-  if(!tutorQuestion.trim()||tutorBusy)return;setTutorBusy(true);setTutorAnswer('');setTutorStatus('Loading the on-device AI model; first use may download model files.');
+  if(!tutorQuestion.trim()||tutorBusy)return;
+  const verified=verifiedTheoryAnswer(tutorQuestion);
+  if(verified){setTutorAnswer(verified);setTutorStatus('Verified music-theory reference');return;}setTutorBusy(true);setTutorAnswer('');setTutorStatus('Loading the on-device AI model; first use may download model files.');
   try{const assistant=await ensurePianoCoachAI();const prompt='Piano practice data: mode '+mode+'; target '+expected+'; recent detected notes '+events.slice(-20).map(e=>e.note+' at '+e.time+'s').join(', ')+'; pitch match '+comparison.correct+' of '+comparison.total+' target notes. Learner asks: '+tutorQuestion+'. Give specific, encouraging advice using only this evidence.';const result=await Promise.race([assistant.ask(prompt,{onProgress:p=>setTutorStatus(p.message||'AI is working…')}),new Promise((_,reject)=>setTimeout(()=>reject(new Error('The AI tutor did not respond within 90 seconds. Please retry.')),90000))]);setTutorAnswer(sanitizeTutorResponse(result.answer)||'The tutor response was omitted because it contained unsupported scoring claims or raw analysis data.');setTutorStatus('Local AI ready · '+(result.device||'browser model'));}catch(e){setTutorStatus('AI unavailable: '+e.message)}finally{setTutorBusy(false)}
  }
 function changeSongTempo(value){
@@ -1437,14 +1439,29 @@ async function playMidiLibraryFile(item){
   return window.PianoCoachAI;
  }
  async function sendMusicChat(){
-  const question=musicChatInput.trim();if(!question||musicChatBusy)return;
-  setMusicChat(v=>[...v,{role:'user',content:question}]);setMusicChatInput('');setMusicChatBusy(true);
-  try{
+ const question=musicChatInput.trim();
+ if(!question||musicChatBusy)return;
+ setMusicChat(v=>[...v,{role:'user',content:question}]);
+ setMusicChatInput('');
+ setMusicChatBusy(true);
+ try{
+  const verified=verifiedTheoryAnswer(question);
+  let answer=verified;
+  if(!answer){
    const assistant=await ensurePianoCoachAI();
-   const verified=verifiedTheoryAnswer(question);const result=verified?{answer:verified}:await Promise.race([assistant.ask(question,{history:musicChat.slice(-8)}),new Promise((_,reject)=>setTimeout(()=>reject(new Error('The assistant did not respond within 90 seconds. Please retry.')),90000))]);setMusicChat(v=>[...v,{role:'assistant',content:sanitizeTutorResponse(result.answer)||'I could not produce a reliable answer. Please check exact theory facts against a trusted theory reference.'}]);
-  }catch(e){setMusicChat(v=>[...v,{role:'assistant',content:'Assistant unavailable: '+e.message}])}finally{setMusicChatBusy(false)}
+   const result=await Promise.race([
+    assistant.ask(question,{history:musicChat.slice(-8)}),
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error('The assistant did not respond within 90 seconds. Please retry.')),90000))
+   ]);
+   answer=sanitizeTutorResponse(result.answer);
+  }
+  setMusicChat(v=>[...v,{role:'assistant',content:answer||'I could not produce a reliable answer. Please check exact theory facts against a trusted theory reference.'}]);
+ }catch(e){
+  setMusicChat(v=>[...v,{role:'assistant',content:'Assistant unavailable: '+e.message}]);
+ }finally{
+  setMusicChatBusy(false);
  }
- function startVoiceQuestion(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){setTutorStatus('Voice input is not supported in this browser.');return}const rec=new SR();rec.lang='en-GB';rec.onresult=e=>setTutorQuestion(v=>(v+' '+e.results[0][0].transcript).trim());rec.start()}
+} function startVoiceQuestion(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){setTutorStatus('Voice input is not supported in this browser.');return}const rec=new SR();rec.lang='en-GB';rec.onresult=e=>setTutorQuestion(v=>(v+' '+e.results[0][0].transcript).trim());rec.start()}
  async function pressKey(note){if(heldKeysRef.current[note])return;heldKeysRef.current[note]=true;setHeldKeys(v=>({...v,[note]:true}));const midi=noteToMidi(note);if(midi!==null){if(learnListenMode){learnMicInputRef.current?.noteDown?.(midi)}else{const s=await ensureSynth();if(heldKeysRef.current[note])s.triggerAttack(midiToNote(midi));}}if(!startTime.current)startTime.current=Date.now();const event={id:crypto.randomUUID?.()||String(Date.now()+Math.random()),note,midi,time:((Date.now()-startTime.current)/1000).toFixed(2),timeMs:Date.now(),source:'keyboard'};sessionEvents.current.push(event);setEvents([...sessionEvents.current]);if(!learnListenMode)setStatus('Played '+note)}
  function checkLearnNote(note,midi,source='microphone'){
   const now=Date.now();if(source!=='midi'&&now-learnNoteLockRef.current<180)return;learnNoteLockRef.current=now;
