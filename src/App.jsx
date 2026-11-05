@@ -380,6 +380,30 @@ function combineMusicXMLPages(xmlTexts,title){
  workTitle.textContent=title||'Combined score';
  return new XMLSerializer().serializeToString(base);
 }
+function applyRecognizedScoreMetadata(source,metadata={},fallbackTitle='Imported score'){
+ const doc=new DOMParser().parseFromString(source,'application/xml');
+ if(doc.querySelector('parsererror'))return source;
+ const root=doc.querySelector('score-partwise');
+ if(!root)return source;
+ const title=String(metadata.title||fallbackTitle||'').trim();
+ if(title){
+  let work=doc.querySelector('work');
+  if(!work){work=doc.createElement('work');root.insertBefore(work,root.firstChild);}
+  let workTitle=work.querySelector('work-title');
+  if(!workTitle){workTitle=doc.createElement('work-title');work.appendChild(workTitle);}
+  workTitle.textContent=title;
+ }
+ const creators=[['composer',metadata.composer],['arranger',metadata.arranger]].filter(([,value])=>String(value||'').trim());
+ if(creators.length){
+  let identification=doc.querySelector('identification');
+  if(!identification){identification=doc.createElement('identification');const partList=root.querySelector('part-list');root.insertBefore(identification,partList||root.firstChild);}
+  for(const [type,value] of creators){
+   if(identification.querySelector('creator[type="'+type+'"]'))continue;
+   const creator=doc.createElement('creator');creator.setAttribute('type',type);creator.textContent=String(value).trim();identification.appendChild(creator);
+  }
+ }
+ return new XMLSerializer().serializeToString(doc);
+}
 function decodeMusicCoach(text){
  const source=String(text||'').replace(/^\uFEFF/,'').trimStart();
  const headers=['MUSICCOACH-SCORE/2\n','PIANOCOACH-MIX/1\n'];
@@ -1003,8 +1027,9 @@ async function convertScoreToMusicCoach(file,options={}){
    const {recognizeScoreFile}=await import('./score-ocr.js');
    const result=await recognizeScoreFile(file,message=>setMusicCoachStatus(message));
    setMusicCoachStatus('Recognised '+result.pages+' page(s). Combining the pages into one continuous score…');
-   const title=file.name.replace(/\.[^.]+$/,'')||'Recognised score';
-   const xmlFile=new File([result.musicXML],title+'.musicxml',{type:'application/vnd.recordare.musicxml+xml'});
+   const title=String(result.metadata?.title||file.name.replace(/\.[^.]+$/,'')||'Recognised score').trim();
+   const identifiedMusicXML=applyRecognizedScoreMetadata(result.musicXML,result.metadata,title);
+   const xmlFile=new File([identifiedMusicXML],title+'.musicxml',{type:'application/vnd.recordare.musicxml+xml'});
    const sourceData=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('Could not preserve the original score file in the backup.'));reader.readAsDataURL(file)});
    const sourceExt=(file.name.split('.').pop()||'png').toLowerCase();const sourceMime=file.type||(isPdf?'application/pdf':({jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',svg:'image/svg+xml'}[sourceExt]||'application/octet-stream'));const sourceAsset={name:file.name,mimeType:sourceMime,size:file.size,data:sourceData};
    setMusicCoachStatus('Recognition complete. Importing '+result.pages+' page(s) and building the .musiccoach file…');
