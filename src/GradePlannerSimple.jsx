@@ -20,8 +20,9 @@ export default function GradePlannerSimple({sessions=[],onPracticePiece=()=>{}})
   const current=level==='Beginner'?'Initial Grade':level;
   const next=LEVELS[Math.min(9,Math.max(1,LEVELS.indexOf(current)+1))];
   const finalTarget=goal==='exam'?target:next;
-  const route=board==='ABRSM'?'Practical Grades':'Trinity Digital — Technical work';
-  setPlan(p=>({...p,board,route,current,target:finalTarget,weeklyHours:Number(days)*Number(minutes)/60,pieces:Array.isArray(p.pieces)?p.pieces:[],checks:p.checks||{}}));
+  const finalBoard=goal==='exam'?board:'Personal';
+  const route=goal==='exam'?(board==='ABRSM'?'Practical Grades':'Trinity Digital — Technical work'):'Personal development';
+  setPlan(p=>({...p,goal,board:finalBoard,route,current,target:finalTarget,weeklyHours:Number(days)*Number(minutes)/60,pieces:Array.isArray(p.pieces)?p.pieces:[],checks:p.checks||{}}));
   setError('');
   setPlanNotice('Your practice plan has been created and saved in this browser.');
   setDone(true);
@@ -38,7 +39,7 @@ export default function GradePlannerSimple({sessions=[],onPracticePiece=()=>{}})
    setPlan(p=>{
     const pieces=Array.isArray(p.pieces)?p.pieces:[];
     const index=pieces.length;
-    const category=p.board==='ABRSM'?(index<3?['List A','List B','List C'][index]:'Own choice'):(Number(String(p.target).replace('Grade ','').replace('Initial Grade','0'))>=6?(index===0?'Group A':'Group B'):'Repertoire list');
+    const category=p.goal&&p.goal!=='exam'?'Personal repertoire':p.board==='ABRSM'?(index<3?['List A','List B','List C'][index]:'Own choice'):(Number(String(p.target).replace('Grade ','').replace('Initial Grade','0'))>=6?(index===0?'Group A':'Group B'):'Repertoire list');
     const title=file.name.replace(/\.(pdf|png|jpe?g|webp)$/i,'').replace(/[_-]+/g,' ').trim()||'Grade piece '+(index+1);
     return {...p,pieces:[...pieces,{id:'piece-'+Date.now(),title,composer:'',category,scoreData:String(reader.result||''),scoreName:file.name,scoreType:file.type,addedAt:new Date().toISOString()}]};
    });
@@ -47,7 +48,13 @@ export default function GradePlannerSimple({sessions=[],onPracticePiece=()=>{}})
   reader.readAsDataURL(file);
  }
  function remove(id){setPlan(p=>({...p,pieces:(p.pieces||[]).filter(x=>x.id!==id)}))}
- const requirements=plan.board==='ABRSM'?[
+ const isPersonalPlan=plan.goal?plan.goal!=='exam':!['ABRSM','Trinity'].includes(plan.board);
+ const requirements=isPersonalPlan?[
+  ['pieces','Build a repertoire','Choose pieces that are enjoyable and slightly more challenging than your current level.'],
+  ['technique','Develop technique','Practise scales, arpeggios, posture and relaxed movement in short focused sessions.'],
+  ['sight','Sight-reading','Read a short unfamiliar passage regularly, keeping a steady pulse.'],
+  ['listening','Musical listening','Listen back to recordings and notice timing, balance, phrasing and accuracy.']
+ ]:plan.board==='ABRSM'?[
   ['pieces','Three pieces','Choose one approved piece from each of Lists A, B and C for your syllabus edition.'],
   ['scales','Scales and arpeggios','Practise the exact keys, hands and tempos listed for your grade.'],
   ['sight','Sight-reading','Practise short unfamiliar pieces and keep a steady pulse.'],
@@ -70,9 +77,9 @@ export default function GradePlannerSimple({sessions=[],onPracticePiece=()=>{}})
     <button className="btn btn-dark" type="submit" onClick={()=>{setError('');setPlanNotice('Creating your practice plan…')}}>Create my plan →</button>
    </form>
   </section>:<>
-   <section className="panel gp-simple-hero"><div><div className="eyebrow">YOUR PLAN</div>{planNotice&&<p className="gp-plan-confirmation" role="status">✓ {planNotice}</p>}<h2>{plan.board||'Piano'} · {plan.target||'Next steps'}</h2><p className="muted">Your plan is ready. Add photos of your grade pieces and Piano Coach will convert them into sheet music for practice.</p><strong>{Math.round((Number(plan.weeklyHours)||0)*60)} minutes planned each week</strong></div><button className="btn" onClick={()=>setDone(false)}>Edit answers</button></section>
-   <section className="panel"><h3>Your practice checklist</h3><div className="gp-simple-steps">{requirements.map((r,i)=><article className="gp-simple-step" key={r[0]}><span>{i+1}</span><div><strong>{r[1]}</strong><p>{r[2]}</p></div></article>)}</div><p className="muted small">Check the official {plan.board} syllabus for exact grade-specific requirements.</p></section>
-   <section className="panel"><div className="panel-head"><div><h3>Your grade pieces</h3><p className="muted">Upload a clear photo of a piece, or its PDF. Add one piece at a time.</p></div><span className="tag">{(plan.pieces||[]).length} uploaded</span></div>
+   <section className="panel gp-simple-hero"><div><div className="eyebrow">YOUR PLAN</div>{planNotice&&<p className="gp-plan-confirmation" role="status">✓ {planNotice}</p>}<h2>{isPersonalPlan?'Personal learning':(plan.board||'Piano')} · {plan.target||'Next steps'}</h2><p className="muted">Your plan is ready. {isPersonalPlan?'Add pieces you would like to learn and build a balanced repertoire.':'Add photos of your grade pieces and Piano Coach will convert them into sheet music for practice.'}</p><strong>{Math.round((Number(plan.weeklyHours)||0)*60)} minutes planned each week</strong></div><button className="btn" onClick={()=>setDone(false)}>Edit answers</button></section>
+   <section className="panel"><h3>Your practice checklist</h3><div className="gp-simple-steps">{requirements.map((r,i)=><article className="gp-simple-step" key={r[0]}><span>{i+1}</span><div><strong>{r[1]}</strong><p>{r[2]}</p></div></article>)}</div><p className="muted small">{isPersonalPlan?'Choose repertoire that suits your current level and goals.':<>Check the official {plan.board} syllabus for exact grade-specific requirements.</>}</p></section>
+   <section className="panel"><div className="panel-head"><div><h3>{isPersonalPlan?'Your pieces':'Your grade pieces'}</h3><p className="muted">Upload a clear photo of a piece, or its PDF. Add one piece at a time.</p></div><span className="tag">{(plan.pieces||[]).length} uploaded</span></div>
     <label className="gp-photo-upload"><span className="gp-photo-icon">＋</span><strong>{busy?'Adding score…':'Upload a piece photo or PDF'}</strong><small>PNG, JPG, WebP or PDF</small><input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp" disabled={busy} onChange={e=>{upload(e.target.files?.[0]);e.target.value='';}}/></label>
     {error&&<p className="gp-error" role="alert">{error}</p>}
     {!(plan.pieces||[]).length?<div className="empty-state"><strong>No pieces uploaded yet</strong><p>Photograph the full page in good light, keep it straight and upload it here.</p></div>:<div className="gp-piece-list">{plan.pieces.map(piece=><article className="gp-piece-row" key={piece.id}><div className="gp-piece-main"><span className="gp-piece-category-text">{piece.category}</span><strong>{piece.title}</strong><small>{piece.scoreName||'Score photo saved'}</small></div><div className="gp-piece-actions"><button className="btn btn-dark" onClick={()=>onPracticePiece(piece)}>Practise this piece</button><button className="btn" onClick={()=>remove(piece.id)}>Remove</button></div></article>)}</div>}

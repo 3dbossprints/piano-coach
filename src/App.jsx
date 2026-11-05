@@ -9,6 +9,8 @@ import { isPlayableSheetMusicItem, isSheetMusicLibraryItem, loadBrowserScoreLibr
 import KeystoneLearnEngine from './KeystoneLearnEngine.jsx';
 import { isMeaningfulPracticeSession, getPracticeSeconds, calculatePracticeStreak, getQualifyingPracticeDays } from './practice-history.js';
 import { sanitizeTutorResponse, verifiedTheoryAnswer } from './ai-safety.js';
+import { hasMusicStaffLines, friendlyRecognitionError } from './score-image-validation.js';
+import { summarizeAudioReview } from './practice-feedback.js';
 
 const KEYMAP = {a:'C4',w:'C#4',s:'D4',e:'D#4',d:'E4',f:'F4',t:'F#4',g:'G4',y:'G#4',h:'A4',u:'A#4',j:'B4',k:'C5'};
 const EXAMPLES = [{name:'Warm-up scale',notes:'C4 D4 E4 F4 G4 A4 B4 C5'},{name:'Gentle arpeggio',notes:'C4 E4 G4 C5 G4 E4 C4'},{name:'Five-note pattern',notes:'C4 D4 E4 D4 C4'}];
@@ -156,8 +158,9 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
   const pages=getRenderedScorePages();
   const pageCount=Math.max(1,pages.length);
   const next=Math.max(1,Math.min(pageCount,Number(pageNumber)||1));
-  const spreadStart=Math.floor((next-1)/2)*2+1;
-  const spreadEnd=Math.min(pageCount,spreadStart+1);
+  const singlePage=window.innerWidth<760;
+  const spreadStart=singlePage?next:Math.floor((next-1)/2)*2+1;
+  const spreadEnd=singlePage?next:Math.min(pageCount,spreadStart+1);
   const pageContainer=pages[0]?.parentElement||host.current;
   if(host.current){
    host.current.classList.add('expanded-score-page-spread');
@@ -170,7 +173,7 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
   if(pageContainer){
    pageContainer.classList.add('expanded-score-pages-grid');
    pageContainer.style.display='grid';
-   pageContainer.style.gridTemplateColumns='repeat(2,minmax(0,1fr))';
+   pageContainer.style.gridTemplateColumns=singlePage?'minmax(0,1fr)':'repeat(2,minmax(0,1fr))';
    pageContainer.style.alignItems='start';
    pageContainer.style.gap='clamp(16px,2vw,34px)';
    pageContainer.style.width='100%';
@@ -209,7 +212,7 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
    try{
     if(!xml||!/<score-(?:partwise|timewise)\b/i.test(xml))throw new Error('This file does not contain valid MusicXML.');
     host.current.style.width='100%';host.current.style.maxWidth='none';host.current.style.minWidth='0';host.current.style.margin='0 auto';host.current.style.boxSizing='border-box';
-    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:false,pageFormat:'A4_P',newPageFromXML:true,newSystemFromNewPageInXML:true,drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:false,cursorsOptions:[{type:3,color:'#f0b429',alpha:.38,follow:true}],pageBackgroundColor:'#ffffff',backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false,drawMeasureNumbers:true,drawPartAbbreviations:false});
+    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:false,pageFormat:'A4_P',newPageFromXML:true,newSystemFromNewPageInXML:true,drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:false,cursorsOptions:[{type:0,color:'#b28b38',alpha:.82,follow:false}],pageBackgroundColor:'#ffffff',backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false,drawMeasureNumbers:true,drawPartAbbreviations:false});
     await renderer.load(normalizeMusicXMLTitle(xml,title));if(cancelled)return;
     renderer.Zoom=1;renderer.render();rendererRef.current=renderer;
     renderer.enableOrDisableCursors(true);
@@ -881,6 +884,8 @@ async function captureScorePhoto(){
   const context=canvas.getContext('2d');
   if(!context)throw new Error('Could not prepare the camera image.');
   context.drawImage(video,0,0,canvas.width,canvas.height);
+  const imageData=context.getImageData(0,0,canvas.width,canvas.height);
+  if(!hasMusicStaffLines(imageData))throw new Error('I could not find a clear five-line music staff in this photo. Fit the whole sheet inside the guide, keep it straight and in focus, and avoid glare or shadows. No conversion was started.');
   const blob=await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('Could not capture the photo.')),'image/jpeg',.94));
   const file=new File([blob],'music-sheet-photo-'+new Date().toISOString().replace(/[:.]/g,'-')+'.jpg',{type:'image/jpeg',lastModified:Date.now()});
   stopScoreCamera();
@@ -891,6 +896,7 @@ async function captureScorePhoto(){
 async function convertScoreToMusicCoach(file,options={}){
   if(!file||musicCoachBusy)return;
   setMusicCoachStatus('Checking '+file.name+'…');
+  setConversionSavedNotice(false);
   const ext=file.name.toLowerCase();
   if(/\.(mid|midi)$/i.test(file.name)){await handleMidiUpload(file,{...options,target:options.target||'Score converter'});return}
   if(/\.(mp3|m4a|wav|mp4|webm)$/i.test(file.name)){
@@ -938,11 +944,11 @@ async function convertScoreToMusicCoach(file,options={}){
    setStatus('On-device OMR completed · review the converted score');
   }catch(e){
    const detail=String(e?.message||e);
-   const imageEngineFailed=/cv2\.error|opencv|resize.cpp|center_image_on_canvas/i.test(detail);
-   setMusicCoachStatus(imageEngineFailed?'The local recognition model failed while preparing a staff image (OpenCV resize error). Your file was kept in the Library so you can retry with a straight, high-contrast PNG/JPEG scan with visible margins.':'Local music recognition failed: '+detail.slice(0,320));
-   setMusicCoachAnalysis('No score was falsely marked as converted. Recognition runs on this device; the source file remains available for review. MusicXML/XML or MIDI files can be converted directly into editable notation without optical recognition.');
+   console.error('Local sheet-music recognition failed:',e);
+   setMusicCoachStatus(friendlyRecognitionError(detail));
+   setMusicCoachAnalysis('No converted score was created. The original image or PDF has been kept in your Library so you can retry it. Only a successfully recognised score will show the conversion-saved confirmation.');
    try{saveLibraryFile(file)}catch{}
-   setConversionSavedNotice(true);setStatus('Source saved to Library · conversion needs attention');
+   setConversionSavedNotice(false);setStatus('Original source saved to Library · conversion failed');
   }finally{setMusicCoachBusy(false)}
  }
  function exportMusicXml(){if(scoreNotation?.sourceMusicXML){const u=URL.createObjectURL(new Blob([scoreNotation.sourceMusicXML],{type:'application/vnd.recordare.musicxml+xml'})),a=document.createElement('a');a.href=u;a.download=(songTitle||'piano-coach-score')+'.musicxml';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);setStatus('Exported original MusicXML with technical notation intact');return}const notes=events.length?events:parseMusicSequence(expected);if(!notes.length){setStatus('Enter notes such as C4/q D4/h R/q before exporting.');return}const body=notes.map(n=>{const beats=Math.max(.125,Number(n.beats)||1),dur=Math.round(beats*8),type=beats>=4?'whole':beats>=2?'half':beats>=1?'quarter':beats>=.5?'eighth':'16th';if(n.rest)return '<note><rest/><duration>'+dur+'</duration><type>'+type+'</type></note>';const name=midiToNote(n.midi),m=name.match(/^([A-G])(#?)(-?\d+)$/);return '<note><pitch><step>'+m[1]+'</step>'+(m[2]?'<alter>1</alter>':'')+'<octave>'+m[3]+'</octave></pitch><duration>'+dur+'</duration><type>'+type+'</type></note>'}).join('');const parts=timeSignature.split('/'),xml='<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><work><work-title>'+String(songTitle||'Piano Coach score').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</work-title></work><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>8</divisions><time><beats>'+parts[0]+'</beats><beat-type>'+parts[1]+'</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>'+body+'</measure></part></score-partwise>';const u=URL.createObjectURL(new Blob([xml],{type:'application/vnd.recordare.musicxml+xml'})),a=document.createElement('a');a.href=u;a.download='piano-coach-score.musicxml';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);setStatus('Exported MusicXML; original technical notation is preserved when importing MusicXML first.')}function clearNotes(){sessionEvents.current=[];setEvents([]);setStatus('Detected notes cleared')}
@@ -1049,14 +1055,7 @@ async function requestLocalAudioCoachFeedback(blob,title,targetNotes,detectedNot
    const median=arr=>arr.length?[...arr].sort((a,b)=>a-b)[Math.floor(arr.length/2)]:null;
    const gap=median(gaps),duration=median(durations),pitchRange=pitches.length?(midiToNote(Math.min(...pitches))+'–'+midiToNote(Math.max(...pitches))):'unavailable';
    const target=targetNotes?compareSequences(targetNotes,notes):null;
-   const tips=[];
-   if(rms<.015)tips.push('The recording level is quiet; move the microphone closer or increase input gain without causing distortion.');
-   if(peak>.99||clipped/count>.01)tips.push('The waveform has clipped peaks; lower the input gain or move the microphone farther away.');
-   if(notes.length<5)tips.push('Play a short, clear phrase with the piano prominent and background noise reduced.');
-   if(gap!==null&&gap<.16)tips.push('The detected notes are closely spaced; practise the passage slowly with a steady pulse.');
-   if(gap!==null&&gap>1.2)tips.push('There are long gaps between detected onsets; check for pauses or notes too quiet for the detector.');
-   if(!tips.length)tips.push('Use the detected note sequence and onset spacing to practise a short phrase slowly, then repeat at a slightly faster tempo.');
-   return 'On-device audio measurements for “'+title+'”: '+decoded.duration.toFixed(1)+' seconds, '+decoded.numberOfChannels+' channel(s), waveform RMS '+rms.toFixed(3)+', peak '+peak.toFixed(3)+', clipped samples '+(count?((100*clipped/count).toFixed(2)+'%'):'unavailable')+'. Local polyphonic transcription detected '+notes.length+' note events; pitch range '+pitchRange+'. '+(gap!==null?'Median onset spacing '+gap.toFixed(2)+' seconds. ':'Onset spacing unavailable. ')+(duration!==null?'Median detected note duration '+duration.toFixed(2)+' seconds. ':'')+'Target sequence comparison: '+(target?(target.correct+' of '+target.total+' correct ('+target.accuracy+'%).'):'No target sequence was supplied; target-match scoring was skipped.')+'. Suggested checks: '+tips.join(' ');
+   return summarizeAudioReview({rms,peak,clippedRatio:count?clipped/count:0,noteCount:notes.length,medianGap:gap,targetComparison:target});
   }finally{await ctx.close().catch(()=>{})}
  }
  async function transcribeAudioBlob(blob,onProgress=()=>{}){
