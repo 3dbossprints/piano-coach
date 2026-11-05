@@ -20,8 +20,9 @@ export default function GradePlannerSimple({sessions=[],onPracticePiece=()=>{}})
   const current=level==='Beginner'?'Initial Grade':level;
   const next=LEVELS[Math.min(9,Math.max(1,LEVELS.indexOf(current)+1))];
   const finalTarget=goal==='exam'?target:next;
-  const route=board==='ABRSM'?'Practical Grades':'Trinity Digital — Technical work';
-  setPlan(p=>({...p,board,route,current,target:finalTarget,weeklyHours:Number(days)*Number(minutes)/60,pieces:Array.isArray(p.pieces)?p.pieces:[],checks:p.checks||{}}));
+  const finalBoard=goal==='exam'?board:'Personal';
+  const route=goal==='exam'?(board==='ABRSM'?'Practical Grades':'Trinity Digital — Technical work'):'Personal development';
+  setPlan(p=>({...p,goal,board:finalBoard,route,current,target:finalTarget,weeklyHours:Number(days)*Number(minutes)/60,pieces:Array.isArray(p.pieces)?p.pieces:[],checks:p.checks||{}}));
   setError('');
   setPlanNotice('Your practice plan has been created and saved in this browser.');
   setDone(true);
@@ -47,7 +48,12 @@ export default function GradePlannerSimple({sessions=[],onPracticePiece=()=>{}})
   reader.readAsDataURL(file);
  }
  function remove(id){setPlan(p=>({...p,pieces:(p.pieces||[]).filter(x=>x.id!==id)}))}
- const requirements=plan.board==='ABRSM'?[
+ const requirements=plan.goal!=='exam'?[
+  ['pieces','Build a repertoire','Choose pieces that are enjoyable and slightly more challenging than your current level.'],
+  ['technique','Develop technique','Practise scales, arpeggios, posture and relaxed movement in short focused sessions.'],
+  ['sight','Sight-reading','Read a short unfamiliar passage regularly, keeping a steady pulse.'],
+  ['listening','Musical listening','Listen back to recordings and notice timing, balance, phrasing and accuracy.']
+ ]:plan.board==='ABRSM'?[
   ['pieces','Three pieces','Choose one approved piece from each of Lists A, B and C for your syllabus edition.'],
   ['scales','Scales and arpeggios','Practise the exact keys, hands and tempos listed for your grade.'],
   ['sight','Sight-reading','Practise short unfamiliar pieces and keep a steady pulse.'],
