@@ -1,8 +1,49 @@
 import { AudioToMidiConverter, audioToMidiDefaults, convertAudioToMidi } from '@musicbento/audio-to-midi';
+import { toStereoChannels } from './audio-separation.js';
+import { encodeNotesAsMidi } from './audio-midi-encode.js';
 
 const AUDIO_EXTENSIONS = /\.(mp3|m4a|mp4|webm|wav)$/i;
 const MAX_AUDIO_BYTES = 100 * 1024 * 1024;
 const MAX_DURATION_SECONDS = 8 * 60;
+
+async function transcribeWithNeuralBasicPitch(file, onProgress) {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) throw new Error('This browser cannot decode audio for polyphonic transcription.');
+  const context = new AudioContextClass();
+  let decoded;
+  try {
+    decoded = await context.decodeAudioData(await file.arrayBuffer());
+  } finally {
+    await context.close().catch(() => {});
+  }
+  if (!Number.isFinite(decoded.duration) || decoded.duration <= 0) throw new Error('The audio duration could not be read.');
+  if (decoded.duration > MAX_DURATION_SECONDS) throw new Error('For browser performance, convert recordings up to 8 minutes long.');
+  const audio = { channelData: toStereoChannels(decoded), sampleRate: decoded.sampleRate };
+  const { default: transcribe } = await import('@audio/neural-transcribe');
+  const settings = {
+    onsetThreshold: 0.5,
+    frameThreshold: 0.3,
+    minDuration: 0.08,
+    minFreq: 27.5,
+    maxFreq: 4186.01,
+    batch: 8
+  };
+  onProgress?.('Running frame-aware polyphonic transcription across the full piano range…');
+  let notes;
+  if (navigator.gpu) {
+    try {
+      notes = await transcribe(audio, { ...settings, device: 'webgpu' });
+    } catch {
+      onProgress?.('GPU transcription was unavailable. Retrying with the browser CPU/WASM backend…');
+      notes = await transcribe(audio, { ...settings, device: 'wasm' });
+    }
+  } else {
+    notes = await transcribe(audio, { ...settings, device: 'wasm' });
+  }
+  if (!Array.isArray(notes) || !notes.length) throw new Error('The frame-aware model did not detect any usable notes.');
+  const midiBlob = encodeNotesAsMidi(notes, { bpm: 120 });
+  return { midiBlob, noteCount: notes.length, title: file.name.replace(AUDIO_EXTENSIONS, ''), engine: 'Frame-aware Basic Pitch (ONNX)' };
+}
 
 function waitForMediaEvent(media, successEvent, failureMessage) {
   return new Promise((resolve, reject) => {
@@ -108,36 +149,42 @@ export async function transcribeAudioFile(file, onProgress, { removeDialogue = f
       onProgress?.('Dialogue separation was unavailable. Continuing with the original audio…');
     }
   }
-  onProgress?.('Loading the local audio transcription model. The first conversion may take a little longer…');
-  const options = {
-    onStatus(status) {
-      const messages = {
-        'loading-model': 'Loading the local transcription model…',
-        'decoding-audio': 'Reading the audio track…',
-        'transcribing': 'Detecting notes and chords…',
-        'preparing-midi': 'Building the MIDI note sequence…'
-      };
-      onProgress?.(messages[status] || 'Converting recording…');
-    },
-    onProgress(progress) {
-      const value = Number(progress);
-      if (Number.isFinite(value)) {
-        const percent = Math.max(0, Math.min(100, Math.round(value * 100)));
-        onProgress?.('Transcribing audio into notes… ' + percent + '%');
-      }
-    },
-  };
   let result;
+  let engine = 'MusicBento Basic Pitch fallback';
   try {
-    result = await convertAudioToMidi(audioFile, audioToMidiDefaults, options);
-  } catch (error) {
-    const detail = String(error?.message || error);
-    const errorCode = String(error?.code || '');
-    const gpuFailure = /webgl|webgpu|gpu|shader|context lost|backend/i.test(detail + ' ' + errorCode);
-    if (!gpuFailure) throw error;
-    onProgress?.('Graphics acceleration is unavailable. Retrying transcription with the CPU backend…');
-    const cpuConverter = new AudioToMidiConverter({ ...audioToMidiDefaults, backend: 'cpu' });
-    result = await cpuConverter.convert(audioFile, options);
+    result = await transcribeWithNeuralBasicPitch(audioFile, onProgress);
+    engine = result.engine;
+  } catch (neuralError) {
+    onProgress?.('The frame-aware model could not run (' + String(neuralError?.message || neuralError) + '). Trying the compatible transcription fallback…');
+    const options = {
+      onStatus(status) {
+        const messages = {
+          'loading-model': 'Loading the fallback audio transcription model…',
+          'decoding-audio': 'Reading the audio track…',
+          'transcribing': 'Detecting notes and chords…',
+          'preparing-midi': 'Building the MIDI note sequence…'
+        };
+        onProgress?.(messages[status] || 'Converting recording…');
+      },
+      onProgress(progress) {
+        const value = Number(progress);
+        if (Number.isFinite(value)) {
+          const percent = Math.max(0, Math.min(100, Math.round(value * 100)));
+          onProgress?.('Transcribing audio into notes… ' + percent + '%');
+        }
+      },
+    };
+    try {
+      result = await convertAudioToMidi(audioFile, audioToMidiDefaults, options);
+    } catch (error) {
+      const detail = String(error?.message || error);
+      const errorCode = String(error?.code || '');
+      const gpuFailure = /webgl|webgpu|gpu|shader|context lost|backend/i.test(detail + ' ' + errorCode);
+      if (!gpuFailure) throw error;
+      onProgress?.('Graphics acceleration is unavailable. Retrying fallback transcription with the CPU backend…');
+      const cpuConverter = new AudioToMidiConverter({ ...audioToMidiDefaults, backend: 'cpu' });
+      result = await cpuConverter.convert(audioFile, options);
+    }
   }
   const midiBlob = result?.midiBlob || (result?.midiBytes
     ? new Blob([result.midiBytes], { type: 'audio/midi' })
@@ -150,5 +197,6 @@ export async function transcribeAudioFile(file, onProgress, { removeDialogue = f
     noteCount: Number(result.noteCount) || 0,
     title: result.title || file.name.replace(AUDIO_EXTENSIONS, ''),
     separation,
+    transcriptionEngine: engine,
   };
 }
