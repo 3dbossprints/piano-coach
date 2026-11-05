@@ -6,11 +6,13 @@ const MIGRATION_KEY = 'legacy-local-storage-imported';
 let databasePromise;
 
 const SHEET_EXTENSIONS = /\.(musiccoach|musicxml|xml|mid|midi|pdf|png|jpe?g|webp|svg)$/i;
+const AUDIO_EXTENSIONS = /\.(mp3|m4a|mp4|webm|weba|wav|wave|ogg|oga|aac|flac|aiff?|opus)$/i;
 const PLAYABLE_EXTENSIONS = /\.(musiccoach|musicxml|xml|mid|midi)$/i;
 
 export function isSheetMusicLibraryItem(item) {
   if (!item || typeof item.name !== 'string') return false;
-  return SHEET_EXTENSIONS.test(item.name) || (item.kind === 'practice-score' && Array.isArray(item.score?.notes));
+  const kind = String(item.kind || '').toLowerCase();
+  return SHEET_EXTENSIONS.test(item.name) || AUDIO_EXTENSIONS.test(item.name) || ['recording', 'audio', 'audio-recording', 'recording-audio'].includes(kind) || (item.kind === 'practice-score' && Array.isArray(item.score?.notes));
 }
 
 function decodeDataUri(item) {
@@ -34,6 +36,10 @@ function decodeDataUri(item) {
 
 export function isPlayableSheetMusicItem(item) {
   if (!isSheetMusicLibraryItem(item)) return false;
+  const name = item.name.toLowerCase();
+  const type = String(item.type || item.mimeType || '').toLowerCase();
+  const isAudioRecording = (AUDIO_EXTENSIONS.test(name) || type.startsWith('audio/') || type.startsWith('video/')) && !/\.(mid|midi)$/i.test(name) && type !== 'audio/midi';
+  if (isAudioRecording) return false;
   const hasPlayableNotes = score => Array.isArray(score?.notes) && score.notes.some(note =>
     !note?.rest && (
       (typeof note?.note === 'string' && note.note.trim().length > 0) ||
@@ -43,7 +49,6 @@ export function isPlayableSheetMusicItem(item) {
   // Some restored/older Library entries already contain their parsed score object
   // and do not need to be rejected merely because their original data URI is absent.
   if (hasPlayableNotes(item.score)) return true;
-  const name = item.name.toLowerCase();
   const isMusicCoach = name.endsWith('.musiccoach') || item.type === 'application/vnd.piano-coach.musiccoach';
   const isMusicXml = /\.(musicxml|xml)$/i.test(name);
   const isMidi = /\.(mid|midi)$/i.test(name);
