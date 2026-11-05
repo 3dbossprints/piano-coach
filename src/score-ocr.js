@@ -216,12 +216,12 @@ async function pdfCanvases(file, onProgress) {
         const content = await page.getTextContent();
         textPages.push(content.items.map(item => item.str || '').join(' '));
       }
-      const text = textPages.join(' ').replace(/\\s+/g, ' ').trim();
-      const composer = text.match(/(?:composer|composed by|music by)\\s*[:\\-]\\s*([^|;]{2,90})/i);
-      const arranger = text.match(/(?:arranger|arranged by|arrangement by)\\s*[:\\-]\\s*([^|;]{2,90})/i);
-      if (composer) metadata.composer = composer[1].trim().split(/\\s{2,}/)[0];
-      if (arranger) metadata.arranger = arranger[1].trim().split(/\\s{2,}/)[0];
-      if (!metadata.title) metadata.title = text.split(/\\s{2,}/).map(value => value.trim()).find(value => value.length > 3 && !/^(composer|arranger|page \\d+)/i.test(value)) || '';
+      const text = textPages.join(' ').replace(/\s+/g, ' ').trim();
+      const composer = text.match(/(?:composer|composed by|music by)\s*[:\-]\s*([^|;]{2,90})/i);
+      const arranger = text.match(/(?:arranger|arranged by|arrangement by)\s*[:\-]\s*([^|;]{2,90})/i);
+      if (composer) metadata.composer = composer[1].trim().split(/\s{2,}/)[0];
+      if (arranger) metadata.arranger = arranger[1].trim().split(/\s{2,}/)[0];
+      if (!metadata.title) metadata.title = text.split(/\s{2,}/).map(value => value.trim()).find(value => value.length > 3 && !/^(composer|arranger|page \d+)/i.test(value)) || '';
     } catch (error) {
       onProgress?.('PDF text metadata was unavailable; continuing with notation recognition…');
     }
@@ -229,8 +229,6 @@ async function pdfCanvases(file, onProgress) {
       onProgress?.('Preparing PDF page ' + pageNo + ' of ' + pdf.numPages + '…');
       const page = await pdf.getPage(pageNo);
       const base = page.getViewport({ scale: 1 });
-      // Render vector PDFs at a higher resolution so thin staff lines, dots and
-      // ledger lines survive rasterisation before the OMR model sees them.
       const scale = Math.min(2, 3000 / Math.max(1, base.width), 5000 / Math.max(1, base.height));
       const viewport = page.getViewport({ scale: Math.max(0.1, scale) });
       const canvas = document.createElement('canvas');
