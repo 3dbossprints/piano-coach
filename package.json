@@ -20,7 +20,10 @@
     "vexflow": "5.0.0",
     "pdfjs-dist": "4.10.38",
     "@musicbento/audio-to-midi": "1.0.0",
-    "opensheetmusicdisplay": "1.9.2"
+    "opensheetmusicdisplay": "1.9.2",
+    "@audio/neural-separate": "0.7.0",
+    "@audio/neural-runtime": "0.2.0",
+    "onnxruntime-web": "1.30.0"
   },
   "devDependencies": {}
 }
