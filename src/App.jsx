@@ -897,12 +897,12 @@ async function convertScoreToMusicCoach(file,options={}){
    setMusicCoachBusy(true);setMusicCoachAnalysis('');setMusicCoachNotes([]);
    try{
     const {transcribeAudioFile}=await import('./audio-to-score.js');
-    const removeDialogue=options.removeDialogue??(file.type?.startsWith('video/')||/\\.mp4$/i.test(file.name)||separateDialogue);const result=await transcribeAudioFile(file,message=>setMusicCoachStatus(message),{removeDialogue});
+    const removeDialogue=options.removeDialogue??(file.type?.startsWith('video/')||/\.mp4$/i.test(file.name)||separateDialogue);const result=await transcribeAudioFile(file,message=>setMusicCoachStatus(message),{removeDialogue});
     const title=(file.name.replace(/\.(mp3|m4a|wav|mp4|webm)$/i,'').trim()||'Audio transcription');
     const midiFile=new File([result.midiBlob],title+'.mid',{type:'audio/midi'});
     const imported=await handleMidiUpload(midiFile,{...options,target:options.target||'Score converter'});
     if(imported===false)throw new Error('The generated MIDI could not be imported as a score.');
-    const separationNote=result.separation?.applied?' Spoken dialogue and sound effects were separated from the music before note detection.':result.separation?.warning?' Dialogue separation could not run ('+result.separation.warning+'); the original mix was transcribed instead.':'';setMusicCoachAnalysis('Audio transcription created an editable score from '+(result.noteCount||'the detected')+' note events.'+separationNote+' Review the notation carefully: dense mixes, overlapping instruments and expressive timing can still need manual correction.');
+    const engineNote=result.transcriptionEngine?' Transcription engine: '+result.transcriptionEngine+'.':'';const separationNote=result.separation?.applied?' Spoken dialogue and sound effects were separated from the music before note detection.':result.separation?.warning?' Dialogue separation could not run ('+result.separation.warning+'); the original mix was transcribed instead.':'';setMusicCoachAnalysis('Audio transcription created an editable score from '+(result.noteCount||'the detected')+' note events.'+engineNote+separationNote+' Review the notation carefully: dense mixes, overlapping instruments and expressive timing can still need manual correction.');
     setMusicCoachStatus(result.separation?.applied?'Dialogue separated · audio transcribed and converted into an editable .musiccoach score.':'Audio transcribed and converted into an editable .musiccoach score.');
     setStatus('Audio-to-sheet-music conversion completed');
    }catch(e){
