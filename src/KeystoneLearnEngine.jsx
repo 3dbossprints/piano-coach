@@ -227,9 +227,9 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
 
   useEffect(() => () => {
     if(runRef.current)runRef.current=null;
-    disconnectMidi();for(const timer of timersRef.current)clearTimeout(timer);timersRef.current.clear();for(const id of [...voicesRef.current.keys()])stopVoice(id);
-    try{audioRef.current?.close();}catch{}
-  }, [disconnectMidi,stopVoice]);
+    disconnectMidi();for(const timer of timersRef.current)clearTimeout(timer);timersRef.current.clear();
+    try{pianoSamplerRef.current?.dispose();pianoSamplerRef.current=null;audioRef.current?.close();}catch{}
+  }, [disconnectMidi]);
 
   const shiftKey = delta => setKeyStart(v=>Math.max(21,Math.min(108-COMPUTER_KEYS.length,v+delta)));
   const finish = () => { const run=runRef.current;if(run){const hits=run.active.filter(n=>n.res),summary={score:Math.max(0,Math.round(100*hits.reduce((sum,n)=>sum+({perfect:1,good:.8,almost:.5}[n.res]||0),0)/Math.max(1,run.active.length))),hits:hits.length,total:run.active.length,perfect:hits.filter(n=>n.res==='perfect').length,good:hits.filter(n=>n.res==='good').length,almost:hits.filter(n=>n.res==='almost').length,wrong:run.wrong.length,maxCombo:run.maxCombo,mode:run.mode,hands,tempo:bpm,speed:run.speed,trouble:[]};runRef.current=null;onFinish?.(summary);}else onFinish?.(result); };
