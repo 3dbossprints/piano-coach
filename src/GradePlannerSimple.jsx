@@ -12,6 +12,7 @@ export default function GradePlannerSimple({sessions=[],onPracticePiece=()=>{}})
  const [minutes,setMinutes]=useState('20');
  const [plan,setPlan]=useState(readPlan);
  const [error,setError]=useState('');
+ const [planNotice,setPlanNotice]=useState('');
  const [busy,setBusy]=useState(false);
  useEffect(()=>{try{localStorage.setItem('pc_grade_plan',JSON.stringify(plan))}catch{setError('Your browser storage is full. Export a .musicdata backup and remove older files before adding more scores.')}},[plan]);
  function buildPlan(e){
@@ -21,6 +22,8 @@ export default function GradePlannerSimple({sessions=[],onPracticePiece=()=>{}})
   const finalTarget=goal==='exam'?target:next;
   const route=board==='ABRSM'?'Practical Grades':'Trinity Digital — Technical work';
   setPlan(p=>({...p,board,route,current,target:finalTarget,weeklyHours:Number(days)*Number(minutes)/60,pieces:Array.isArray(p.pieces)?p.pieces:[],checks:p.checks||{}}));
+  setError('');
+  setPlanNotice('Your practice plan has been created and saved in this browser.');
   setDone(true);
  }
  function upload(file){
@@ -64,10 +67,10 @@ export default function GradePlannerSimple({sessions=[],onPracticePiece=()=>{}})
     {goal==='exam'&&<><label>Exam board<select value={board} onChange={e=>setBoard(e.target.value)}><option>ABRSM</option><option>Trinity</option></select></label><label>Target grade<select value={target} onChange={e=>setTarget(e.target.value)}>{LEVELS.filter(x=>x!=='Beginner'&&x!=='Initial Grade').map(x=><option key={x}>{x}</option>)}</select></label></>}
     <label>How many days can you practise?<select value={days} onChange={e=>setDays(e.target.value)}>{[2,3,4,5,6,7].map(x=><option key={x} value={x}>{x} days per week</option>)}</select></label>
     <label>How long each day?<select value={minutes} onChange={e=>setMinutes(e.target.value)}>{[10,15,20,30,45,60].map(x=><option key={x} value={x}>{x} minutes</option>)}</select></label>
-    <button className="btn btn-dark" type="submit">Create my plan →</button>
+    <button className="btn btn-dark" type="submit" onClick={()=>{setError('');setPlanNotice('Creating your practice plan…')}}>Create my plan →</button>
    </form>
   </section>:<>
-   <section className="panel gp-simple-hero"><div><div className="eyebrow">YOUR PLAN</div><h2>{plan.board||'Piano'} · {plan.target||'Next steps'}</h2><p className="muted">Your plan is ready. Add photos of your grade pieces and Piano Coach will convert them into sheet music for practice.</p><strong>{Math.round((Number(plan.weeklyHours)||0)*60)} minutes planned each week</strong></div><button className="btn" onClick={()=>setDone(false)}>Edit answers</button></section>
+   <section className="panel gp-simple-hero"><div><div className="eyebrow">YOUR PLAN</div>{planNotice&&<p className="gp-plan-confirmation" role="status">✓ {planNotice}</p>}<h2>{plan.board||'Piano'} · {plan.target||'Next steps'}</h2><p className="muted">Your plan is ready. Add photos of your grade pieces and Piano Coach will convert them into sheet music for practice.</p><strong>{Math.round((Number(plan.weeklyHours)||0)*60)} minutes planned each week</strong></div><button className="btn" onClick={()=>setDone(false)}>Edit answers</button></section>
    <section className="panel"><h3>Your practice checklist</h3><div className="gp-simple-steps">{requirements.map((r,i)=><article className="gp-simple-step" key={r[0]}><span>{i+1}</span><div><strong>{r[1]}</strong><p>{r[2]}</p></div></article>)}</div><p className="muted small">Check the official {plan.board} syllabus for exact grade-specific requirements.</p></section>
    <section className="panel"><div className="panel-head"><div><h3>Your grade pieces</h3><p className="muted">Upload a clear photo of a piece, or its PDF. Add one piece at a time.</p></div><span className="tag">{(plan.pieces||[]).length} uploaded</span></div>
     <label className="gp-photo-upload"><span className="gp-photo-icon">＋</span><strong>{busy?'Adding score…':'Upload a piece photo or PDF'}</strong><small>PNG, JPG, WebP or PDF</small><input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp" disabled={busy} onChange={e=>{upload(e.target.files?.[0]);e.target.value='';}}/></label>
