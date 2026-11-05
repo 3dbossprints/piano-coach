@@ -7,6 +7,7 @@ const MAX_AUDIO_BYTES = 100 * 1024 * 1024;
 const MAX_DURATION_SECONDS = 8 * 60;
 
 async function transcribeWithNeuralBasicPitch(file, onProgress) {
+  onProgress?.('Preparing the audio for frame-aware polyphonic transcription…');
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextClass) throw new Error('This browser cannot decode audio for polyphonic transcription.');
   const context = new AudioContextClass();
@@ -19,6 +20,7 @@ async function transcribeWithNeuralBasicPitch(file, onProgress) {
   if (!Number.isFinite(decoded.duration) || decoded.duration <= 0) throw new Error('The audio duration could not be read.');
   if (decoded.duration > MAX_DURATION_SECONDS) throw new Error('For browser performance, convert recordings up to 8 minutes long.');
   const audio = { channelData: toStereoChannels(decoded), sampleRate: decoded.sampleRate };
+  onProgress?.('Loading the local polyphonic transcription model…');
   const { default: transcribe } = await import('@audio/neural-transcribe');
   const settings = {
     onsetThreshold: 0.5,
@@ -71,16 +73,16 @@ async function extractMp4Audio(file, onProgress) {
     video.playsInline = true;
     video.muted = false;
     video.src = url;
-    const metadata = waitForMediaEvent(video, 'loadedmetadata', 'Could not read the MP4 video.');
+    const metadata = waitForMediaEvent(video, 'loadedmetadata', 'Could not read the video file.');
     await metadata;
     if (!Number.isFinite(video.duration) || video.duration <= 0) {
-      throw new Error('The MP4 file has no readable audio/video duration.');
+      throw new Error('The video file has no readable audio/video duration.');
     }
     if (video.duration > MAX_DURATION_SECONDS) {
       throw new Error('For browser performance, convert videos up to 8 minutes long. Trim this video or export its audio first.');
     }
     const capture = video.captureStream || video.mozCaptureStream;
-    if (!capture) throw new Error('This browser cannot extract the audio track from MP4. Try MP3 or M4A instead.');
+    if (!capture) throw new Error('This browser cannot extract the video's audio track. Try MP3 or M4A instead.');
     sourceStream = capture.call(video);
     // Chromium may not expose the audio track until the media element starts
     // playback. Prime the stream, then rewind before recording so the beginning
@@ -96,14 +98,14 @@ async function extractMp4Audio(file, onProgress) {
     }
     const audioOnlyStream = new MediaStream(audioTracks);
     const mimeType = ['audio/webm;codecs=opus', 'audio/webm'].find(type => MediaRecorder.isTypeSupported(type));
-    if (!mimeType) throw new Error('This browser cannot create a temporary audio stream for MP4 conversion.');
+    if (!mimeType) throw new Error('This browser cannot create a temporary audio stream for video conversion.');
     const chunks = [];
     recorder = new MediaRecorder(audioOnlyStream, { mimeType });
     const recorded = new Promise((resolve, reject) => {
       recorder.addEventListener('dataavailable', event => {
         if (event.data?.size) chunks.push(event.data);
       });
-      recorder.addEventListener('error', () => reject(new Error('Could not extract the MP4 audio track.')));
+      recorder.addEventListener('error', () => reject(new Error('Could not extract the video's audio track.')));
       recorder.addEventListener('stop', () => resolve(new Blob(chunks, { type: mimeType })), { once: true });
     });
     recorder.start(1000);
@@ -111,11 +113,11 @@ async function extractMp4Audio(file, onProgress) {
     await video.play();
     await new Promise((resolve, reject) => {
       video.addEventListener('ended', resolve, { once: true });
-      video.addEventListener('error', () => reject(new Error('The MP4 video could not be decoded by this browser.')), { once: true });
+      video.addEventListener('error', () => reject(new Error('The video could not be decoded by this browser.')), { once: true });
     });
     if (recorder.state !== 'inactive') recorder.stop();
     const audioBlob = await recorded;
-    if (!audioBlob.size) throw new Error('The MP4 video did not produce a readable audio track.');
+    if (!audioBlob.size) throw new Error('The video did not produce a readable audio track.');
     return new File([audioBlob], file.name.replace(/\.mp4$/i, '.webm'), { type: audioBlob.type || 'audio/webm' });
   } finally {
     try { if (recorder && recorder.state !== 'inactive') recorder.stop(); } catch {}
