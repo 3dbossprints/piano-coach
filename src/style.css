@@ -2306,3 +2306,6 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   }
   .expanded-score-pages-grid{gap:14px!important}
 }
+
+
+.library-expand-control{display:flex;justify-content:center;padding:8px 0 2px}.library-expand-control .btn{min-width:180px}.personal-score-card audio{display:none}
