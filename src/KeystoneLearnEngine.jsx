@@ -57,7 +57,7 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
     }
     const note=midiName(midi);
     if(on){
-      Tone.start().then(()=>Tone.loaded()).then(()=>pianoSamplerRef.current?.triggerAttack(note)).catch(error=>console.warn('Grand piano sample could not load:',error));
+      Tone.start().then(()=>Tone.loaded()).then(()=>{if(pressedRef.current.has(midi))pianoSamplerRef.current?.triggerAttack(note)}).catch(error=>console.warn('Grand piano sample could not load:',error));
     }else{
       try{pianoSamplerRef.current?.triggerRelease(note)}catch{}
     }
