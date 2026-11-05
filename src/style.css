@@ -2401,7 +2401,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 
 /* Converter: two equal, rectangular quick actions stacked beside the drop zone. */
 .converter-action-stack{
-  display:grid;grid-template-rows:repeat(2,minmax(0,1fr));gap:10px;
+  display:grid;grid-template-rows:repeat(2,minmax(0,1fr)) auto;gap:10px;
   flex:0 0 206px;min-width:0;align-self:stretch;
 }
 .converter-action-stack .converter-camera-button,
@@ -2417,7 +2417,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .converter-input-actions .musiccoach-upload{min-width:0}
 @media(max-width:620px){
   .converter-input-actions{display:grid;grid-template-columns:minmax(0,1fr)}
-  .converter-action-stack{width:100%;grid-template-rows:repeat(2,minmax(48px,auto));grid-template-columns:minmax(0,1fr);flex:auto}
+  .converter-action-stack{width:100%;grid-template-rows:repeat(2,minmax(48px,auto)) auto;grid-template-columns:minmax(0,1fr);flex:auto}
   .converter-action-stack .converter-camera-button,
   .converter-action-stack .converter-recording-button{min-height:48px;height:auto}
 }
