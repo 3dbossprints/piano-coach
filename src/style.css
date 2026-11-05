@@ -2340,3 +2340,10 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .musiccoach-converter .musiccoach-progress span{background:linear-gradient(90deg,#8a70bd,#c08cb2)}
 .musiccoach-converter .tutor-answer{margin-top:6px;padding:16px 18px;border:1px solid #e7e0ef;border-radius:15px;background:#fbf9fe}
 @media(max-width:700px){.main{padding:14px}.panel{padding:17px;border-radius:17px}.musiccoach-converter{padding:17px;border-radius:18px}.musiccoach-upload{min-height:150px!important;padding:18px!important}.musiccoach-converter .conversion-saved-banner{align-items:stretch}.musiccoach-converter .conversion-saved-banner .btn{width:100%}}
+
+
+/* QA follow-up: make empty states and plan confirmation explicit. */
+.song-tempo-empty-hint{margin:4px 0 14px;padding:13px 15px;border:1px dashed var(--line);border-radius:12px;background:rgba(255,255,255,.72);color:var(--muted);font-size:13px;line-height:1.55}
+.gp-plan-confirmation{display:inline-flex;align-items:center;gap:8px;margin:0 0 12px;padding:9px 12px;border:1px solid #cfe4d4;border-radius:10px;background:#f1faf3;color:#245b3c;font-size:13px;font-weight:600}
+.gp-questionnaire-form button[type=submit]{min-height:46px;min-width:190px}
+@media(max-width:760px){.gp-questionnaire-form{gap:14px}.gp-questionnaire-form label{min-width:0}.gp-questionnaire-form select{max-width:100%}}
