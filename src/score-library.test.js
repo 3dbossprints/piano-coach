@@ -6,9 +6,11 @@ test('sheet library accepts notation and score-source formats only', () => {
   for (const name of ['piece.musiccoach', 'piece.musicxml', 'piece.xml', 'piece.mid', 'piece.midi', 'scan.pdf', 'photo.png', 'scan.jpg', 'scan.webp']) {
     assert.equal(isSheetMusicLibraryItem({ name }), true, name);
   }
-  for (const name of ['song.mp3', 'voice.wav', 'cover.svgz', 'notes.txt', 'video.mp4']) {
-    assert.equal(isSheetMusicLibraryItem({ name }), false, name);
+  for (const name of ['song.mp3', 'voice.wav', 'video.mp4', 'take.webm']) {
+    assert.equal(isSheetMusicLibraryItem({ name, kind: 'recording' }), true, name);
+    assert.equal(isPlayableSheetMusicItem({ name, kind: 'recording', data: 'data:audio/webm;base64,AA==' }), false, name);
   }
+  for (const name of ['cover.svgz', 'notes.txt']) assert.equal(isSheetMusicLibraryItem({ name }), false, name);
 });
 
 test('only structured musical notation with saved file data is marked playable', () => {
@@ -89,4 +91,15 @@ test('legacy versioned Music Coach scores remain playable', () => {
     data: 'data:application/json;base64,' + Buffer.from(content).toString('base64')
   };
   assert.equal(isPlayableSheetMusicItem(item), true);
+});
+
+
+test('recordings are retained in the same browser library but never treated as sheet notation', () => {
+  for (const item of [
+    { name: 'Practice recording.webm', kind: 'recording', type: 'audio/webm', data: 'data:audio/webm;base64,AA==' },
+    { name: 'Voice memo.m4a', kind: 'recording', type: 'audio/mp4', data: 'data:audio/mp4;base64,AA==' },
+  ]) {
+    assert.equal(isSheetMusicLibraryItem(item), true);
+    assert.equal(isPlayableSheetMusicItem(item), false);
+  }
 });
