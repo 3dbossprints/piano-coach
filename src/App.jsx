@@ -171,7 +171,7 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
   if(pageContainer){
    pageContainer.classList.add('expanded-score-pages-grid');
    pageContainer.style.display='grid';
-   pageContainer.style.gridTemplateColumns='repeat(2,minmax(0,1fr))';
+   pageContainer.style.gridTemplateColumns=singlePage?'minmax(0,1fr)':'repeat(2,minmax(0,1fr))';
    pageContainer.style.alignItems='start';
    pageContainer.style.gap='clamp(16px,2vw,34px)';
    pageContainer.style.width='100%';
@@ -210,7 +210,7 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
    try{
     if(!xml||!/<score-(?:partwise|timewise)\b/i.test(xml))throw new Error('This file does not contain valid MusicXML.');
     host.current.style.width='100%';host.current.style.maxWidth='none';host.current.style.minWidth='0';host.current.style.margin='0 auto';host.current.style.boxSizing='border-box';
-    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:false,pageFormat:'A4_P',newPageFromXML:true,newSystemFromNewPageInXML:true,drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:false,cursorsOptions:[{type:3,color:'#f0b429',alpha:.38,follow:true}],pageBackgroundColor:'#ffffff',backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false,drawMeasureNumbers:true,drawPartAbbreviations:false});
+    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:false,pageFormat:'A4_P',newPageFromXML:true,newSystemFromNewPageInXML:true,drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:false,cursorsOptions:[{type:0,color:'#b28b38',alpha:.82,follow:false}],pageBackgroundColor:'#ffffff',backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false,drawMeasureNumbers:true,drawPartAbbreviations:false});
     await renderer.load(normalizeMusicXMLTitle(xml,title));if(cancelled)return;
     renderer.Zoom=1;renderer.render();rendererRef.current=renderer;
     renderer.enableOrDisableCursors(true);
