@@ -2436,3 +2436,12 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   display:block;font-size:12px;line-height:1.35;text-align:center;color:var(--muted,#697386);
   font-variant-numeric:tabular-nums;
 }
+
+/* Camera preview uses the whole portrait page frame with no inset margins. */
+.score-camera-dialog{width:min(900px,100%);gap:12px}
+.score-camera-preview{width:min(100%,calc((100dvh - 245px)*.707));height:min(58dvh,calc((100dvh - 245px)));min-height:220px;max-height:calc(100dvh - 245px);aspect-ratio:.707/1;border-radius:3px;margin:0 auto;padding:0}
+.score-camera-preview video{width:100%;height:100%;max-height:none;object-fit:cover}
+.score-camera-frame{inset:0;top:0;left:0;width:100%;height:100%;aspect-ratio:auto;transform:none;border:2px solid #fff;border-radius:0;box-shadow:inset 0 0 0 1px rgba(20,35,25,.25);background:transparent}
+.score-camera-frame span{width:24px;height:24px}
+.score-camera-header p{max-width:none}
+.learn-launch-card>.btn{position:relative;z-index:1;pointer-events:auto}
