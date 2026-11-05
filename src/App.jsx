@@ -10,6 +10,7 @@ import KeystoneLearnEngine from './KeystoneLearnEngine.jsx';
 import { isMeaningfulPracticeSession, getPracticeSeconds, calculatePracticeStreak, getQualifyingPracticeDays } from './practice-history.js';
 import { sanitizeTutorResponse, verifiedTheoryAnswer } from './ai-safety.js';
 import { hasMusicStaffLines, friendlyRecognitionError } from './score-image-validation.js';
+import { summarizeAudioReview } from './practice-feedback.js';
 
 const KEYMAP = {a:'C4',w:'C#4',s:'D4',e:'D#4',d:'E4',f:'F4',t:'F#4',g:'G4',y:'G#4',h:'A4',u:'A#4',j:'B4',k:'C5'};
 const EXAMPLES = [{name:'Warm-up scale',notes:'C4 D4 E4 F4 G4 A4 B4 C5'},{name:'Gentle arpeggio',notes:'C4 E4 G4 C5 G4 E4 C4'},{name:'Five-note pattern',notes:'C4 D4 E4 D4 C4'}];
@@ -1054,14 +1055,7 @@ async function requestLocalAudioCoachFeedback(blob,title,targetNotes,detectedNot
    const median=arr=>arr.length?[...arr].sort((a,b)=>a-b)[Math.floor(arr.length/2)]:null;
    const gap=median(gaps),duration=median(durations),pitchRange=pitches.length?(midiToNote(Math.min(...pitches))+'–'+midiToNote(Math.max(...pitches))):'unavailable';
    const target=targetNotes?compareSequences(targetNotes,notes):null;
-   const tips=[];
-   if(rms<.015)tips.push('The recording level is quiet; move the microphone closer or increase input gain without causing distortion.');
-   if(peak>.99||clipped/count>.01)tips.push('The waveform has clipped peaks; lower the input gain or move the microphone farther away.');
-   if(notes.length<5)tips.push('Play a short, clear phrase with the piano prominent and background noise reduced.');
-   if(gap!==null&&gap<.16)tips.push('The detected notes are closely spaced; practise the passage slowly with a steady pulse.');
-   if(gap!==null&&gap>1.2)tips.push('There are long gaps between detected onsets; check for pauses or notes too quiet for the detector.');
-   if(!tips.length)tips.push('Use the detected note sequence and onset spacing to practise a short phrase slowly, then repeat at a slightly faster tempo.');
-   return 'On-device audio measurements for “'+title+'”: '+decoded.duration.toFixed(1)+' seconds, '+decoded.numberOfChannels+' channel(s), waveform RMS '+rms.toFixed(3)+', peak '+peak.toFixed(3)+', clipped samples '+(count?((100*clipped/count).toFixed(2)+'%'):'unavailable')+'. Local polyphonic transcription detected '+notes.length+' note events; pitch range '+pitchRange+'. '+(gap!==null?'Median onset spacing '+gap.toFixed(2)+' seconds. ':'Onset spacing unavailable. ')+(duration!==null?'Median detected note duration '+duration.toFixed(2)+' seconds. ':'')+'Target sequence comparison: '+(target?(target.correct+' of '+target.total+' correct ('+target.accuracy+'%).'):'No target sequence was supplied; target-match scoring was skipped.')+'. Suggested checks: '+tips.join(' ');
+   return summarizeAudioReview({rms,peak,clippedRatio:count?clipped/count:0,noteCount:notes.length,medianGap:gap,targetComparison:target});
   }finally{await ctx.close().catch(()=>{})}
  }
  async function transcribeAudioBlob(blob,onProgress=()=>{}){
