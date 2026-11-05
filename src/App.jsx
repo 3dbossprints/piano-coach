@@ -1424,6 +1424,7 @@ async function playMidiLibraryFile(item){
    setBpm(Math.round(parsed.bpm));setSongTempo(Math.round(parsed.bpm));
    setExpected(all.slice(0,100).map(n=>n.note+'/'+(n.beats>=3.5?'w':n.beats>=1.5?'h':n.beats>=.7?'q':'e')).join(' '));
    setPracticeMode(options.practiceMode||(options.target==='Practice'?'normal':'learn'));setPage(options.target||'Sheet music');setPracticeStarted(false);
+   if(options.startGuidedLesson){setPage('Sheet music');setSheetPianoOpen(true);setPracticeMode('learn');learnModeRef.current=true;setLearnListenMode(true);setLearnBarProgress(0);setLearnPhraseOffset(0);learnProgressRef.current=0;learnPhraseOffsetRef.current=0;setLearnMessage('Your saved MIDI score is loaded. Choose Learn or Perform, then press Start.');}
    setMusicCoachStatus('Imported '+all.length+' MIDI notes across the full score. Grand-staff notation and editable playback were saved to your Library.');
    setStatus('MIDI imported successfully');return true;
   }catch(e){
