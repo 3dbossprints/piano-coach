@@ -82,7 +82,7 @@ async function extractMp4Audio(file, onProgress) {
       throw new Error('For browser performance, convert videos up to 8 minutes long. Trim this video or export its audio first.');
     }
     const capture = video.captureStream || video.mozCaptureStream;
-    if (!capture) throw new Error('This browser cannot extract the video's audio track. Try MP3 or M4A instead.');
+    if (!capture) throw new Error('This browser cannot extract the video audio track. Try MP3 or M4A instead.');
     sourceStream = capture.call(video);
     // Chromium may not expose the audio track until the media element starts
     // playback. Prime the stream, then rewind before recording so the beginning
@@ -105,7 +105,7 @@ async function extractMp4Audio(file, onProgress) {
       recorder.addEventListener('dataavailable', event => {
         if (event.data?.size) chunks.push(event.data);
       });
-      recorder.addEventListener('error', () => reject(new Error('Could not extract the video's audio track.')));
+      recorder.addEventListener('error', () => reject(new Error('Could not extract the video audio track.')));
       recorder.addEventListener('stop', () => resolve(new Blob(chunks, { type: mimeType })), { once: true });
     });
     recorder.start(1000);
