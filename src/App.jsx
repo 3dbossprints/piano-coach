@@ -157,8 +157,9 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
   const pages=getRenderedScorePages();
   const pageCount=Math.max(1,pages.length);
   const next=Math.max(1,Math.min(pageCount,Number(pageNumber)||1));
-  const spreadStart=Math.floor((next-1)/2)*2+1;
-  const spreadEnd=Math.min(pageCount,spreadStart+1);
+  const singlePage=window.innerWidth<760;
+  const spreadStart=singlePage?next:Math.floor((next-1)/2)*2+1;
+  const spreadEnd=singlePage?next:Math.min(pageCount,spreadStart+1);
   const pageContainer=pages[0]?.parentElement||host.current;
   if(host.current){
    host.current.classList.add('expanded-score-page-spread');
