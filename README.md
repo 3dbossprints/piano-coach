@@ -1,4 +1,4 @@
-# Piano Coach
+# Music Coach
 
 A local-first piano practice and sheet-music workspace.
 

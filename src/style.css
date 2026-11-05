@@ -2306,3 +2306,8 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   }
   .expanded-score-pages-grid{gap:14px!important}
 }
+
+
+.library-expand-control{display:flex;justify-content:center;padding:8px 0 2px}.library-expand-control .btn{min-width:180px}.personal-score-card audio{display:none}
+
+.dashboard-quick-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:15px}.dashboard-quick-actions .dashboard-primary{margin:0}.dashboard-quick-actions .btn:not(.dashboard-primary){background:#fff;border-color:#e1e8df;color:#34473b}.dashboard-quick-actions .btn:not(.dashboard-primary):hover{background:#f5f8f3}@media(max-width:700px){.dashboard-quick-actions{display:grid;grid-template-columns:1fr 1fr}.dashboard-quick-actions .dashboard-primary{grid-column:1/-1}}
