@@ -2453,3 +2453,8 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .score-identification{display:grid;gap:3px;margin:8px 0 12px;padding:10px 12px;border-left:3px solid var(--green);background:#f7faf6}
 .score-identification span{font-size:13px;color:var(--muted)}
 @media(max-width:620px){.score-combine-toolbar{align-items:stretch;flex-direction:column}.score-combine-toolbar .btn{width:100%}}
+
+.score-metadata-fields{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px;margin:14px 0}
+.score-metadata-fields label{display:grid;gap:6px;font-size:12px;font-weight:750;color:var(--ink)}
+.score-metadata-fields input{width:100%;min-width:0;border:1px solid var(--line);border-radius:10px;background:#fff;padding:10px 12px;color:var(--ink);font:inherit}
+@media(max-width:700px){.score-metadata-fields{grid-template-columns:1fr}}
