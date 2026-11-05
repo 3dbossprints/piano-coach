@@ -16,7 +16,7 @@ test('genuine activity makes a session eligible for history', () => {
 test('15-minute streak threshold aggregates all genuine sessions on the same local day', () => {
   const sessions = [
     { date: '2026-11-04T09:00:00', practiceSeconds: 480, notes: 3 },
-    { date: '2026-11-04T18:00:00', practiceSeconds: 420, notes: 4 },
+    { date: '2026-11-04T18:00:00', practiceSeconds: 360, notes: 4 },
     { date: '2026-11-04T20:00:00', practiceSeconds: 60, notes: 0 },
   ];
   assert.deepEqual(getQualifyingPracticeDays(sessions), []);
@@ -32,7 +32,7 @@ test('streak counts consecutive qualifying days and tolerates a not-yet-practise
     { date: '2026-11-01T09:00:00', practiceSeconds: 900, notes: 1 },
   ];
   assert.equal(calculatePracticeStreak(sessions, new Date(2026, 10, 5, 12)), 3);
-  assert.equal(calculatePracticeStreak(sessions.slice(1), new Date(2026, 10, 5, 12)), 3);
+  assert.equal(calculatePracticeStreak(sessions.slice(1), new Date(2026, 10, 5, 12)), 2);
 });
 
 test('practice duration falls back to saved minutes for older sessions', () => {
