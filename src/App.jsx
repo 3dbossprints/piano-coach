@@ -347,6 +347,39 @@ function scoreNotesToMusicXML(score){
  const mk=(hand,id,clef)=>{const ns=notes.filter(n=>(n.hand||((Number(n.midi??noteToMidi(n.note))<60)?'left':'right'))===hand).sort((a,b)=>(Number(a.time)||0)-(Number(b.time)||0));const body=ns.map(n=>{const m=String(n.note).match(/^([A-G])(#|b)?(-?\d+)$/i);if(!m)return '';return '<note><pitch><step>'+m[1].toUpperCase()+'</step>'+(m[2]==='#'?'<alter>1</alter>':m[2]==='b'?'<alter>-1</alter>':'')+'<octave>'+m[3]+'</octave></pitch><duration>'+Math.max(1,Math.round((Number(n.duration)||.5)*8))+'</duration><type>eighth</type></note>';}).join('');return '<part id="'+id+'"><measure number="1"><attributes><divisions>8</divisions><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>'+clef+'</sign><line>'+(clef==='G'?2:4)+'</line></clef></attributes>'+body+'</measure></part>';};
  return '<?xml version="1.0"?><score-partwise version="3.1"><part-list><score-part id="P1"><part-name>Right hand</part-name></score-part><score-part id="P2"><part-name>Left hand</part-name></score-part></part-list>'+mk('right','P1','G')+mk('left','P2','F')+'</score-partwise>';
 }
+function combineMusicXMLPages(xmlTexts,title){
+ const docs=xmlTexts.map(source=>new DOMParser().parseFromString(source,'application/xml'));
+ if(docs.some(doc=>doc.querySelector('parsererror')||!doc.querySelector('score-partwise')))throw new Error('One of the selected files is not valid partwise MusicXML.');
+ const base=docs[0],baseRoot=base.querySelector('score-partwise'),baseParts=[...baseRoot.children].filter(node=>node.localName==='part');
+ const baseList=baseRoot.querySelector('part-list');
+ if(!baseParts.length||!baseList)throw new Error('The selected MusicXML has no piano parts.');
+ const partName=(doc,part)=>{const id=part.getAttribute('id');return doc.querySelector('part-list score-part[id="'+id+'"] part-name')?.textContent?.trim()||''};
+ const mapping=new Map(baseParts.map((part,index)=>[index,part]));
+ let nextId=baseParts.length+1;
+ for(let d=1;d<docs.length;d++){
+  const root=docs[d].querySelector('score-partwise');
+  const parts=[...root.children].filter(node=>node.localName==='part');
+  for(let pi=0;pi<parts.length;pi++){
+   const sourcePart=parts[pi],name=partName(docs[d],sourcePart);
+   let target=[...mapping.values()].find(p=>partName(base,p)===name&&name);
+   if(!target)target=baseParts[Math.min(pi,baseParts.length-1)];
+   if(!target){
+    const id='P'+nextId++,clone=base.importNode(sourcePart,true);clone.setAttribute('id',id);baseRoot.appendChild(clone);
+    const scorePart=base.createElement('score-part');scorePart.setAttribute('id',id);const partNameEl=base.createElement('part-name');partNameEl.textContent=name||('Part '+id);scorePart.appendChild(partNameEl);baseList.appendChild(scorePart);target=clone;
+   }
+   const existing=[...target.children].filter(n=>n.localName==='measure').length;
+   for(const measure of [...sourcePart.children].filter(n=>n.localName==='measure')){
+    const clone=base.importNode(measure,true);clone.setAttribute('number',String(existing+[...target.children].filter(n=>n.localName==='measure').length-existing+1));target.appendChild(clone);
+   }
+  }
+ }
+ let work=base.querySelector('work');
+ if(!work){work=base.createElement('work');baseRoot.insertBefore(work,baseRoot.firstChild);}
+ let workTitle=work.querySelector('work-title');
+ if(!workTitle){workTitle=base.createElement('work-title');work.appendChild(workTitle);}
+ workTitle.textContent=title||'Combined score';
+ return new XMLSerializer().serializeToString(base);
+}
 function decodeMusicCoach(text){
  const source=String(text||'').replace(/^\uFEFF/,'').trimStart();
  const headers=['MUSICCOACH-SCORE/2\n','PIANOCOACH-MIX/1\n'];
@@ -369,6 +402,7 @@ export default function App(){
  const [cookieSettingsOpen,setCookieSettingsOpen]=useState(false);
  const [practiceStarted,setPracticeStarted]=useState(false),[songTitle,setSongTitle]=useState(''),[practiceMinutes,setPracticeMinutes]=useState('15'),[reflection,setReflection]=useState(''),[practiceFeedback,setPracticeFeedback]=useState(''),[remainingSeconds,setRemainingSeconds]=useState(0);
  const [libraryFiles,setLibraryFiles]=useState(()=>{try{const value=JSON.parse(localStorage.getItem('pc_files')||'[]');return (Array.isArray(value)?value:[]).filter(isSheetMusicLibraryItem)}catch{return[]}});
+ const [selectedCombineIds,setSelectedCombineIds]=useState([]);
  const [libraryHydrated,setLibraryHydrated]=useState(false),[scoreLibraryExpanded,setScoreLibraryExpanded]=useState(false);
  const [extraTool,setExtraTool]=useState('keyboard');
  const [keyboardStart,setKeyboardStart]=useState('C3'),[keyboardOctaves,setKeyboardOctaves]=useState(3);
@@ -803,7 +837,7 @@ function uploadScoreImage(file){if(!file)return;const isPdf=file.type==='applica
     const activeTime=timeElements[timeElements.length-1]||firstAttributes;
     const beats=getText(activeTime,'beats','4'),beatType=getText(activeTime,'beat-type','4');
     const tempo=Number(xml.querySelector('sound[tempo]')?.getAttribute('tempo')||firstPart.querySelector('metronome per-minute')?.textContent)||bpm;
-    const notes=[],notationEvents=[],markTypes=['dynamics','wedge','pedal','metronome','words','rehearsal','articulations','ornaments','technical','fermata','slur','tied','tuplet','arpeggiate','glissando','slide','other-dynamics','other-technical'];
+    const notes=[],notationEvents=[],markTypes=['dynamics','wedge','pedal','metronome','words','rehearsal','articulations','ornaments','technical','fermata','slur','tied','tuplet','arpeggiate','glissando','slide','octave-shift','bracket','dashes','harp-pedals','accordion-registration','scordatura','string-mute','percussion','principal-voice','staff-divide','beat-repeat','measure-repeat','slash','other-direction','other-dynamics','other-technical'];
     const partMeasures=parts.map(part=>[...part.children].filter(el=>el.localName==='measure'));
     const measureCount=Math.max(...partMeasures.map(ms=>ms.length));
     const partDivisions=parts.map(()=>1);
@@ -1417,6 +1451,34 @@ async function playMidiLibraryFile(item){
  }
  function downloadLibraryFile(item){const a=document.createElement('a');a.href=item.data;a.download=item.name;a.click()}
  function openLibraryScores(){setPage('Sheet music');setStatus('Opened your sheet music collection')}
+ function combineSelectedLibrarySheets(){
+  const chosen=selectedCombineIds.map(id=>libraryFiles.find(item=>String(item.id)===String(id))).filter(Boolean);
+  if(chosen.length<2){setStatus('Select at least two converted scores to combine.');return;}
+  (async()=>{
+   try{
+    const xmlPages=[];
+    for(const item of chosen){
+     let score=item.score;
+     if(!score&&item.data){
+      const response=await fetch(item.data);if(!response.ok)throw new Error('Could not read '+item.name);
+      const raw=await response.text();
+      if(/\.musiccoach$/i.test(item.name))score=decodeMusicCoach(raw);
+      else if(/\.musicxml$|\.xml$/i.test(item.name)){xmlPages.push(raw);continue;}
+     }
+     if(score?.notation?.sourceMusicXML)xmlPages.push(score.notation.sourceMusicXML);
+     else if(score?.notes?.length)xmlPages.push(midiNotesToMusicXML(score.notes,score.bpm||120,score.timeSignature||'4/4',score.title||item.name));
+     else throw new Error(item.name+' does not contain an editable score. Convert it first.');
+    }
+    const combined=combineMusicXMLPages(xmlPages,chosen.map(x=>x.name.replace(/\.[^.]+$/,'')).join(' + '));
+    const title='Combined score · '+chosen.length+' pages';
+    const file=new File([combined],title+'.musicxml',{type:'application/vnd.recordare.musicxml+xml'});
+    setSelectedCombineIds([]);
+    importMusicXML(file,{target:'Sheet music',download:false});
+    setStatus('Combining '+chosen.length+' scores in the selected order…');
+   }catch(error){setStatus('Could not combine scores: '+(error?.message||String(error)));}
+  })();
+ }
+
  function deleteLibraryItem(item){if(libraryPlayback.id===item.id)stopLibraryItem(item);setLibraryFiles(v=>v.filter(f=>f.id!==item.id));setStatus('Deleted '+(item.name||'file')+' from your Library')}
  async function openLibrarySheetFullscreen(item){
   try{
