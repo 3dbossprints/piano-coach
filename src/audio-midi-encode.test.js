@@ -7,7 +7,9 @@ test('writes a valid MIDI header and one note-on/note-off pair', async () => {
   const bytes = new Uint8Array(await blob.arrayBuffer());
   assert.equal(String.fromCharCode(...bytes.slice(0, 4)), 'MThd');
   assert.equal(bytes[8], 0);
-  assert.equal(bytes[9], 1);
+  assert.equal(bytes[9], 0);
+  assert.equal(bytes[10], 0);
+  assert.equal(bytes[11], 1);
   assert.equal(String.fromCharCode(...bytes.slice(14, 18)), 'MTrk');
   assert.ok(bytes.includes(0x90));
   assert.ok(bytes.includes(0x80));
