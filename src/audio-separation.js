@@ -1,6 +1,6 @@
 const MAX_SEPARATION_SECONDS = 8 * 60;
 
-function toStereoChannels(audioBuffer) {
+export function toStereoChannels(audioBuffer) {
   const length = audioBuffer.length;
   const source = Array.from({ length: audioBuffer.numberOfChannels }, (_, index) => audioBuffer.getChannelData(index));
   if (source.length === 1) return [new Float32Array(source[0])];
