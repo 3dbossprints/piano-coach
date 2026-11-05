@@ -57,7 +57,7 @@ export default function GradePlannerSimple({sessions=[],onPracticePiece=()=>{}})
  return <div className="grade-planner grade-planner-simple">
   {!done?<section className="panel gp-questionnaire">
    <div className="eyebrow">YOUR PIANO PLAN</div><h2>Let's work out what you need</h2>
-   <p className="muted">Answer these quick questions. Music Coach will turn them into a simple plan you can follow.</p>
+   <p className="muted">Answer these quick questions. Piano Coach will turn them into a simple plan you can follow.</p>
    <form className="gp-questionnaire-form" onSubmit={buildPlan}>
     <label>What is your current level?<select value={level} onChange={e=>setLevel(e.target.value)}>{LEVELS.map(x=><option key={x}>{x}</option>)}</select></label>
     <label>What is your main goal?<select value={goal} onChange={e=>setGoal(e.target.value)}><option value="exam">Prepare for a graded exam</option><option value="confidence">Become more confident playing pieces</option><option value="technique">Improve technique and sight-reading</option></select></label>
@@ -67,7 +67,7 @@ export default function GradePlannerSimple({sessions=[],onPracticePiece=()=>{}})
     <button className="btn btn-dark" type="submit">Create my plan →</button>
    </form>
   </section>:<>
-   <section className="panel gp-simple-hero"><div><div className="eyebrow">YOUR PLAN</div><h2>{plan.board||'Piano'} · {plan.target||'Next steps'}</h2><p className="muted">Your plan is ready. Add photos of your grade pieces and Music Coach will convert them into sheet music for practice.</p><strong>{Math.round((Number(plan.weeklyHours)||0)*60)} minutes planned each week</strong></div><button className="btn" onClick={()=>setDone(false)}>Edit answers</button></section>
+   <section className="panel gp-simple-hero"><div><div className="eyebrow">YOUR PLAN</div><h2>{plan.board||'Piano'} · {plan.target||'Next steps'}</h2><p className="muted">Your plan is ready. Add photos of your grade pieces and Piano Coach will convert them into sheet music for practice.</p><strong>{Math.round((Number(plan.weeklyHours)||0)*60)} minutes planned each week</strong></div><button className="btn" onClick={()=>setDone(false)}>Edit answers</button></section>
    <section className="panel"><h3>Your practice checklist</h3><div className="gp-simple-steps">{requirements.map((r,i)=><article className="gp-simple-step" key={r[0]}><span>{i+1}</span><div><strong>{r[1]}</strong><p>{r[2]}</p></div></article>)}</div><p className="muted small">Check the official {plan.board} syllabus for exact grade-specific requirements.</p></section>
    <section className="panel"><div className="panel-head"><div><h3>Your grade pieces</h3><p className="muted">Upload a clear photo of a piece, or its PDF. Add one piece at a time.</p></div><span className="tag">{(plan.pieces||[]).length} uploaded</span></div>
     <label className="gp-photo-upload"><span className="gp-photo-icon">＋</span><strong>{busy?'Adding score…':'Upload a piece photo or PDF'}</strong><small>PNG, JPG, WebP or PDF</small><input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp" disabled={busy} onChange={e=>{upload(e.target.files?.[0]);e.target.value='';}}/></label>
