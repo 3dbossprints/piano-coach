@@ -9,6 +9,7 @@ import { isPlayableSheetMusicItem, isSheetMusicLibraryItem, loadBrowserScoreLibr
 import KeystoneLearnEngine from './KeystoneLearnEngine.jsx';
 import { isMeaningfulPracticeSession, getPracticeSeconds, calculatePracticeStreak, getQualifyingPracticeDays } from './practice-history.js';
 import { sanitizeTutorResponse, verifiedTheoryAnswer } from './ai-safety.js';
+import { hasMusicStaffLines, friendlyRecognitionError } from './score-image-validation.js';
 
 const KEYMAP = {a:'C4',w:'C#4',s:'D4',e:'D#4',d:'E4',f:'F4',t:'F#4',g:'G4',y:'G#4',h:'A4',u:'A#4',j:'B4',k:'C5'};
 const EXAMPLES = [{name:'Warm-up scale',notes:'C4 D4 E4 F4 G4 A4 B4 C5'},{name:'Gentle arpeggio',notes:'C4 E4 G4 C5 G4 E4 C4'},{name:'Five-note pattern',notes:'C4 D4 E4 D4 C4'}];
@@ -881,6 +882,8 @@ async function captureScorePhoto(){
   const context=canvas.getContext('2d');
   if(!context)throw new Error('Could not prepare the camera image.');
   context.drawImage(video,0,0,canvas.width,canvas.height);
+  const imageData=context.getImageData(0,0,canvas.width,canvas.height);
+  if(!hasMusicStaffLines(imageData))throw new Error('I could not find a clear five-line music staff in this photo. Fit the whole sheet inside the guide, keep it straight and in focus, and avoid glare or shadows. No conversion was started.');
   const blob=await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('Could not capture the photo.')),'image/jpeg',.94));
   const file=new File([blob],'music-sheet-photo-'+new Date().toISOString().replace(/[:.]/g,'-')+'.jpg',{type:'image/jpeg',lastModified:Date.now()});
   stopScoreCamera();
@@ -891,6 +894,7 @@ async function captureScorePhoto(){
 async function convertScoreToMusicCoach(file,options={}){
   if(!file||musicCoachBusy)return;
   setMusicCoachStatus('Checking '+file.name+'…');
+  setConversionSavedNotice(false);
   const ext=file.name.toLowerCase();
   if(/\.(mid|midi)$/i.test(file.name)){await handleMidiUpload(file,{...options,target:options.target||'Score converter'});return}
   if(/\.(mp3|m4a|wav|mp4|webm)$/i.test(file.name)){
@@ -938,11 +942,11 @@ async function convertScoreToMusicCoach(file,options={}){
    setStatus('On-device OMR completed · review the converted score');
   }catch(e){
    const detail=String(e?.message||e);
-   const imageEngineFailed=/cv2\.error|opencv|resize.cpp|center_image_on_canvas/i.test(detail);
-   setMusicCoachStatus(imageEngineFailed?'The local recognition model failed while preparing a staff image (OpenCV resize error). Your file was kept in the Library so you can retry with a straight, high-contrast PNG/JPEG scan with visible margins.':'Local music recognition failed: '+detail.slice(0,320));
-   setMusicCoachAnalysis('No score was falsely marked as converted. Recognition runs on this device; the source file remains available for review. MusicXML/XML or MIDI files can be converted directly into editable notation without optical recognition.');
+   console.error('Local sheet-music recognition failed:',e);
+   setMusicCoachStatus(friendlyRecognitionError(detail));
+   setMusicCoachAnalysis('No converted score was created. The original image or PDF has been kept in your Library so you can retry it. Only a successfully recognised score will show the conversion-saved confirmation.');
    try{saveLibraryFile(file)}catch{}
-   setConversionSavedNotice(true);setStatus('Source saved to Library · conversion needs attention');
+   setConversionSavedNotice(false);setStatus('Original source saved to Library · conversion failed');
   }finally{setMusicCoachBusy(false)}
  }
  function exportMusicXml(){if(scoreNotation?.sourceMusicXML){const u=URL.createObjectURL(new Blob([scoreNotation.sourceMusicXML],{type:'application/vnd.recordare.musicxml+xml'})),a=document.createElement('a');a.href=u;a.download=(songTitle||'piano-coach-score')+'.musicxml';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);setStatus('Exported original MusicXML with technical notation intact');return}const notes=events.length?events:parseMusicSequence(expected);if(!notes.length){setStatus('Enter notes such as C4/q D4/h R/q before exporting.');return}const body=notes.map(n=>{const beats=Math.max(.125,Number(n.beats)||1),dur=Math.round(beats*8),type=beats>=4?'whole':beats>=2?'half':beats>=1?'quarter':beats>=.5?'eighth':'16th';if(n.rest)return '<note><rest/><duration>'+dur+'</duration><type>'+type+'</type></note>';const name=midiToNote(n.midi),m=name.match(/^([A-G])(#?)(-?\d+)$/);return '<note><pitch><step>'+m[1]+'</step>'+(m[2]?'<alter>1</alter>':'')+'<octave>'+m[3]+'</octave></pitch><duration>'+dur+'</duration><type>'+type+'</type></note>'}).join('');const parts=timeSignature.split('/'),xml='<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><work><work-title>'+String(songTitle||'Piano Coach score').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</work-title></work><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>8</divisions><time><beats>'+parts[0]+'</beats><beat-type>'+parts[1]+'</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>'+body+'</measure></part></score-partwise>';const u=URL.createObjectURL(new Blob([xml],{type:'application/vnd.recordare.musicxml+xml'})),a=document.createElement('a');a.href=u;a.download='piano-coach-score.musicxml';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);setStatus('Exported MusicXML; original technical notation is preserved when importing MusicXML first.')}function clearNotes(){sessionEvents.current=[];setEvents([]);setStatus('Detected notes cleared')}
