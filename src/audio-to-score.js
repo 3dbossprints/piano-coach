@@ -86,7 +86,7 @@ async function extractMp4Audio(file, onProgress) {
   }
 }
 
-export async function transcribeAudioFile(file, onProgress) {
+export async function transcribeAudioFile(file, onProgress, { removeDialogue = false } = {}) {
   if (!file || !AUDIO_EXTENSIONS.test(file.name || '')) {
     throw new Error('Choose an MP3, M4A, MP4 or WebM file.');
   }
@@ -94,8 +94,19 @@ export async function transcribeAudioFile(file, onProgress) {
     throw new Error('Choose an audio/video file smaller than 100 MB.');
   }
   let audioFile = file;
-  if (/\.mp4$/i.test(file.name)) {
+  if (/\.mp4$/i.test(file.name) || (/\.webm$/i.test(file.name) && /^video\//i.test(file.type || ''))) {
     audioFile = await extractMp4Audio(file, onProgress);
+  }
+  const separation = { applied: false, warning: '' };
+  if (removeDialogue) {
+    try {
+      const { separateDialogueFromMusic } = await import('./audio-separation.js');
+      audioFile = await separateDialogueFromMusic(audioFile, onProgress);
+      separation.applied = true;
+    } catch (error) {
+      separation.warning = String(error?.message || error);
+      onProgress?.('Dialogue separation was unavailable. Continuing with the original audio…');
+    }
   }
   onProgress?.('Loading the local audio transcription model. The first conversion may take a little longer…');
   const options = {
@@ -138,5 +149,6 @@ export async function transcribeAudioFile(file, onProgress) {
     midiBlob,
     noteCount: Number(result.noteCount) || 0,
     title: result.title || file.name.replace(AUDIO_EXTENSIONS, ''),
+    separation,
   };
 }
