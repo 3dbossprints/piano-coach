@@ -2421,3 +2421,13 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   .converter-action-stack .converter-camera-button,
   .converter-action-stack .converter-recording-button{min-height:48px;height:auto}
 }
+
+
+/* Live microphone capture state in the sheet-music converter. */
+.converter-action-stack .converter-recording-button.is-recording{
+  background:#fff1f0!important;border:1px solid #d94841!important;color:#a52822!important;
+}
+.converter-recording-status{
+  display:block;font-size:12px;line-height:1.35;text-align:center;color:var(--muted,#697386);
+  font-variant-numeric:tabular-nums;
+}
