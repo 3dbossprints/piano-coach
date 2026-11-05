@@ -1964,6 +1964,11 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 
 
 /* Camera capture for the sheet music converter */
+.converter-dialogue-option{display:flex;align-items:flex-start;gap:10px;margin:14px 0 16px;padding:12px 14px;border:1px solid var(--line,#e5e2da);border-radius:12px;background:var(--panel,#fff);color:var(--ink,#202938);font-size:13px;line-height:1.4}
+.converter-dialogue-option input{flex:0 0 auto;margin:3px 0 0;accent-color:var(--accent,#5265d8)}
+.converter-dialogue-option span{display:flex;flex-direction:column;gap:3px;min-width:0}
+.converter-dialogue-option strong{font-weight:650}
+.converter-dialogue-option small{font-size:12px;line-height:1.45;color:var(--muted,#697386)}
 .converter-input-actions{display:flex;align-items:stretch;gap:12px;flex-wrap:wrap;margin:18px 0}
 .converter-input-actions .musiccoach-upload{flex:1 1 320px;margin:0}
 .converter-camera-button{min-height:52px;justify-content:center;gap:9px;padding-inline:22px}
