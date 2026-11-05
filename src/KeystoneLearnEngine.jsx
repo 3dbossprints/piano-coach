@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import * as Tone from 'tone';
 import { buildKeystoneTimeline, midiName, parseKeystoneMusicXML, scoreNotesToKeystoneTimeline, isBlackKey } from './keystone-engine.js';
 
 const COMPUTER_KEYS = 'zsxdcvgbhnjmq2w3er5t6y7u';
@@ -21,7 +22,7 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
   const timeline = useMemo(() => parsed.measures ? buildKeystoneTimeline(parsed) : (parsed.timeline || []), [parsed]);
   const canvasRef = useRef(null), stageRef = useRef(null), rafRef = useRef(0);
   const runRef = useRef(null), pressedRef = useRef(new Set()), voicesRef = useRef(new Map());
-  const audioRef = useRef(null), midiRef = useRef(null), keyHeldRef = useRef({}), timersRef = useRef(new Set());
+  const audioRef = useRef(null), pianoSamplerRef = useRef(null), midiRef = useRef(null), keyHeldRef = useRef({}), timersRef = useRef(new Set());
   const [mode, setMode] = useState('learn'), [hands, setHands] = useState('both');
   const [speed, setSpeed] = useState(1), [bpm, setBpm] = useState(Math.max(20, Number(initialBpm) || 120));
   const [fromBar, setFromBar] = useState(1), [toBar, setToBar] = useState(9999);
@@ -47,23 +48,20 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
   }, [keyRange]);
   const whiteWidth = 100 / Math.max(1, whiteKeys.length);
 
-  const stopVoice = useCallback((id) => {
-    const entry = voicesRef.current.get(id); if (!entry) return;
-    try { const now = audioRef.current?.currentTime || 0; entry.gain.gain.cancelScheduledValues(now); entry.gain.gain.setTargetAtTime(0, now, .06); entry.osc.stop(now + .3); } catch {}
-    voicesRef.current.delete(id);
+  const sound = useCallback((midi, on) => {
+    if(!Number.isFinite(midi)||midi<0||midi>127)return;
+    if(!pianoSamplerRef.current){
+      const sampleNotes=['A0','C1','D#1','F#1','A1','C2','D#2','F#2','A2','C3','D#3','F#3','A3','C4','D#4','F#4','A4','C5','D#5','F#5','A5','C6','D#6','F#6','A6','C7','D#7','F#7','A7','C8'];
+      const urls=Object.fromEntries(sampleNotes.map(note=>[note,note+'.mp3']));
+      pianoSamplerRef.current=new Tone.Sampler({urls,baseUrl:'https://tonejs.github.io/audio/salamander/',release:1.5,attack:.005,volume:-7}).toDestination();
+    }
+    const note=midiName(midi);
+    if(on){
+      Tone.start().then(()=>Tone.loaded()).then(()=>{if(pressedRef.current.has(midi))pianoSamplerRef.current?.triggerAttack(note)}).catch(error=>console.warn('Grand piano sample could not load:',error));
+    }else{
+      try{pianoSamplerRef.current?.triggerRelease(note)}catch{}
+    }
   }, []);
-  const sound = useCallback((midi, on, id = String(midi)) => {
-    const Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return;
-    if (!audioRef.current || audioRef.current.state === 'closed') audioRef.current = new Ctx();
-    const ctx = audioRef.current;
-    if (on) {
-      stopVoice(id);
-      const osc=ctx.createOscillator(), gain=ctx.createGain(), filter=ctx.createBiquadFilter();
-      osc.type='triangle'; osc.frequency.value=440*Math.pow(2,(midi-69)/12); filter.type='lowpass'; filter.frequency.value=2400;
-      gain.gain.setValueAtTime(0,ctx.currentTime); gain.gain.linearRampToValueAtTime(.24,ctx.currentTime+.01); gain.gain.exponentialRampToValueAtTime(.055,ctx.currentTime+1.4);
-      osc.connect(filter).connect(gain).connect(ctx.destination); osc.start(); voicesRef.current.set(id,{osc,gain});
-    } else stopVoice(id);
-  }, [stopVoice]);
 
   const hit = useCallback((note, grade, extra) => {
     const run=runRef.current; if(!run)return;
@@ -133,7 +131,7 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
   const startRun = useCallback(async () => {
     if(runRef.current){stopRun();return;}
     if(!selected.length){setMessage('There are no playable notes in this hand and bar range.');return;}
-    if(audioRef.current?.state==='suspended')await audioRef.current.resume();
+    await Tone.start();
     const active=selected.map(n=>({...n,on:true,res:null,arrivedAt:null,played:false}));
     const activeIds=new Set(active.map(n=>n.orderIndex+':'+n.noteIndex+':'+n.t));
     const accompaniment=timeline.filter(n=>n.measure>=fromBar&&n.measure<=toBar&&!activeIds.has(n.orderIndex+':'+n.noteIndex+':'+n.t)).map(n=>({...n,played:false}));
@@ -229,9 +227,9 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
 
   useEffect(() => () => {
     if(runRef.current)runRef.current=null;
-    disconnectMidi();for(const timer of timersRef.current)clearTimeout(timer);timersRef.current.clear();for(const id of [...voicesRef.current.keys()])stopVoice(id);
-    try{audioRef.current?.close();}catch{}
-  }, [disconnectMidi,stopVoice]);
+    disconnectMidi();for(const timer of timersRef.current)clearTimeout(timer);timersRef.current.clear();
+    try{pianoSamplerRef.current?.dispose();pianoSamplerRef.current=null;audioRef.current?.close();}catch{}
+  }, [disconnectMidi]);
 
   const shiftKey = delta => setKeyStart(v=>Math.max(21,Math.min(108-COMPUTER_KEYS.length,v+delta)));
   const finish = () => { const run=runRef.current;if(run){const hits=run.active.filter(n=>n.res),summary={score:Math.max(0,Math.round(100*hits.reduce((sum,n)=>sum+({perfect:1,good:.8,almost:.5}[n.res]||0),0)/Math.max(1,run.active.length))),hits:hits.length,total:run.active.length,perfect:hits.filter(n=>n.res==='perfect').length,good:hits.filter(n=>n.res==='good').length,almost:hits.filter(n=>n.res==='almost').length,wrong:run.wrong.length,maxCombo:run.maxCombo,mode:run.mode,hands,tempo:bpm,speed:run.speed,trouble:[]};runRef.current=null;onFinish?.(summary);}else onFinish?.(result); };

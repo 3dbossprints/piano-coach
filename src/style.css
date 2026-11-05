@@ -2436,3 +2436,25 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   display:block;font-size:12px;line-height:1.35;text-align:center;color:var(--muted,#697386);
   font-variant-numeric:tabular-nums;
 }
+
+/* Camera preview uses the whole portrait page frame with no inset margins. */
+.score-camera-dialog{width:min(900px,100%);gap:12px}
+.score-camera-preview{width:min(100%,calc((100dvh - 245px)*.707));height:min(70dvh,calc((100dvh - 220px)));min-height:220px;max-height:calc(100dvh - 220px);aspect-ratio:.707/1;border-radius:3px;margin:0 auto;padding:0}
+.score-camera-preview video{width:100%;height:100%;max-height:none;object-fit:cover}
+.score-camera-frame{inset:0;top:0;left:0;width:100%;height:100%;aspect-ratio:auto;transform:none;border:2px solid #fff;border-radius:0;box-shadow:inset 0 0 0 1px rgba(20,35,25,.25);background:transparent}
+.score-camera-frame span{width:24px;height:24px}
+.score-camera-header p{max-width:none}
+.learn-launch-card>.btn{position:relative;z-index:1;pointer-events:auto}
+
+.score-combine-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:18px 0;padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:#fff}
+.score-combine-toolbar>div{display:grid;gap:3px}.score-combine-toolbar span,.score-combine-select span{font-size:12px;color:var(--muted)}
+.score-combine-select{display:inline-flex;align-items:center;gap:6px;margin-right:4px;font-size:12px;font-weight:700;color:var(--muted)}
+.score-combine-select input{accent-color:var(--green);width:16px;height:16px}
+.score-identification{display:grid;gap:3px;margin:8px 0 12px;padding:10px 12px;border-left:3px solid var(--green);background:#f7faf6}
+.score-identification span{font-size:13px;color:var(--muted)}
+@media(max-width:620px){.score-combine-toolbar{align-items:stretch;flex-direction:column}.score-combine-toolbar .btn{width:100%}}
+
+.score-metadata-fields{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px;margin:14px 0}
+.score-metadata-fields label{display:grid;gap:6px;font-size:12px;font-weight:750;color:var(--ink)}
+.score-metadata-fields input{width:100%;min-width:0;border:1px solid var(--line);border-radius:10px;background:#fff;padding:10px 12px;color:var(--ink);font:inherit}
+@media(max-width:700px){.score-metadata-fields{grid-template-columns:1fr}}

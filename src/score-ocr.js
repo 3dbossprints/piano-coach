@@ -205,13 +205,30 @@ async function imageCanvas(file) {
 async function pdfCanvases(file, onProgress) {
   const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
   const canvases = [];
+  const metadata = { title: '', composer: '', arranger: '' };
   try {
+    try {
+      const info = (await pdf.getMetadata()).info || {};
+      metadata.title = String(info.Title || '').trim();
+      const textPages = [];
+      for (let pageNo = 1; pageNo <= Math.min(2, pdf.numPages); pageNo++) {
+        const page = await pdf.getPage(pageNo);
+        const content = await page.getTextContent();
+        textPages.push(content.items.map(item => item.str || '').join(' '));
+      }
+      const text = textPages.join(' ').replace(/\s+/g, ' ').trim();
+      const composer = text.match(/(?:composer|composed by|music by)\s*[:\-]\s*([^|;]{2,90})/i);
+      const arranger = text.match(/(?:arranger|arranged by|arrangement by)\s*[:\-]\s*([^|;]{2,90})/i);
+      if (composer) metadata.composer = composer[1].trim().split(/\s{2,}/)[0];
+      if (arranger) metadata.arranger = arranger[1].trim().split(/\s{2,}/)[0];
+      if (!metadata.title) metadata.title = text.split(/\s{2,}/).map(value => value.trim()).find(value => value.length > 3 && !/^(composer|arranger|page \d+)/i.test(value)) || '';
+    } catch (error) {
+      onProgress?.('PDF text metadata was unavailable; continuing with notation recognition…');
+    }
     for (let pageNo = 1; pageNo <= pdf.numPages; pageNo++) {
       onProgress?.('Preparing PDF page ' + pageNo + ' of ' + pdf.numPages + '…');
       const page = await pdf.getPage(pageNo);
       const base = page.getViewport({ scale: 1 });
-      // Render vector PDFs at a higher resolution so thin staff lines, dots and
-      // ledger lines survive rasterisation before the OMR model sees them.
       const scale = Math.min(2, 3000 / Math.max(1, base.width), 5000 / Math.max(1, base.height));
       const viewport = page.getViewport({ scale: Math.max(0.1, scale) });
       const canvas = document.createElement('canvas');
@@ -220,7 +237,7 @@ async function pdfCanvases(file, onProgress) {
       page.cleanup(); canvases.push(improveLowContrast(deskewScoreCanvas(canvas)));
     }
   } finally { await pdf.destroy(); }
-  return canvases;
+  return { canvases, metadata };
 }
 async function canvasBlob(canvas) {
   if (!canvas || canvas.width < 1 || canvas.height < 1) throw new Error('The score page could not be prepared as an image. Try exporting a fresh PNG or PDF.');
@@ -250,9 +267,12 @@ function combineMusicXml(pages) {
 export async function recognizeScoreFile(file, onProgress = () => {}) {
   const kind = getScoreFileKind(file);
   if (!kind) throw new Error('Choose a PDF, PNG, JPEG, WebP or SVG score.');
-  let canvases;
-  if (kind === 'pdf') canvases = await pdfCanvases(file, onProgress);
-  else canvases = [await imageCanvas(file)];
+  let canvases, metadata = { title: '', composer: '', arranger: '' };
+  if (kind === 'pdf') {
+    const prepared = await pdfCanvases(file, onProgress);
+    canvases = prepared.canvases;
+    metadata = prepared.metadata;
+  } else canvases = [await imageCanvas(file)];
   if (!canvases.length) throw new Error('No pages were found in this file.');
   const engine = await getWorker(onProgress);
   const xmlPages = [];
@@ -273,5 +293,5 @@ export async function recognizeScoreFile(file, onProgress = () => {}) {
   if (parsed.querySelector('parsererror') || !parsed.querySelector('score-partwise part measure note')) {
     throw new Error('The OMR model did not recognise any notes in this score. Try a clearer, straight scan with visible notation.');
   }
-  return { musicXML, pages: canvases.length, engine: 'HOMR on-device OMR' };
+  return { musicXML, pages: canvases.length, engine: 'HOMR on-device OMR', metadata };
 }
