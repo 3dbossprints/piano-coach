@@ -1323,7 +1323,7 @@ async function playMidiLibraryFile(item){
  function handleScoreUpload(file,options={}){
   if(!file)return;
   const name=file.name.toLowerCase(),target=options.target||'Sheet music';
-  if(/\.(mp3|m4a|mp4|webm)$/i.test(name)){setLoadedScoreNotes([]);setScoreNotation(null);setScoreSourceAsset(null);setLearnListenMode(false);setSheetPianoOpen(false);learnModeRef.current=false;convertScoreToMusicCoach(file,{...options,target,download:false});return}
+  if(/\.(mp3|m4a|wav|mp4|webm)$/i.test(name)){setLoadedScoreNotes([]);setScoreNotation(null);setScoreSourceAsset(null);setLearnListenMode(false);setSheetPianoOpen(false);learnModeRef.current=false;convertScoreToMusicCoach(file,{...options,target,download:false});return}
   if(!isSheetMusicLibraryItem({name:file.name})){setStatus('Choose a sheet music file: MusicXML, MIDI, .musiccoach, PDF or a score image.');return}
   setLoadedScoreNotes([]);setScoreNotation(null);setScoreSourceAsset(null);setScoreImageUrl('');setScoreImageName('');setScoreIsPdf(false);setLearnListenMode(false);setSheetPianoOpen(false);learnModeRef.current=false;
   if(name.endsWith('.mid')||name.endsWith('.midi')){handleMidiUpload(file,{...options,target});return}
