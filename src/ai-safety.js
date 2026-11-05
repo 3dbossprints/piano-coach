@@ -31,7 +31,8 @@ export function sanitizeTutorResponse(value) {
     .map(sentence => sentence.trim())
     .filter(sentence => sentence &&
       !/(?:TRANSCRIPTION EVIDENCE|AUDIO MODEL REVIEW|Target comparison|Reference comparison)\s*:/i.test(sentence) &&
-      !/(?:matched?|match(?:es|ed)?)\s+(?:all|the|\d+|four|five|six)?\s*(?:target\s+)?notes?|(?:target\s+)?notes?\s+(?:were\s+)?matched/i.test(sentence) &&
+      !/\b(?:matched?|match(?:es|ed)?)\b[^.!?]*\b(?:target\s+)?notes?\b/i.test(sentence) &&
+      !/\b(?:target\s+)?notes?\b[^.!?]*\bmatched\b/i.test(sentence) &&
       !/\b(?:similarity|accuracy)\b.*\b\d{1,3}%/i.test(sentence) &&
       !/\b\d{1,3}%\s*(?:accurate|similar|correct|match)/i.test(sentence) &&
       !/\{\s*"(?:expected|played|status)"/i.test(sentence) &&
