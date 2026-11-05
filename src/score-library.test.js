@@ -28,9 +28,12 @@ test('rejects an unstructured practice item without a sheet-music file', () => {
   assert.equal(isPlayableSheetMusicItem({ name: 'Practice capture', kind: 'practice-score' }), false);
 });
 
-test('rejects non-score files even if incorrectly tagged as a score', () => {
-  assert.equal(isSheetMusicLibraryItem({ name: 'recording.mp3', kind: 'score' }), false);
-  assert.equal(isSheetMusicLibraryItem({ name: 'voice.wav', kind: 'practice-score' }), false);
+test('audio extensions remain recordings even if incorrectly tagged as scores', () => {
+  for (const name of ['recording.mp3', 'voice.wav']) {
+    const item = { name, kind: 'score', type: 'audio/webm', data: 'data:audio/webm;base64,AA==' };
+    assert.equal(isSheetMusicLibraryItem(item), true);
+    assert.equal(isPlayableSheetMusicItem(item), false);
+  }
 });
 
 test('playback is allowed for a structured practice score with note data', () => {
