@@ -514,8 +514,8 @@ export default function App(){
  const [practiceStarted,setPracticeStarted]=useState(false),[songTitle,setSongTitle]=useState(''),[practiceMinutes,setPracticeMinutes]=useState('15'),[reflection,setReflection]=useState(''),[practiceFeedback,setPracticeFeedback]=useState(''),[remainingSeconds,setRemainingSeconds]=useState(0);
  const [libraryFiles,setLibraryFiles]=useState(()=>{try{const value=JSON.parse(localStorage.getItem('pc_files')||'[]');return (Array.isArray(value)?value:[]).filter(isSheetMusicLibraryItem)}catch{return[]}});
   const [librarySelectionMode,setLibrarySelectionMode]=useState(false),[selectedLibraryIds,setSelectedLibraryIds]=useState([]),[combineDialogOpen,setCombineDialogOpen]=useState(false),[combineOrderIds,setCombineOrderIds]=useState([]),[combinedSongTitle,setCombinedSongTitle]=useState('');
- const [bulkPlaybackActive,setBulkPlaybackActive]=useState(false);
- const bulkPlaybackCancelRef=useRef(null),bulkPlaybackStopRef=useRef(false);
+ const [bulkPlaybackActive,setBulkPlaybackActive]=useState(false),[bulkPlaybackPaused,setBulkPlaybackPaused]=useState(false);
+ const bulkPlaybackCancelRef=useRef(null),bulkPlaybackStopRef=useRef(false),bulkPlaybackPauseRef=useRef(null),bulkPlaybackResumeRef=useRef(null);
  const [libraryHydrated,setLibraryHydrated]=useState(false),[scoreLibraryExpanded,setScoreLibraryExpanded]=useState(false);
  const [extraTool,setExtraTool]=useState('keyboard');
  const [keyboardStart,setKeyboardStart]=useState('C3'),[keyboardOctaves,setKeyboardOctaves]=useState(3);
@@ -1656,43 +1656,64 @@ async function playMidiLibraryFile(item){
   setLibraryFiles(files=>files.filter(item=>!ids.has(String(item.id))));
   setSelectedLibraryIds([]);setLibrarySelectionMode(false);setStatus('Deleted '+ids.size+' selected '+(ids.size===1?'item':'items')+' from your Library');
  }
- async function playSelectedLibraryItems(){
-  if(bulkPlaybackActive){bulkPlaybackStopRef.current=true;bulkPlaybackCancelRef.current?.();bulkPlaybackCancelRef.current=null;setBulkPlaybackActive(false);setStatus('Stopped selected playback');return;}
+ async function pauseSelectedLibraryPlayback(){
+  if(!bulkPlaybackActive||bulkPlaybackPaused)return;
+  bulkPlaybackPauseRef.current?.();
+  const active=libraryPlayback;
+  if(active?.kind==='audio'&&active.id){const audio=audioLibraryRefs.current[active.id];try{audio?.pause()}catch{}}
+  else if(midiPlaybackRef.current&&!midiPlaybackRef.current.paused)pauseMidiLibraryPlayback();
+  setBulkPlaybackPaused(true);setStatus('Selected playback paused');
+ }
+ function resumeSelectedLibraryPlayback(){
+  if(!bulkPlaybackActive||!bulkPlaybackPaused)return;
+  const active=libraryPlayback;
+  if(active?.kind==='audio'&&active.id){const audio=audioLibraryRefs.current[active.id];audio?.play().catch(error=>setAudioError(error?.message||'Could not resume recording'))}
+  else if(midiPlaybackRef.current?.paused)resumeMidiLibraryPlayback();
+  bulkPlaybackResumeRef.current?.();
+  setBulkPlaybackPaused(false);setStatus('Resumed selected playback');
+ }
+ function playSelectedLibraryItems(){
+  if(bulkPlaybackActive){bulkPlaybackStopRef.current=true;bulkPlaybackCancelRef.current?.();bulkPlaybackCancelRef.current=null;bulkPlaybackPauseRef.current=null;bulkPlaybackResumeRef.current=null;setBulkPlaybackActive(false);setBulkPlaybackPaused(false);setStatus('Stopped selected playback');return;}
   const items=selectedLibraryIds.map(id=>libraryFiles.find(item=>String(item.id)===id)).filter(item=>item&&(isPlayableSheetMusicItem(item)||isAudioLibraryFile(item)));
   if(!items.length){setStatus('Select playable scores or recordings to listen.');return;}
-  bulkPlaybackCancelRef.current?.();bulkPlaybackStopRef.current=false;setBulkPlaybackActive(true);setStatus('Playing selected music in order…');
-  try{
-   for(const item of items){
-    if(bulkPlaybackStopRef.current)break;
-    if(isAudioLibraryFile(item)&&!isMidiLibraryFile(item)){
-     stopMidiLibraryPlayback();stopLibraryAudioOnly();
-     const audio=audioLibraryRefs.current[item.id];
-     if(!audio)throw new Error('Audio player not ready for '+item.name);
-     await new Promise((resolve,reject)=>{
-      let finished=false;
-      const cleanup=()=>{audio.removeEventListener('ended',onEnded);audio.removeEventListener('error',onError);if(bulkPlaybackCancelRef.current===cancel)bulkPlaybackCancelRef.current=null};
-      const done=()=>{if(finished)return;finished=true;cleanup();resolve()};
-      const onEnded=done,onError=()=>{if(finished)return;finished=true;cleanup();reject(new Error('Could not play '+item.name))};
-      const cancel=()=>{try{audio.pause();audio.currentTime=0}catch{}done()};
-      bulkPlaybackCancelRef.current=cancel;audio.addEventListener('ended',onEnded,{once:true});audio.addEventListener('error',onError,{once:true});
-      audio.play().then(()=>setLibraryPlayback({id:item.id,kind:'audio',paused:false})).catch(onError);
-     });
-    }else{
-     const duration=isMidiLibraryFile(item)?await playMidiLibraryFile(item):await playScoreLibraryFile(item);
-     await new Promise(resolve=>{
-      let settled=false;
-      const timer=setTimeout(done,Math.max(0.2,Number(duration)||1)*1000);
-      const done=()=>{if(settled)return;settled=true;clearTimeout(timer);if(bulkPlaybackCancelRef.current===cancel)bulkPlaybackCancelRef.current=null;resolve()};
-      const cancel=()=>{if(midiPlaybackRef.current)stopMidiLibraryPlayback();done()};
-      bulkPlaybackCancelRef.current=cancel;
-     });
+  bulkPlaybackCancelRef.current?.();bulkPlaybackStopRef.current=false;setBulkPlaybackActive(true);setBulkPlaybackPaused(false);setStatus('Playing selected music in order…');
+  (async()=>{
+   try{
+    for(const item of items){
+     if(bulkPlaybackStopRef.current)break;
+     bulkPlaybackPauseRef.current=null;bulkPlaybackResumeRef.current=null;
+     if(isAudioLibraryFile(item)&&!isMidiLibraryFile(item)){
+      stopMidiLibraryPlayback();stopLibraryAudioOnly();
+      const audio=audioLibraryRefs.current[item.id];
+      if(!audio)throw new Error('Audio player not ready for '+item.name);
+      await new Promise((resolve,reject)=>{
+       let finished=false;
+       const cleanup=()=>{audio.removeEventListener('ended',onEnded);audio.removeEventListener('error',onError);if(bulkPlaybackCancelRef.current===cancel)bulkPlaybackCancelRef.current=null;bulkPlaybackPauseRef.current=null;bulkPlaybackResumeRef.current=null};
+       const done=()=>{if(finished)return;finished=true;cleanup();resolve()};
+       const onEnded=done,onError=()=>{if(finished)return;finished=true;cleanup();reject(new Error('Could not play '+item.name))};
+       const cancel=()=>{try{audio.pause();audio.currentTime=0}catch{}done()};
+       bulkPlaybackCancelRef.current=cancel;bulkPlaybackPauseRef.current=()=>audio.pause();bulkPlaybackResumeRef.current=()=>audio.play().catch(onError);
+       audio.addEventListener('ended',onEnded,{once:true});audio.addEventListener('error',onError,{once:true});
+       audio.play().then(()=>setLibraryPlayback({id:item.id,kind:'audio',paused:false})).catch(onError);
+      });
+     }else{
+      const duration=isMidiLibraryFile(item)?await playMidiLibraryFile(item):await playScoreLibraryFile(item);
+      await new Promise(resolve=>{
+       let settled=false,remaining=Math.max(.2,Number(duration)||1),startedAt=0,timer=null;
+       const cleanup=()=>{if(timer)clearTimeout(timer);if(bulkPlaybackCancelRef.current===cancel)bulkPlaybackCancelRef.current=null;bulkPlaybackPauseRef.current=null;bulkPlaybackResumeRef.current=null};
+       const done=()=>{if(settled)return;settled=true;cleanup();resolve()};
+       const arm=()=>{if(settled)return;startedAt=Date.now();timer=setTimeout(done,remaining*1000)};
+       const pause=()=>{if(settled||!timer)return;clearTimeout(timer);timer=null;remaining=Math.max(0,remaining-(Date.now()-startedAt)/1000)};
+       const cancel=()=>{if(midiPlaybackRef.current)stopMidiLibraryPlayback();done()};
+       bulkPlaybackCancelRef.current=cancel;bulkPlaybackPauseRef.current=pause;bulkPlaybackResumeRef.current=arm;arm();
+      });
+     }
+     if(bulkPlaybackStopRef.current)break;
     }
-    if(bulkPlaybackStopRef.current)break;
-   }
-  }catch(error){setAudioError(error?.message||'Selected playback failed.')}
-  finally{bulkPlaybackCancelRef.current=null;bulkPlaybackStopRef.current=false;setBulkPlaybackActive(false);setLibraryPlayback({id:null,kind:'',paused:true});}
+   }catch(error){setAudioError(error?.message||'Selected playback failed.')}
+   finally{bulkPlaybackCancelRef.current=null;bulkPlaybackPauseRef.current=null;bulkPlaybackResumeRef.current=null;bulkPlaybackStopRef.current=false;setBulkPlaybackActive(false);setBulkPlaybackPaused(false);setLibraryPlayback({id:null,kind:'',paused:true});}
+  })();
  }
-
 
  function deleteLibraryItem(item){if(libraryPlayback.id===item.id)stopLibraryItem(item);setLibraryFiles(v=>v.filter(f=>f.id!==item.id));setStatus('Deleted '+(item.name||'file')+' from your Library')}
  async function openLibrarySheetFullscreen(item){
