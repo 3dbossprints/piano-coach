@@ -242,6 +242,7 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose,libraryItemId=n
   const syncCursor=()=>{
    if(Tone.Transport.state!=='started')return;
    if(libraryItemId&&libraryPlayback?.id!==libraryItemId)return;
+   if(onToggleExternalPlayback&&!externalPlaying)return;
    const ticks=Number(Tone.Transport.ticks)||0;
    let current=bars[0];
    for(const bar of bars){if(bar.ticks<=ticks)current=bar;else break;}
@@ -307,7 +308,7 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose,libraryItemId=n
   host.current.addEventListener('click',handleMeasureClick);
   syncCursor();
   return()=>{Tone.Transport.clear(repeatId);host.current?.removeEventListener('click',handleMeasureClick)};
- },[xml,title,totalPages,libraryItemId,libraryPlayback?.id,libraryPlayback?.paused]);
+ },[xml,title,totalPages,libraryItemId,libraryPlayback?.id,libraryPlayback?.paused,externalPlaying]);
  function stop(){if(libraryItemId){onStopLibraryPlayback?.();return;}if(onStopExternalPlayback){onStopExternalPlayback();return;}try{Tone.Transport.stop();Tone.Transport.cancel();partRef.current?.dispose();playerRef.current?.dispose();rendererRef.current?.cursors?.forEach(cursor=>cursor.hide());}catch{}partRef.current=null;playerRef.current=null;setPlaying(false);setActiveMeasure(0);showScorePage(1,false)}
  function parseEvents(){
   const doc=new DOMParser().parseFromString(xml,'application/xml');if(doc.querySelector('parsererror'))throw new Error('Invalid MusicXML');
