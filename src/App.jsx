@@ -393,7 +393,7 @@ function MusicXMLPreview({xml,title='Sheet music',onExpand}) {
   async function render(){
    try{
     if(!isValidMusicXML(xml))throw new Error('This score has no valid embedded MusicXML. Its editable note data is still saved, but a notation preview could not be generated.');
-    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:true,drawTitle:false,drawSubtitle:false,drawComposer:false,drawPartNames:false,backend:'svg',stretchLastSystemLine:true,renderSingleHorizontalStaffline:false});
+    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:true,drawTitle:false,drawSubtitle:false,drawComposer:false,drawPartNames:false,backend:'svg',stretchLastSystemLine:true,renderSingleHorizontalStaffline:false,drawUpToPageNumber:1});
     await renderer.load(normalizeMusicXMLTitle(xml,title));
     if(cancelled)return;
     renderer.Zoom=0.72;
@@ -675,7 +675,7 @@ export default function App(){
   Tone.Transport.bpm.value=bpm;Tone.Transport.position=startTick+'i';Tone.Transport.start();practiceSeekTickRef.current=0;
   sequenceLoop.current={dispose:()=>{scheduled.forEach(id=>{try{Tone.Transport.clear(id)}catch{}})}};
  }
- function stopPlayback(){try{sequenceLoop.current?.dispose();sequenceLoop.current=null;Tone.Transport.stop();Tone.Transport.cancel()}catch{}practiceSeekTickRef.current=0;setPlaying(false)}
+ function stopPlayback(){try{sequenceLoop.current?.dispose();sequenceLoop.current=null;Tone.Transport.stop();Tone.Transport.cancel()}catch{}practiceSeekTickRef.current=0;setPlaying(false);setStatus('Playback stopped')}
  async function toggleMetro(){
   if(metronome){stopMetro();return}
   await Tone.start();beatLoop.current=new Tone.Loop((time)=>{const click=new Tone.MembraneSynth({pitchDecay:.01,octaves:2,envelope:{attack:.001,decay:.08,sustain:0,release:.02}}).toDestination();click.volume.value=-17;click.triggerAttackRelease('C6','32n',time);Tone.Draw.schedule(()=>click.dispose(),time+.15)},'4n');
