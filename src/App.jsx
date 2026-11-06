@@ -1041,7 +1041,7 @@ function uploadScoreImage(file){if(!file)return;const isPdf=file.type==='applica
    setLibraryFiles(v=>[{id:libraryItemId,name:(score.title||'Imported score')+'.musiccoach',type:'application/vnd.musiccoach.score+json',size:new Blob([json]).size,data,added:new Date().toISOString(),kind:'score',score},...v.filter(x=>x.name!==(score.title||'Imported score')+'.musiccoach')].sort((a,b)=>new Date(b.added||0)-new Date(a.added||0)));
    
    setConversionSavedNotice(true);
-   setPracticeMode(options.practiceMode||'normal');setPage(options.target||'Sheet music');setActiveScoreId(libraryItemId);setScoreOcrStatus('Loaded '+notes.length+' note/rest events and '+(score.notation?.notationEvents?.length||0)+' notation markings. '+(score.sourceAsset?'A source-score preview is embedded.':''));setMusicCoachStatus('Imported '+file.name+' and saved it to your Sheet Music library.');setStatus('Saved to Library · '+(score.title||fallbackScoreTitle));return true;
+   setPracticeMode(options.practiceMode||'normal');setPage(options.target||'Sheet music');setActiveScoreId(libraryItemId);setScoreOcrStatus('Import complete. Check the converted notation against the original before practising.');setMusicCoachStatus('Imported '+file.name+' and saved it to your Sheet Music library.');setStatus('Saved to Library · '+(score.title||fallbackScoreTitle));return true;
   }).catch(e=>{setScoreOcrStatus('Music file import failed: '+e.message);setMusicCoachStatus('Import failed: '+e.message);setStatus('Could not import '+file.name);return false})
  }
  function exportMusicCoach(){
