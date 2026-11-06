@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as Tone from 'tone';
+import { createGrandPiano, loadGrandPiano } from './grand-piano.js';
 import { Renderer, Stave, StaveNote, Voice, Formatter } from 'vexflow';
 import { OpenSheetMusicDisplay } from 'opensheetmusicdisplay';
 import { midiToNote, noteToMidi, parseSequence, compareSequences, clampKeyboardStartMidi, assignMidiHands } from './music.js';
@@ -11,9 +12,6 @@ import { isMeaningfulPracticeSession, getPracticeSeconds, calculatePracticeStrea
 import { sanitizeTutorResponse, verifiedTheoryAnswer } from './ai-safety.js';
 import { hasMusicStaffLines, friendlyRecognitionError } from './score-image-validation.js';
 import { summarizeAudioReview } from './practice-feedback.js';
-const GRAND_PIANO_BASE_URL='https://tonejs.github.io/audio/salamander/';
-const GRAND_PIANO_SAMPLES=Object.fromEntries(['A0','C1','D#1','F#1','A1','C2','D#2','F#2','A2','C3','D#3','F#3','A3','C4','D#4','F#4','A4','C5','D#5','F#5','A5','C6','D#6','F#6','A6','C7','D#7','F#7','A7','C8'].map(note=>[note,note+'.mp3']));
-function createGrandPiano(volume=-8){return new Tone.Sampler({urls:GRAND_PIANO_SAMPLES,baseUrl:GRAND_PIANO_BASE_URL,release:1.8,attack:.005,volume}).toDestination();}
 
 
 const KEYMAP = {a:'C4',w:'C#4',s:'D4',e:'D#4',d:'E4',f:'F4',t:'F#4',g:'G4',y:'G#4',h:'A4',u:'A#4',j:'B4',k:'C5'};
@@ -166,7 +164,7 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
   const pages=getRenderedScorePages();
   const pageCount=Math.max(1,pages.length);
   const next=Math.max(1,Math.min(pageCount,Number(pageNumber)||1));
-  const singlePage=window.innerWidth<760;
+  const singlePage=window.innerWidth<900;
   const spreadStart=singlePage?next:Math.floor((next-1)/2)*2+1;
   const spreadEnd=singlePage?next:Math.min(pageCount,spreadStart+1);
   const pageContainer=pages[0]?.parentElement||host.current;
@@ -181,20 +179,24 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
   if(pageContainer){
    pageContainer.classList.add('expanded-score-pages-grid');
    pageContainer.style.display='grid';
-   pageContainer.style.gridTemplateColumns=singlePage?'minmax(0,1fr)':'repeat(2,minmax(0,1fr))';
+   pageContainer.style.gridTemplateColumns=singlePage?'minmax(0,1fr)':'repeat(2,minmax(0,620px))';
+   pageContainer.style.justifyContent='center';
    pageContainer.style.alignItems='start';
    pageContainer.style.gap='clamp(16px,2vw,34px)';
    pageContainer.style.width='100%';
-   pageContainer.style.maxWidth='1800px';
+   pageContainer.style.maxWidth='1280px';
    pageContainer.style.margin='0 auto';
    pageContainer.style.boxSizing='border-box';
   }
   pages.forEach((page,index)=>{
    const visible=index+1>=spreadStart&&index+1<=spreadEnd;
    page.style.display=visible?'block':'none';
-   page.style.width='100%';
+   page.style.width='min(100%, 620px)';
    page.style.minWidth='0';
-   page.style.maxWidth='none';
+   page.style.maxWidth='620px';
+   page.style.aspectRatio='210 / 297';
+   page.style.position='relative';
+   page.style.justifySelf='center';
    page.style.margin='0';
    page.style.padding='0';
    page.style.border='0';
@@ -220,7 +222,7 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
    try{
     if(!xml||!/<score-(?:partwise|timewise)\b/i.test(xml))throw new Error('This file does not contain valid MusicXML.');
     host.current.style.width='100%';host.current.style.maxWidth='none';host.current.style.minWidth='0';host.current.style.margin='0 auto';host.current.style.boxSizing='border-box';
-    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:false,pageFormat:'A4_P',newPageFromXML:true,newSystemFromNewPageInXML:true,drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:false,cursorsOptions:[{type:0,color:'#b28b38',alpha:.82,follow:false}],pageBackgroundColor:'#ffffff',backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false,drawMeasureNumbers:true,drawPartAbbreviations:false});
+    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:false,pageFormat:'A4_P',newPageFromXML:true,newSystemFromNewPageInXML:true,drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:false,cursorsOptions:[{type:3,color:'#e7a928',alpha:.24,follow:false}],pageBackgroundColor:'#ffffff',backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false,drawMeasureNumbers:true,drawPartAbbreviations:false});
     await renderer.load(normalizeMusicXMLTitle(xml,title));if(cancelled)return;
     renderer.Zoom=1;renderer.render();rendererRef.current=renderer;
     renderer.enableOrDisableCursors(true);
@@ -264,7 +266,7 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
    if(Tone.Transport.state==='paused'){Tone.Transport.start();setPlaying(true);return;}
    stop();
    const data=parseEvents();if(!data.events.length)throw new Error('No playable notes in this score.');
-   const player=createGrandPiano(muted?-96:-8);await Tone.loaded();playerRef.current=player;
+   const player=createGrandPiano(muted?-96:-8);await loadGrandPiano(player);playerRef.current=player;
    const events=data.events.map(n=>({time:Math.round(n.time*data.tempo/60*Tone.Transport.PPQ)+'i',name:n.name,duration:Math.max(1,Math.round(n.duration*data.tempo/60*Tone.Transport.PPQ))+'i',velocity:n.velocity}));
    const part=new Tone.Part((time,n)=>player.triggerAttackRelease(n.name,n.duration,time,n.velocity),events);part.start(0);partRef.current=part;
    measureEventsRef.current=data.barStarts.map(bar=>Tone.Transport.scheduleOnce(()=>{
@@ -272,7 +274,7 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
     const osmd=rendererRef.current;
     // OSMD type 3 is the current-measure area. pageBackgroundColor makes
     // OSMD place its cursor above the SVG; FollowCursor remains disabled.
-    const measureCursor=osmd?.cursors?.find(c=>Number(c.CursorOptions?.type)===3)||osmd?.cursors?.[0]||osmd?.cursor;
+    const measureCursor=osmd?.cursors?.find(c=>Number(c.CursorOptions?.type)===3);
     try{
      if(measureCursor){
       const targetMeasureIndex=Math.max(0,bar.measure-1);
@@ -298,7 +300,7 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
    Tone.Transport.scheduleOnce(()=>{stop();setStatus('Playback finished');},Math.round(end*data.tempo/60*Tone.Transport.PPQ)+'i');
   }catch(e){setStatus('Playback error: '+(e?.message||String(e)));stop();}
  }
- function toggleMute(){const next=!muted;setMuted(next);const volume=playerRef.current?.volume;if(volume)volume.value=next?-96:0;}
+ function toggleMute(){const next=!muted;setMuted(next);const volume=playerRef.current?.volume;if(volume)volume.value=next?-96:-8;}
  return <section className="expanded-score-player"><div className="expanded-score-toolbar"><div className="expanded-score-controls"><button className="btn btn-dark" onClick={play}>{playing?'Ⅱ Pause':'▶ Play'}</button><button className="btn" onClick={stop}>■ Stop</button><button className="btn" onClick={toggleMute}>{muted?'Unmute':'Mute'}</button></div><div className="expanded-score-progress"><strong>{activeMeasure?('Bar '+activeMeasure):'Ready'}</strong><button type="button" className="btn expanded-score-page-button" disabled={activePage<=1} onClick={()=>showScorePage(activePage-1,true)} aria-label="Previous sheet music page">‹</button><span>Page {activePage} of {totalPages} · {status}</span><button type="button" className="btn expanded-score-page-button" disabled={activePage>=totalPages} onClick={()=>showScorePage(activePage+1,true)} aria-label="Next sheet music page">›</button></div></div><div ref={host} className="musicxml-rendered expanded-score-rendered"/></section>
 }
 
