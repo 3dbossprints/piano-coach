@@ -2,7 +2,7 @@ import * as Tone from 'tone';
 
 // Salamander sample files use "s" filenames for sharp notes (Ds/Fs), while
 // Tone.Sampler uses musical pitch names (D#/F#) as the mapping keys.
-const GRAND_PIANO_URLS = {
+export const GRAND_PIANO_URLS = {
  A0:'A0.mp3', C1:'C1.mp3', 'D#1':'Ds1.mp3', 'F#1':'Fs1.mp3',
  A1:'A1.mp3', C2:'C2.mp3', 'D#2':'Ds2.mp3', 'F#2':'Fs2.mp3',
  A2:'A2.mp3', C3:'C3.mp3', 'D#3':'Ds3.mp3', 'F#3':'Fs3.mp3',
@@ -16,10 +16,11 @@ export function createGrandPiano(volume=-8){
  return new Tone.Sampler({
   urls:GRAND_PIANO_URLS,
   baseUrl:'https://tonejs.github.io/audio/salamander/',
-  attack:.005,release:1.8,volume
+  attack:.003,release:2.1,volume,maxPolyphony:64
  }).toDestination();
 }
 export async function loadGrandPiano(sampler){
- await Tone.loaded();
- return sampler;
+ if(!sampler)throw new Error('Grand piano sampler was not created.');
+ try{await Tone.loaded();return sampler;}
+ catch(error){try{sampler.dispose()}catch{}throw new Error('The grand-piano samples could not be loaded. Check your internet connection and try again.',{cause:error});}
 }

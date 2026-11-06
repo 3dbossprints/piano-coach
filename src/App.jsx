@@ -179,21 +179,21 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
   if(pageContainer){
    pageContainer.classList.add('expanded-score-pages-grid');
    pageContainer.style.display='grid';
-   pageContainer.style.gridTemplateColumns=singlePage?'minmax(0,1fr)':'repeat(2,minmax(0,620px))';
+   pageContainer.style.gridTemplateColumns=singlePage?'minmax(0,1fr)':'repeat(2,minmax(0,480px))';
    pageContainer.style.justifyContent='center';
    pageContainer.style.alignItems='start';
    pageContainer.style.gap='clamp(16px,2vw,34px)';
    pageContainer.style.width='100%';
-   pageContainer.style.maxWidth='1280px';
+   pageContainer.style.maxWidth='1000px';
    pageContainer.style.margin='0 auto';
    pageContainer.style.boxSizing='border-box';
   }
   pages.forEach((page,index)=>{
    const visible=index+1>=spreadStart&&index+1<=spreadEnd;
    page.style.display=visible?'block':'none';
-   page.style.width='min(100%, 620px)';
+   page.style.width='min(100%, 480px)';
    page.style.minWidth='0';
-   page.style.maxWidth='620px';
+   page.style.maxWidth='480px';
    page.style.aspectRatio='210 / 297';
    page.style.position='relative';
    page.style.justifySelf='center';
@@ -222,9 +222,9 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
    try{
     if(!xml||!/<score-(?:partwise|timewise)\b/i.test(xml))throw new Error('This file does not contain valid MusicXML.');
     host.current.style.width='100%';host.current.style.maxWidth='none';host.current.style.minWidth='0';host.current.style.margin='0 auto';host.current.style.boxSizing='border-box';
-    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:false,pageFormat:'A4_P',newPageFromXML:true,newSystemFromNewPageInXML:true,drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:false,cursorsOptions:[{type:3,color:'#e7a928',alpha:.24,follow:false}],pageBackgroundColor:'#ffffff',backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false,drawMeasureNumbers:true,drawPartAbbreviations:false});
+    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:false,pageFormat:'A4_P',newPageFromXML:true,newSystemFromNewPageInXML:true,drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:false,cursorsOptions:[{type:3,color:'#d49a26',alpha:.14,follow:false}],pageBackgroundColor:'#ffffff',backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false,drawMeasureNumbers:true,drawPartAbbreviations:false});
     await renderer.load(normalizeMusicXMLTitle(xml,title));if(cancelled)return;
-    renderer.Zoom=1;renderer.render();rendererRef.current=renderer;
+    renderer.EngravingRules.StaffHeight=5.2;renderer.EngravingRules.BetweenStaffDistance=4.5;renderer.EngravingRules.StaffDistance=6.5;renderer.EngravingRules.PageTopMargin=3.5;renderer.EngravingRules.PageBottomMargin=3.5;renderer.EngravingRules.PageLeftMargin=4;renderer.EngravingRules.PageRightMargin=4;renderer.Zoom=1;renderer.render();rendererRef.current=renderer;
     renderer.enableOrDisableCursors(true);
     renderer.cursors?.forEach(cursor=>cursor.hide());
     const pages=getRenderedScorePages();setTotalPages(Math.max(1,pages.length));showScorePage(1,false);
@@ -290,6 +290,9 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
        else measureCursor.next();
       }
       measureCursor.update();
+      // Keep the current-measure wash tucked inside the measure instead of
+      // painting a huge block over the full staff system.
+      if(measureCursor.cursorElement){measureCursor.cursorElement.style.transform='scale(.94,.72)';measureCursor.cursorElement.style.transformOrigin='center center';}
       const pageNumber=Number(measureCursor.updateCurrentPage?.()||measureCursor.currentPageNumber||1);
       if(pageNumber!==activePageRef.current)showScorePage(pageNumber,true);
      }
@@ -433,6 +436,9 @@ export default function App(){
  const [practiceStarted,setPracticeStarted]=useState(false),[songTitle,setSongTitle]=useState(''),[practiceMinutes,setPracticeMinutes]=useState('15'),[reflection,setReflection]=useState(''),[practiceFeedback,setPracticeFeedback]=useState(''),[remainingSeconds,setRemainingSeconds]=useState(0);
  const [libraryFiles,setLibraryFiles]=useState(()=>{try{const value=JSON.parse(localStorage.getItem('pc_files')||'[]');return (Array.isArray(value)?value:[]).filter(isSheetMusicLibraryItem)}catch{return[]}});
  const [selectedCombineIds,setSelectedCombineIds]=useState([]);
+ const [librarySelectionMode,setLibrarySelectionMode]=useState(false),[selectedLibraryIds,setSelectedLibraryIds]=useState([]),[combineDialogOpen,setCombineDialogOpen]=useState(false),[combineOrderIds,setCombineOrderIds]=useState([]),[combinedSongTitle,setCombinedSongTitle]=useState('');
+ const [bulkPlaybackActive,setBulkPlaybackActive]=useState(false);
+ const bulkPlaybackCancelRef=useRef(null),bulkPlaybackStopRef=useRef(false);
  const [libraryHydrated,setLibraryHydrated]=useState(false),[scoreLibraryExpanded,setScoreLibraryExpanded]=useState(false);
  const [extraTool,setExtraTool]=useState('keyboard');
  const [keyboardStart,setKeyboardStart]=useState('C3'),[keyboardOctaves,setKeyboardOctaves]=useState(3);
@@ -555,7 +561,7 @@ export default function App(){
  useEffect(()=>()=>{stopMic();stopPlayback();stopMetro();stopMidiLibraryPlayback();if(synth.current)synth.current.dispose();},[]);
  async function ensureSynth(){
   await Tone.start();
-  if(!synth.current){synth.current=createGrandPiano(-8);await Tone.loaded();}
+  if(!synth.current){synth.current=createGrandPiano(-8);await loadGrandPiano(synth.current);}
   return synth.current;
  }
  async function playNote(note,duration='8n'){
@@ -1390,7 +1396,7 @@ function stopLibraryAudioOnly(reset=true){
     setStatus('Score playback finished');
    },Math.max(1,endTicks)+'i');
    midiPlaybackRef.current={part,player,endId,itemId:item.id,paused:false};
-   setLibraryPlayback({id:item.id,kind:'tone',paused:false});setAudioError('');setStatus('Playing '+item.name);
+   setLibraryPlayback({id:item.id,kind:'tone',paused:false});setAudioError('');setStatus('Playing '+item.name);return Math.max(...notes.map(n=>n.time+n.duration))+.35;
   }catch(e){setAudioError('Could not play score: '+(e?.message||String(e)));setStatus('Score playback failed')}
  }
 async function toggleScoreLibraryPlayback(item){
@@ -1416,7 +1422,7 @@ async function playMidiLibraryFile(item){
     duration:Math.max(1,Math.round(note.duration*sourceTempo/60*ppq))+'i',
     velocity:note.velocity
    }));
-   const player=createGrandPiano(-8);await Tone.loaded();
+   const player=createGrandPiano(-8);await loadGrandPiano(player);
    const part=new Tone.Part((time,n)=>player.triggerAttackRelease(n.name,n.duration,time,n.velocity),notes);
    Tone.Transport.stop();Tone.Transport.cancel();Tone.Transport.position=0;Tone.Transport.bpm.value=targetTempo;
    part.start(0);Tone.Transport.start();
@@ -1428,7 +1434,7 @@ async function playMidiLibraryFile(item){
     setStatus('MIDI playback finished');
    },Math.max(1,endTicks)+'i');
    midiPlaybackRef.current={part,player,endId,itemId:item.id,paused:false,sourceTempo};
-   setLibraryPlayback({id:item.id,kind:'tone',paused:false});setAudioError('');setStatus('Playing '+item.name);
+   setLibraryPlayback({id:item.id,kind:'tone',paused:false});setAudioError('');setStatus('Playing MIDI '+item.name);return endSeconds;
   }catch(e){setAudioError('Could not play MIDI file: '+(e?.message||String(e)));setStatus('MIDI playback failed')}
  }
  function pauseMidiLibraryPlayback(){if(!midiPlaybackRef.current)return;try{Tone.Transport.pause();midiPlaybackRef.current.paused=true;setLibraryPlayback({id:midiPlaybackRef.current.itemId,kind:'tone',paused:true});setStatus('Playback paused')}catch(e){setAudioError('Could not pause playback: '+e.message)}}
@@ -1484,33 +1490,86 @@ async function playMidiLibraryFile(item){
  }
  function downloadLibraryFile(item){const a=document.createElement('a');a.href=item.data;a.download=item.name;a.click()}
  function openLibraryScores(){setPage('Sheet music');setStatus('Opened your sheet music collection')}
- function combineSelectedLibrarySheets(){
-  const chosen=selectedCombineIds.map(id=>libraryFiles.find(item=>String(item.id)===String(id))).filter(Boolean);
-  if(chosen.length<2){setStatus('Select at least two converted scores to combine.');return;}
-  (async()=>{
-   try{
-    const xmlPages=[];
-    for(const item of chosen){
-     let score=item.score;
-     if(!score&&item.data){
-      const response=await fetch(item.data);if(!response.ok)throw new Error('Could not read '+item.name);
-      const raw=await response.text();
-      if(/\.musiccoach$/i.test(item.name))score=decodeMusicCoach(raw);
-      else if(/\.musicxml$|\.xml$/i.test(item.name)){xmlPages.push(raw);continue;}
-     }
-     if(score?.notation?.sourceMusicXML)xmlPages.push(score.notation.sourceMusicXML);
-     else if(score?.notes?.length)xmlPages.push(midiNotesToMusicXML(score.notes,score.bpm||120,score.timeSignature||'4/4',score.title||item.name));
-     else throw new Error(item.name+' does not contain an editable score. Convert it first.');
-    }
-    const combined=combineMusicXMLPages(xmlPages,chosen.map(x=>x.name.replace(/\.[^.]+$/,'')).join(' + '));
-    const title='Combined score · '+chosen.length+' pages';
-    const file=new File([combined],title+'.musicxml',{type:'application/vnd.recordare.musicxml+xml'});
-    setSelectedCombineIds([]);
-    importMusicXML(file,{target:'Sheet music',download:false});
-    setStatus('Combining '+chosen.length+' scores in the selected order…');
-   }catch(error){setStatus('Could not combine scores: '+(error?.message||String(error)));}
-  })();
+ function openCombineDialog(){
+  const ids=selectedLibraryIds.filter(id=>{const item=libraryFiles.find(file=>String(file.id)===id);return item&&isPlayableSheetMusicItem(item)});
+  if(ids.length<2){setStatus('Select at least two playable scores to combine.');return;}
+  setCombineOrderIds(ids);
+  setCombinedSongTitle(ids.map(id=>libraryFiles.find(file=>String(file.id)===id)?.name||'').map(name=>name.replace(/\.[^.]+$/,'')).filter(Boolean).join(' + '));
+  setCombineDialogOpen(true);
  }
+ function moveCombineItem(index,direction){
+  setCombineOrderIds(ids=>{const next=[...ids],target=index+direction;if(target<0||target>=next.length)return next;[next[index],next[target]]=[next[target],next[index]];return next;});
+ }
+ async function combineSelectedLibrarySheets(orderedIds=combineOrderIds,title=combinedSongTitle){
+  const chosen=orderedIds.map(id=>libraryFiles.find(item=>String(item.id)===String(id))).filter(Boolean);
+  if(chosen.length<2){setStatus('Select at least two converted scores to combine.');return;}
+  try{
+   const xmlPages=[];
+   for(const item of chosen){
+    let score=item.score;
+    if(!score&&item.data){
+     const response=await fetch(item.data);if(!response.ok)throw new Error('Could not read '+item.name);
+     const raw=await response.text();
+     if(/\.musiccoach$/i.test(item.name))score=decodeMusicCoach(raw);
+     else if(/\.(musicxml|xml)$/i.test(item.name)){xmlPages.push(raw);continue;}
+    }
+    if(score?.notation?.sourceMusicXML)xmlPages.push(score.notation.sourceMusicXML);
+    else if(score?.notes?.length)xmlPages.push(midiNotesToMusicXML(score.notes,score.bpm||120,score.timeSignature||'4/4',score.title||item.name));
+    else throw new Error(item.name+' does not contain an editable score. Convert it first.');
+   }
+   const fullTitle=String(title||'Combined score').trim()||'Combined score';
+   const combined=combineMusicXMLPages(xmlPages,fullTitle);
+   const file=new File([combined],fullTitle+'.musicxml',{type:'application/vnd.recordare.musicxml+xml'});
+   setCombineDialogOpen(false);setLibrarySelectionMode(false);setSelectedLibraryIds([]);setSelectedCombineIds([]);
+   importMusicXML(file,{target:'Sheet music',download:false});
+   setStatus('Combining '+chosen.length+' scores in your chosen order…');
+  }catch(error){setStatus('Could not combine scores: '+(error?.message||String(error)));}
+ }
+ function deleteSelectedLibraryItems(){
+  const ids=new Set(selectedLibraryIds);
+  if(!ids.size)return;
+  if(ids.has(String(libraryPlayback.id))){bulkPlaybackCancelRef.current?.();stopLibraryAudioOnly();if(midiPlaybackRef.current)stopMidiLibraryPlayback();}
+  for(const id of ids){const audio=audioLibraryRefs.current[id];if(audio){try{audio.pause();audio.currentTime=0}catch{}}}
+  setLibraryFiles(files=>files.filter(item=>!ids.has(String(item.id))));
+  setSelectedLibraryIds([]);setLibrarySelectionMode(false);setStatus('Deleted '+ids.size+' selected '+(ids.size===1?'item':'items')+' from your Library');
+ }
+ async function playSelectedLibraryItems(){
+  if(bulkPlaybackActive){bulkPlaybackStopRef.current=true;bulkPlaybackCancelRef.current?.();bulkPlaybackCancelRef.current=null;setBulkPlaybackActive(false);setStatus('Stopped selected playback');return;}
+  const items=selectedLibraryIds.map(id=>libraryFiles.find(item=>String(item.id)===id)).filter(item=>item&&(isPlayableSheetMusicItem(item)||isAudioLibraryFile(item)));
+  if(!items.length){setStatus('Select playable scores or recordings to listen.');return;}
+  bulkPlaybackCancelRef.current?.();bulkPlaybackStopRef.current=false;setBulkPlaybackActive(true);setStatus('Playing selected music in order…');
+  try{
+   for(const item of items){
+    if(bulkPlaybackStopRef.current)break;
+    if(isAudioLibraryFile(item)&&!isMidiLibraryFile(item)){
+     stopMidiLibraryPlayback();stopLibraryAudioOnly();
+     const audio=audioLibraryRefs.current[item.id];
+     if(!audio)throw new Error('Audio player not ready for '+item.name);
+     await new Promise((resolve,reject)=>{
+      let finished=false;
+      const cleanup=()=>{audio.removeEventListener('ended',onEnded);audio.removeEventListener('error',onError);if(bulkPlaybackCancelRef.current===cancel)bulkPlaybackCancelRef.current=null};
+      const done=()=>{if(finished)return;finished=true;cleanup();resolve()};
+      const onEnded=done,onError=()=>{if(finished)return;finished=true;cleanup();reject(new Error('Could not play '+item.name))};
+      const cancel=()=>{try{audio.pause();audio.currentTime=0}catch{}done()};
+      bulkPlaybackCancelRef.current=cancel;audio.addEventListener('ended',onEnded,{once:true});audio.addEventListener('error',onError,{once:true});
+      audio.play().then(()=>setLibraryPlayback({id:item.id,kind:'audio',paused:false})).catch(onError);
+     });
+    }else{
+     const duration=isMidiLibraryFile(item)?await playMidiLibraryFile(item):await playScoreLibraryFile(item);
+     await new Promise(resolve=>{
+      let settled=false;
+      const timer=setTimeout(done,Math.max(0.2,Number(duration)||1)*1000);
+      const done=()=>{if(settled)return;settled=true;clearTimeout(timer);if(bulkPlaybackCancelRef.current===cancel)bulkPlaybackCancelRef.current=null;resolve()};
+      const cancel=()=>{if(midiPlaybackRef.current)stopMidiLibraryPlayback();done()};
+      bulkPlaybackCancelRef.current=cancel;
+     });
+    }
+    if(bulkPlaybackStopRef.current)break;
+   }
+  }catch(error){setAudioError(error?.message||'Selected playback failed.')}
+  finally{bulkPlaybackCancelRef.current=null;bulkPlaybackStopRef.current=false;setBulkPlaybackActive(false);setLibraryPlayback({id:null,kind:'',paused:true});}
+ }
+
 
  function deleteLibraryItem(item){if(libraryPlayback.id===item.id)stopLibraryItem(item);setLibraryFiles(v=>v.filter(f=>f.id!==item.id));setStatus('Deleted '+(item.name||'file')+' from your Library')}
  async function openLibrarySheetFullscreen(item){
@@ -1763,17 +1822,24 @@ return <div className="shell"><aside className="sidebar"><a className="brand" hr
  <section className="panel compare-panel"><div className="panel-head"><div><div className="eyebrow">SESSION REVIEW</div><h2>Practice feedback</h2><p className="muted">The recording is analysed as audio first, then detected pitches, onsets and note lengths are used for feedback. The text AI does not directly hear the waveform; the audio model transcribes it.</p></div></div><label className="sequence-label">Your reflection<textarea value={reflection} onChange={e=>setReflection(e.target.value)} placeholder="What felt good? What needs work?"/></label><div className="tutor-answer"><strong>Practice feedback</strong><p>{practiceFeedback||'Stop recording to automatically analyse your performance.'}</p></div><div className="divider"/><div className="panel-head"><div><h3>AI piano tutor</h3><p className="muted">Ask about this attempt. The local model loads when you first ask.</p></div><span className="tag">AUDIO-BASED REVIEW</span></div><div className="tutor-form"><input value={tutorQuestion} onChange={e=>setTutorQuestion(e.target.value)} placeholder="Ask about a bar, fingering, rhythm…"/><button className="btn" onClick={startVoiceQuestion} title="Speak your question">🎙</button><button className="btn btn-dark" disabled={tutorBusy||!tutorQuestion.trim()} onClick={askTutor}>{tutorBusy?'Thinking…':'Ask AI tutor'}</button></div><p className="muted small">{tutorStatus}</p>{tutorAnswer&&<div className="tutor-answer" role="status">{tutorAnswer}</div>}</section>{(scoreSourceAsset||scoreImageUrl||scoreNotation?.sourceMusicXML||loadedScoreNotes.length>0)&&<section className="panel practice-score-bottom"><div className="panel-head"><div><div className="eyebrow">YOUR SHEET MUSIC</div><h2>{songTitle||scoreImageName||'Practice score'}</h2><p className="muted">Scroll here to view the score you uploaded. The embedded preview stays with the .musiccoach file when available.</p>{scoreSourceAsset?.warning&&<p className="muted small">{scoreSourceAsset.warning}</p>}</div><button className="btn btn-dark" onClick={()=>setPage('Sheet music')}>Open sheet music workspace →</button></div>{scoreImageUrl?<div className="practice-source-preview">{scoreIsPdf?<iframe title="Uploaded sheet music PDF" src={scoreImageUrl} style={{width:'100%',minHeight:520,border:0}}/>:<img src={scoreImageUrl} alt={scoreImageName||'Uploaded sheet music'}/>}</div> :loadedScoreMusicXML?<MusicXMLPreview xml={loadedScoreMusicXML} title={songTitle||'Practice score'}/>:<><div className="musiccoach-native-preview"><Staff notes={loadedScoreNotes} expanded bpm={bpm} timeSignature={timeSignature}/></div><p className="muted small">Native Piano Coach score · {scoreNotation?.notationEvents?.length||0} notation markings preserved.</p><div className="editable-score"><Staff notes={parseMusicSequence(expected).map((n,i)=>({id:i,note:n.note,midi:n.midi,rest:n.rest,beats:n.beats,time:i*(60/bpm),duration:n.beats*60/bpm}))} expanded bpm={bpm} timeSignature={timeSignature}/></div></>}<div className="toolbar"><button className="btn" onClick={exportMusicCoach}>Save .musiccoach</button></div></section>}</>}
  {page==='Dashboard'&&<><section className="welcome panel"><div><span className="tag">YOUR MUSIC JOURNEY</span><h2 className="dashboard-tagline">Make time for music.</h2><p className="muted">A calm space to practise, explore sheet music and track your progress.</p><div className="dashboard-quick-actions"><button className="btn btn-dark dashboard-primary" onClick={()=>{setPracticeStarted(false);setPage('Practice');setStatus('Ready to play')}}>Start a practice session <span aria-hidden="true">→</span></button><button className="btn" onClick={()=>setPage('Sheet music')}>Open sheet music</button><button className="btn" onClick={()=>setPage('Score converter')}>Convert sheet music</button></div></div><div className="welcome-mark" aria-hidden="true">♫</div></section><section className="streak-card" aria-label="Practice streak"><div className="streak-flame" aria-hidden="true">🔥</div><div className="streak-copy"><span className="tag">YOUR DAILY STREAK</span><h2>{streak} {streak===1?'day':'days'} in a row</h2><p>{streak?'Amazing consistency — keep your music habit going!':'Start your streak today with a short practice session.'}</p><small className="streak-date-range">{streakRangeLabel}</small><div className="streak-week" aria-label="Last seven days">{Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));const key=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');const active=practiceDays.includes(key);return <div key={key} className={'streak-day '+(active?'done':'')}><span>{['S','M','T','W','T','F','S'][d.getDay()]}</span><b>{active?'✓':d.getDate()}</b></div>})}</div></div><button className="btn btn-dark streak-cta" onClick={()=>setPage('Practice')}>{streak?'Keep it going':'Start practising'} →</button></section><section className="learn-launch-card"><div className="learn-launch-icon" aria-hidden="true">♫</div><div className="learn-launch-copy"><span className="tag">GUIDED LEARNING · BETA</span><h2>Listen, learn and play</h2><p>Hear a short phrase, play it back, and track your learning as practice time.</p></div><button className="btn btn-dark" onClick={()=>{const playable=libraryFiles.find(isPlayableSheetMusicItem);if(playable){openLibraryScore(playable,{startGuidedLesson:true});}else{setPage('Sheet music');setStatus('Choose a playable .musiccoach, MusicXML or MIDI score from your Library to start a guided lesson.');}}}>Start a lesson →</button>{!loadedScoreNotes.some(n=>!n.rest&&Number.isFinite(n.midi??noteToMidi(n.note)))&&<p className="learn-launch-disabled-hint" role="status">To start a guided lesson, first import playable MIDI or Piano Coach sheet music in your library.</p>}</section><section className="dashboard-overview"><div className="dashboard-section-title"><div><h2>Your progress</h2><p className="muted">A quick look at your work so far.</p></div></div><div className="stats-grid"><article className="stat-card"><span>Sessions</span><strong>{dashboardSessions.length}</strong></article><article className="stat-card"><span>Practice time</span><strong>{Math.round(dashboardSessions.reduce((a,s)=>a+getPracticeSeconds(s),0)/60*10)/10} <em>min</em></strong></article><article className="stat-card"><span>Saved studies</span><strong>{saved.length}</strong></article></div></section><section className="dashboard-sessions"><div className="dashboard-section-title"><div><h2>Recent practice</h2><p className="muted">Pick up where you left off.</p></div><button className="btn" onClick={()=>setPage('Practice')}>New session</button></div>{dashboardSessions.length?dashboardSessions.slice(0,3).map(s=><div className="list-item dashboard-session" key={s.id}><span className="list-icon" aria-hidden="true">♫</span><div><strong>{s.song||'Practice session'}</strong><small>{new Date(s.date).toLocaleDateString()} · {s.notes} note events</small></div><span className="dashboard-session-time">{Math.round((s.practiceSeconds??((s.minutes||0)*60))/60*10)/10} min</span><button className="btn" onClick={()=>resumeSavedSession(s)}>{s.practiceMode==='learn'?'Resume L&L':'Continue'}</button></div>):<div className="dashboard-empty"><div><strong>Ready when you are</strong><p>Your saved practice sessions will appear here.</p></div><button className="btn" onClick={()=>setPage('Practice')}>Start your first session</button></div>}</section></>}{page==='Sheet music'&&<div key="sheet-music-page" className="sheet-music-workspace">
 <section className="panel personal-scores-panel">
- <div className="panel-head"><div><div className="eyebrow">YOUR COLLECTION</div><h2>Your music library</h2><p className="muted">Scores and recordings saved in this browser. Your music stays available between visits.</p></div><span className="tag">{sheetMusicFiles.length} saved</span></div>
+ <div className="panel-head"><div><div className="eyebrow">YOUR COLLECTION</div><h2>Your music library</h2><p className="muted">Scores and recordings saved in this browser. Your music stays available between visits.</p></div><div className="library-header-actions"><span className="tag">{sheetMusicFiles.length} saved</span><button type="button" className={'library-select-toggle '+(librarySelectionMode?'active':'')} aria-pressed={librarySelectionMode} aria-label={librarySelectionMode?'Exit selection mode':'Select multiple items'} title={librarySelectionMode?'Done selecting':'Select multiple items'} onClick={()=>{setLibrarySelectionMode(value=>!value);setSelectedLibraryIds([]);if(!librarySelectionMode)setScoreLibraryExpanded(true)}}><span className="library-select-icon">□</span><span>{librarySelectionMode?'Done':'Select'}</span></button></div></div>
  <label className="upload-score personal-score-upload"><span>Import sheet music</span><input type="file" accept=".musiccoach,.musicxml,.xml,.mid,.midi,.pdf,.png,.jpg,.jpeg,.webp,.svg,application/vnd.recordare.musicxml+xml,image/png,image/jpeg,image/webp,application/pdf,application/xml,text/xml" onChange={e=>{const file=e.target.files?.[0];if(file)handleScoreUpload(file,{target:'Sheet music',download:false});e.target.value=''}}/></label>{sheetMusicFiles.some(item=>isPlayableSheetMusicItem(item)||isAudioLibraryFile(item))?<div className="song-tempo-controls"><div className="song-tempo-value"><label htmlFor="song-tempo-slider">Tempo</label><strong>{songTempo} BPM</strong></div><input id="song-tempo-slider" type="range" min="20" max="240" step="1" value={songTempo} onChange={e=>changeSongTempo(e.target.value)}/><label className="song-meter-label">Time signature<select value={songMeter} onChange={e=>{const next=e.target.value;songMeterRef.current=next;setSongMeter(next);Object.entries(songAudioRefs.current).forEach(([id,audio])=>{if(audio){audio.playbackRate=getSongPlaybackRate(songTempoRef.current,next,tempoDetectionCacheRef.current[id]);audio.preservesPitch=true;audio.webkitPreservesPitch=true}});Object.entries(audioLibraryRefs.current).forEach(([id,audio])=>{if(audio){audio.playbackRate=getSongPlaybackRate(songTempoRef.current,next,tempoDetectionCacheRef.current[id]);audio.preservesPitch=true;audio.webkitPreservesPitch=true}})}}><option>4/4</option><option>2/4</option><option>3/4</option><option>4/8</option><option>6/8</option><option>3/8</option><option>2/2</option><option>3/2</option></select></label><span className="song-tempo-meta" role="status">{songTempoStatus}</span></div>:<p className="song-tempo-empty-hint">Tempo and time-signature controls become available when you add playable music or a recording.</p>}
  <div className="score-combine-toolbar">
   <div><strong>Combine converted pages</strong><span>Select two or more scores below. Their order here is the order they will be joined in.</span></div>
   <button type="button" className="btn btn-dark" disabled={selectedCombineIds.length<2} onClick={combineSelectedLibrarySheets}>Combine {selectedCombineIds.length||''} selected</button>
  </div>
- <div className="personal-score-grid">
-  {visibleSheetMusicFiles.length?visibleSheetMusicFiles.map((item,i)=>{const playable=isPlayableSheetMusicItem(item),audioItem=isAudioLibraryFile(item)&&!isMidiLibraryFile(item);return <article className="personal-score-card" key={item.id||item.name||i} onDoubleClick={()=>{if(!audioItem)openLibrarySheetFullscreen(item)}} title={audioItem?'Audio recording — use Play to listen':'Double-click to open this sheet music'}>
-   <LibraryScorePreview item={item} onExpand={()=>openLibrarySheetFullscreen(item)}/>
+ {librarySelectionMode&&<div className="library-bulk-toolbar">
+ <div className="library-bulk-selection"><strong>{selectedLibraryIds.length} selected</strong><button type="button" className="text-button" onClick={()=>setSelectedLibraryIds(ids=>ids.length===sheetMusicFiles.length?[]:sheetMusicFiles.map(item=>String(item.id)))}>{selectedLibraryIds.length===sheetMusicFiles.length?'Deselect all':'Select all'}</button></div>
+ <div className="library-bulk-actions">
+  <button type="button" className="btn" disabled={!selectedLibraryIds.length} onClick={playSelectedLibraryItems}>{bulkPlaybackActive?'■ Stop listening':'▶ Listen at once'}</button>
+  <button type="button" className="btn" disabled={selectedLibraryIds.filter(id=>{const item=libraryFiles.find(x=>String(x.id)===id);return item&&isPlayableSheetMusicItem(item)}).length<2} onClick={openCombineDialog}>Combine</button>
+  <button type="button" className="btn bulk-delete-button" disabled={!selectedLibraryIds.length} onClick={deleteSelectedLibraryItems}>Delete</button>
+ </div>
+</div>}<div className="personal-score-grid">
+  {visibleSheetMusicFiles.length?visibleSheetMusicFiles.map((item,i)=>{const playable=isPlayableSheetMusicItem(item),audioItem=isAudioLibraryFile(item)&&!isMidiLibraryFile(item);return <article className={"personal-score-card "+(selectedLibraryIds.includes(String(item.id))?"is-selected":"")+(librarySelectionMode?" selection-mode":"")} key={item.id||item.name||i} onClick={librarySelectionMode?()=>setSelectedLibraryIds(ids=>ids.includes(String(item.id))?ids.filter(id=>id!==String(item.id)):[...ids,String(item.id)]):undefined} onDoubleClick={()=>{if(!librarySelectionMode&&!audioItem)openLibrarySheetFullscreen(item)}} title={librarySelectionMode?"Select "+(item.name||"item"):audioItem?"Audio recording — use Play to listen":"Double-click to open this sheet music"}>
+   {librarySelectionMode&&<label className="library-card-checkbox" onClick={e=>e.stopPropagation()}><input type="checkbox" checked={selectedLibraryIds.includes(String(item.id))} onChange={e=>setSelectedLibraryIds(ids=>e.target.checked?[...ids,String(item.id)]:ids.filter(id=>id!==String(item.id)))} /><span className="sr-only">Select {item.name}</span></label>}<LibraryScorePreview item={item} onExpand={()=>!librarySelectionMode&&openLibrarySheetFullscreen(item)}/>
    <div className="personal-score-meta"><strong title={item.name}>{item.name||'Untitled score'}</strong><span>{item.type||'Sheet music'} · {(item.size||0)>=1024*1024?((item.size||0)/1024/1024).toFixed(1)+' MB':Math.max(1,Math.round((item.size||0)/1024))+' KB'}</span></div>
-   <div className="personal-score-actions sheet-music-action-row">
+   <div className="personal-score-actions sheet-music-action-row" style={librarySelectionMode?{display:"none"}:undefined}>
     {playable&&<label className="score-combine-select"><input type="checkbox" checked={selectedCombineIds.includes(String(item.id))} onChange={e=>setSelectedCombineIds(ids=>e.target.checked?[...ids,String(item.id)]:ids.filter(id=>id!==String(item.id)))} onClick={e=>e.stopPropagation()}/><span>Combine</span></label>}
     {audioItem?<><audio ref={el=>{if(el)audioLibraryRefs.current[item.id]=el;else delete audioLibraryRefs.current[item.id]}} src={item.data||undefined} preload="none" onEnded={()=>setLibraryPlayback({id:null,kind:'',paused:true})}/><button type="button" className="btn btn-dark icon-action compact-score-play" aria-label={libraryPlayback.id===item.id&&libraryPlayback.kind==="audio"&&!libraryPlayback.paused?'Pause recording':'Play recording'} disabled={!item.data} onClick={e=>{e.stopPropagation();toggleLibraryAudio(item)}}>{libraryPlayback.id===item.id&&libraryPlayback.kind==="audio"&&!libraryPlayback.paused?'Ⅱ':'▶'}</button><button type="button" className="btn icon-action compact-score-stop" aria-label="Stop recording" disabled={!item.data} onClick={e=>{e.stopPropagation();stopLibraryItem(item)}}>■</button></>:playable?<><button type="button" className="btn btn-dark icon-action compact-score-play" aria-label={libraryPlayback.id===item.id&&libraryPlayback.kind==="tone"&&!libraryPlayback.paused?'Pause':'Play'} onClick={e=>{e.stopPropagation();toggleScoreLibraryPlayback(item)}}>{libraryPlayback.id===item.id&&libraryPlayback.kind==="tone"&&!libraryPlayback.paused?'Ⅱ':'▶'}</button><button type="button" className="btn icon-action compact-score-stop" aria-label="Stop" onClick={e=>{e.stopPropagation();stopLibraryItem(item)}}>■</button></>:<span className="muted small">Source score · not directly playable</span>}
     <button type="button" className="text-button" onClick={e=>{e.stopPropagation();downloadLibraryFile(item)}}>Download</button>
@@ -1785,7 +1851,12 @@ return <div className="shell"><aside className="sidebar"><a className="brand" hr
  {sheetMusicFiles.length>3&&<div className="library-expand-control"><button type="button" className="btn" onClick={()=>setScoreLibraryExpanded(value=>!value)}>{scoreLibraryExpanded?'Show fewer scores':'Show all '+sheetMusicFiles.length+' items'}</button></div>}
 
  <p className="muted small score-library-note">Scores and recordings are saved locally. Audio recordings can be played here; MIDI and native Piano Coach scores use notation playback. PDFs and images open as sheet music, but do not play as audio.</p>
- <div className="sheet-converter-cta"><div><strong>Got sheet music you want online?</strong><span>Convert your sheet music into an interactive score in Piano Coach.</span></div><button type="button" className="btn btn-dark" onClick={()=>setPage('Score converter')}>Visit the sheet music converter →</button></div>
+ {combineDialogOpen&&<div className="piano-modal-backdrop library-combine-backdrop" role="dialog" aria-modal="true" aria-labelledby="library-combine-title"><section className="panel library-combine-dialog">
+ <div className="panel-head"><div><div className="eyebrow">COMBINE SHEET MUSIC</div><h2 id="library-combine-title">Arrange your full song</h2><p className="muted">Move each score above or below another to set the order of the finished piece.</p></div><button type="button" className="btn" onClick={()=>setCombineDialogOpen(false)}>Close ✕</button></div>
+ <label className="library-combined-title">Full song title<input value={combinedSongTitle} onChange={e=>setCombinedSongTitle(e.target.value)} placeholder="Enter the complete song title"/></label>
+ <ol className="library-combine-order">{combineOrderIds.map((id,index)=>{const item=libraryFiles.find(x=>String(x.id)===id);return <li key={id}><span className="library-order-number">{index+1}</span><strong>{item?.name||'Untitled score'}</strong><div className="library-order-controls"><button type="button" className="btn btn-small" aria-label="Move up" disabled={index===0} onClick={()=>moveCombineItem(index,-1)}>↑</button><button type="button" className="btn btn-small" aria-label="Move down" disabled={index===combineOrderIds.length-1} onClick={()=>moveCombineItem(index,1)}>↓</button></div></li>})}</ol>
+ <div className="library-combine-footer"><button type="button" className="btn" onClick={()=>setCombineDialogOpen(false)}>Cancel</button><button type="button" className="btn btn-dark" disabled={!combinedSongTitle.trim()} onClick={()=>combineSelectedLibrarySheets()}>Combine in this order</button></div>
+ </section></div>}<div className="sheet-converter-cta"><div><strong>Got sheet music you want online?</strong><span>Convert your sheet music into an interactive score in Piano Coach.</span></div><button type="button" className="btn btn-dark" onClick={()=>setPage('Score converter')}>Visit the sheet music converter →</button></div>
 </section></div>}
  {sheetPianoOpen&&!learnListenMode?(<div className="piano-modal-backdrop" role="dialog" aria-modal="true" aria-label="Piano playback and learning"><section className="panel piano-modal"><div className="panel-head"><div><div className="eyebrow">PIANO PLAYER</div><h2>{songTitle||'Your score'}</h2></div><button className="btn" onClick={()=>setSheetPianoOpen(false)}>Close ✕</button></div><p className="muted">Hear the score phrase, then repeat it on a real piano with microphone listening or on the laptop keyboard.</p><div className="toolbar"><button className="btn" onClick={()=>listening?stopMic():startMic()}>{listening?'Disconnect piano microphone':'🎙 Listen to my piano'}</button><button className="btn btn-dark" onClick={async()=>{const ns=parseMusicSequence(expected).slice(0,Math.max(1,Number(timeSignature.split('/')[0])*2));const s=await ensureSynth();let beat=0;for(const n of ns){if(!n.rest&&n.midi!=null)s.triggerAttackRelease(midiToNote(n.midi),Math.max(.12,n.beats*60/bpm),Tone.now()+beat*60/bpm);beat+=n.beats||1}setLearnMessage('Playing the score preview. Listen, then repeat the phrase.')}}>▶ Listen to score</button><button className="btn" disabled={!learnListenMode&&!loadedScoreNotes.some(n=>!n.rest&&Number.isFinite(n.midi??noteToMidi(n.note)))} title={!learnListenMode&&!loadedScoreNotes.some(n=>!n.rest&&Number.isFinite(n.midi??noteToMidi(n.note)))?'Upload playable sheet music to enable Listen & Learn':''} onClick={()=>{if(learnListenMode){finishLearnSession()}else{toggleLearnSession();setLearnMessage('Play the current bar or section using the on-screen piano or your real piano MIDI keyboard. Lesson time counts towards practice.')}}}>{learnListenMode?'■ Finish lesson':'Start two-bar lesson'}</button></div><div className="virtual-piano-scroll"><div className="piano virtual-piano" style={{"--keyboard-white-key-width":(100/Math.max(1,virtualWhiteKeys.length))+"%"}} aria-label="Virtual piano keyboard">{virtualWhiteKeys.map(k=><button key={k.midi} className={"white-key "+(heldKeys[k.note]?"is-held":"")} style={{flex:"0 0 var(--keyboard-white-key-width)",width:"var(--keyboard-white-key-width)",minWidth:0}} onPointerDown={e=>{e.preventDefault();e.currentTarget.setPointerCapture?.(e.pointerId);pressKey(k.note)}} onPointerUp={()=>releaseKey(k.note)} onPointerCancel={()=>releaseKey(k.note)} onLostPointerCapture={()=>releaseKey(k.note)} aria-label={"Play "+k.note} title={k.note}><span>{k.note}</span></button>)}{virtualBlackKeys.map(k=><button key={k.midi} className={"black-key "+(heldKeys[k.note]?"is-held":"")} style={{left:(virtualWhiteKeys.filter(w=>w.midi<k.midi).length*(100/Math.max(1,virtualWhiteKeys.length)))+"%",width:(100/Math.max(1,virtualWhiteKeys.length))*.62+"%",transform:"translateX(-50%)"}} onPointerDown={e=>{e.preventDefault();e.currentTarget.setPointerCapture?.(e.pointerId);pressKey(k.note)}} onPointerUp={()=>releaseKey(k.note)} onPointerCancel={()=>releaseKey(k.note)} onLostPointerCapture={()=>releaseKey(k.note)} aria-label={"Play "+k.note} title={k.note}><span>{k.note}</span></button>)}</div></div><p className="muted small">For microphone practice, close this panel and start the microphone in Practice. Laptop keyboard mapping: A W S E D F T G Y H U J K.</p></section></div>):null}{renderLearnFullscreen()}{page==='Score converter'&&<section className="panel musiccoach-converter"><div className="toolbar extras-toolbar"><button className="btn" onClick={()=>{setPage('Extras');setExtraTool('keyboard')}}>Open online keyboard</button><button className="btn" onClick={()=>{setPage('Extras');setExtraTool('assistant')}}>♫ Music assistant</button><button className="btn btn-dark" type="button" aria-current="page" title="You are viewing the sheet music converter">You're here: Converter</button></div><div className="eyebrow">SCORE CONVERTER</div><h2>Sheet music converter</h2><p className="muted">Convert a page, score file or recording into editable sheet music.</p><label className="converter-dialogue-option"><input type="checkbox" checked={separateDialogue} onChange={e=>setSeparateDialogue(e.target.checked)}/><span><strong>Separate spoken dialogue from audio</strong><small>Video uploads do this automatically. Enable for MP3/M4A recordings that contain film dialogue. First use downloads a roughly 31 MB model and needs extra memory.</small></span></label><div className="converter-input-actions"><div className="converter-action-stack"><button type="button" className="btn btn-dark converter-camera-button" onClick={openScoreCamera} disabled={musicCoachBusy}><span aria-hidden="true">▣</span> Convert from photo <span className="beta-pill">BETA</span></button><button type="button" className={"btn converter-recording-button"+(converterRecording?' is-recording':'')} onClick={converterRecording?stopConverterRecording:startConverterRecording} disabled={musicCoachBusy} aria-pressed={converterRecording}><span aria-hidden="true">{converterRecording?'■':'●'}</span> {converterRecording?'Stop & convert':'Convert from recording'}</button>{converterRecording&&<span className="converter-recording-status" role="status">Recording live · {Math.floor(converterRecordingSeconds/60)}:{String(converterRecordingSeconds%60).padStart(2,'0')} / 8:00</span>}</div>
  <label className={"upload-score musiccoach-upload"+(scoreDropActive?' is-drag-active':'')} onDragEnter={e=>{if(Array.from(e.dataTransfer?.types||[]).includes('Files')){e.preventDefault();setScoreDropActive(true)}}} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect='copy';setScoreDropActive(true)}} onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget))setScoreDropActive(false)}} onDrop={e=>{e.preventDefault();e.stopPropagation();setScoreDropActive(false);const file=e.dataTransfer?.files?.[0];if(file)convertScoreToMusicCoach(file,{target:'Score converter',download:false})}}><span className="musiccoach-upload-icon" aria-hidden="true">⇧</span><strong>{musicCoachBusy?(musicCoachStatus||'Preparing your file…'):'Drop a file here or choose from your device'}</strong><small>PDF, PNG, JPG, WebP, MusicXML, MIDI, MP3, M4A, WAV, MP4 or WebM</small><input type="file" accept=".musiccoach,.musicxml,.xml,.mid,.midi,.svg,.mp3,.m4a,.mp4,.webm,application/vnd.musiccoach.score+json,application/vnd.recordare.musicxml+xml,application/xml,text/xml,audio/midi,audio/mpeg,audio/mp4,audio/x-m4a,audio/webm,video/mp4,video/webm,application/pdf,.pdf,image/png,image/jpeg,image/webp,image/svg+xml" disabled={musicCoachBusy} onChange={e=>{const f=e.target.files?.[0];if(f)convertScoreToMusicCoach(f,{target:'Score converter',download:false});e.target.value=''}}/></label></div>{(!musicCoachBusy&&scoreNotation)&&<details className="notation-guide"><summary id="notation-guide-title">Notation identification guide <span>Optional · expand</span></summary><p className="muted small">MusicXML notation is retained automatically where it is encoded. For photo and PDF recognition, check these markings against the original: optical recognition can miss or misread complex symbols. Select anything that needs a second look.</p><div className="notation-guide-grid">{NOTATION_GUIDE.map(item=><label className="notation-guide-item" key={item.id}><input type="checkbox" checked={musicCoachMarkings.includes(item.id)} onChange={e=>setMusicCoachMarkings(old=>e.target.checked?[...old,item.id]:old.filter(id=>id!==item.id))}/><span><strong>{item.label}</strong><small>{item.help}</small></span></label>)}</div><p className="muted small">{musicCoachMarkings.length} marking group{musicCoachMarkings.length===1?"":"s"} selected. You can leave this blank if you are unsure.</p></details>}{(scoreNotation||loadedScoreNotes.length>0)&&<div className="score-metadata-fields">
