@@ -179,21 +179,21 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose,libraryItemId=n
   if(pageContainer){
    pageContainer.classList.add('expanded-score-pages-grid');
    pageContainer.style.display='grid';
-   pageContainer.style.gridTemplateColumns=singlePage?'minmax(0,1fr)':'repeat(2,minmax(0,480px))';
+   pageContainer.style.gridTemplateColumns=singlePage?'minmax(0,1fr)':'repeat(2,minmax(0,540px))';
    pageContainer.style.justifyContent='center';
    pageContainer.style.alignItems='start';
    pageContainer.style.gap='clamp(16px,2vw,34px)';
    pageContainer.style.width='100%';
-   pageContainer.style.maxWidth='1000px';
+   pageContainer.style.maxWidth='1120px';
    pageContainer.style.margin='0 auto';
    pageContainer.style.boxSizing='border-box';
   }
   pages.forEach((page,index)=>{
    const visible=index+1>=spreadStart&&index+1<=spreadEnd;
    page.style.display=visible?'block':'none';
-   page.style.width='min(100%, 480px)';
+   page.style.width='min(100%, 540px)';
    page.style.minWidth='0';
-   page.style.maxWidth='480px';
+   page.style.maxWidth='540px';
    page.style.aspectRatio='210 / 297';
    page.style.position='relative';
    page.style.justifySelf='center';
@@ -309,7 +309,7 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose,libraryItemId=n
   syncCursor();
   return()=>{Tone.Transport.clear(repeatId);host.current?.removeEventListener('click',handleMeasureClick)};
  },[xml,title,totalPages,libraryItemId,libraryPlayback?.id,libraryPlayback?.paused,externalPlaying]);
- function stop(){if(libraryItemId){onStopLibraryPlayback?.();return;}if(onStopExternalPlayback){onStopExternalPlayback();return;}try{Tone.Transport.stop();Tone.Transport.cancel();partRef.current?.dispose();playerRef.current?.dispose();rendererRef.current?.cursors?.forEach(cursor=>cursor.hide());}catch{}partRef.current=null;playerRef.current=null;setPlaying(false);setActiveMeasure(0);showScorePage(1,false)}
+ function stop(){setMuted(false);try{Tone.getDestination().volume.value=0;if(playerRef.current?.volume)playerRef.current.volume.value=-8;}catch{}if(libraryItemId){onStopLibraryPlayback?.();return;}if(onStopExternalPlayback){onStopExternalPlayback();return;}try{Tone.Transport.stop();Tone.Transport.cancel();partRef.current?.dispose();playerRef.current?.dispose();rendererRef.current?.cursors?.forEach(cursor=>cursor.hide());}catch{}partRef.current=null;playerRef.current=null;setPlaying(false);setActiveMeasure(0);showScorePage(1,false)}
  function parseEvents(){
   const doc=new DOMParser().parseFromString(xml,'application/xml');if(doc.querySelector('parsererror'))throw new Error('Invalid MusicXML');
   const parts=[...doc.querySelectorAll('score-partwise > part')];if(!parts.length)throw new Error('No score parts found');
@@ -1971,9 +1971,10 @@ return <div className="shell"><aside className="sidebar"><a className="brand" hr
 
  <p className="muted small score-library-note">Scores and recordings are saved locally. Audio recordings can be played here; MIDI and native Piano Coach scores use notation playback. PDFs and images open as sheet music, but do not play as audio.</p>
  {combineDialogOpen&&<div className="piano-modal-backdrop library-combine-backdrop" role="dialog" aria-modal="true" aria-labelledby="library-combine-title"><section className="panel library-combine-dialog">
- <div className="panel-head"><div><div className="eyebrow">COMBINE SHEET MUSIC</div><h2 id="library-combine-title">Arrange your full song</h2><p className="muted">Move each score above or below another to set the order of the finished piece.</p></div><button type="button" className="btn" onClick={()=>setCombineDialogOpen(false)}>Close ✕</button></div>
+ <div className="library-combine-heading"><div><div className="eyebrow">SHEET MUSIC · COMBINE</div><h2 id="library-combine-title">Put your song together</h2><p className="muted">Arrange the score pieces in the order they should play. You can move any piece before combining.</p></div><button type="button" className="library-combine-close" aria-label="Close combine dialog" onClick={()=>setCombineDialogOpen(false)}>×</button></div>
  <label className="library-combined-title">Full song title<input value={combinedSongTitle} onChange={e=>setCombinedSongTitle(e.target.value)} placeholder="Enter the complete song title"/></label>
- <ol className="library-combine-order">{combineOrderIds.map((id,index)=>{const item=libraryFiles.find(x=>String(x.id)===id);return <li key={id}><span className="library-order-number">{index+1}</span><strong>{item?.name||'Untitled score'}</strong><div className="library-order-controls"><button type="button" className="btn btn-small" aria-label="Move up" disabled={index===0} onClick={()=>moveCombineItem(index,-1)}>↑</button><button type="button" className="btn btn-small" aria-label="Move down" disabled={index===combineOrderIds.length-1} onClick={()=>moveCombineItem(index,1)}>↓</button></div></li>})}</ol>
+ <div className="library-combine-summary"><strong>{combineOrderIds.length} score pieces</strong><span>The order below becomes the reading order of your combined score.</span></div>
+ <ol className="library-combine-order">{combineOrderIds.map((id,index)=>{const item=libraryFiles.find(x=>String(x.id)===id);return <li key={id}><span className="library-order-number">{String(index+1).padStart(2,'0')}</span><div className="library-order-file"><strong>{item?.name||'Untitled score'}</strong><span>{item?.type||'Playable score'} · Piece {index+1} of {combineOrderIds.length}</span></div><div className="library-order-controls"><button type="button" className="btn btn-small" aria-label={'Move '+(item?.name||'score')+' earlier'} title="Move earlier" disabled={index===0} onClick={()=>moveCombineItem(index,-1)}>↑ <span>Earlier</span></button><button type="button" className="btn btn-small" aria-label={'Move '+(item?.name||'score')+' later'} title="Move later" disabled={index===combineOrderIds.length-1} onClick={()=>moveCombineItem(index,1)}>↓ <span>Later</span></button></div></li>})}</ol>
  <div className="library-combine-footer"><button type="button" className="btn" onClick={()=>setCombineDialogOpen(false)}>Cancel</button><button type="button" className="btn btn-dark" disabled={!combinedSongTitle.trim()} onClick={()=>combineSelectedLibrarySheets()}>Combine in this order</button></div>
  </section></div>}<div className="sheet-converter-cta"><div><strong>Got sheet music you want online?</strong><span>Convert your sheet music into an interactive score in Piano Coach.</span></div><button type="button" className="btn btn-dark" onClick={()=>setPage('Score converter')}>Visit the sheet music converter →</button></div>
 </section></div>}
