@@ -2503,7 +2503,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
  .expanded-score-pages-grid{grid-template-columns:minmax(0,1fr)!important;max-width:520px!important}
  .expanded-score-pages-grid>[id^="osmdCanvasPage"],
  .expanded-score-pages-grid>.osmd-page,
- .expanded-score-pages-grid>.osmdPage{width:min(100%,620px)!important}
+ .expanded-score-pages-grid>.osmdPage{width:min(100%,480px)!important}
 }
 
 /* Library multi-selection and bulk actions */
