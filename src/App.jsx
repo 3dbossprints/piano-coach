@@ -272,7 +272,7 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose,libraryItemId=n
     const id=String(node.id||'');
     const className=typeof node.className==='string'?node.className:String(node.className?.baseVal||'');
     const tagged=Number(dataValue);
-    const match=(id+' '+className).match(/(?:measure|bar)[-_ ](?:number[-_ ]?)?(\\d+)(?:\\b|[-_])/i);
+    const match=(id+' '+className).match(/(?:measure|bar)[-_ ](?:number[-_ ]?)?(\d+)(?:\\b|[-_])/i);
     measure=Number.isFinite(tagged)&&tagged>0?tagged:(match?Number(match[1]):0);
     node=node.parentElement;
    }
@@ -1474,6 +1474,8 @@ async function playMidiLibraryFile(item){
    const response=await fetch(item.data);if(!response.ok)throw new Error('The MIDI file could not be read.');
    const parsed=parseStandardMidi(await response.arrayBuffer());
    const sourceTempo=Math.max(20,Number(parsed.bpm)||120);
+   const meter=String(songMeterRef.current||'4/4').split('/').map(Number);const beatsPerBar=Math.max(1,(meter[0]||4)*4/(meter[1]||4));
+   const totalSeconds=Math.max(...parsed.notes.map(note=>note.time+note.duration))+.3;const barCount=Math.max(1,Math.ceil(totalSeconds/(beatsPerBar*60/sourceTempo)));const barStarts=Array.from({length:barCount},(_,index)=>({measure:index+1,seconds:index*beatsPerBar*60/sourceTempo}));
    const ppq=Number(Tone.Transport.PPQ)||192;
    const targetTempo=Math.max(20,Math.min(240,Number(songTempoRef.current)||sourceTempo));
    const notes=parsed.notes.map(note=>({
@@ -1493,7 +1495,7 @@ async function playMidiLibraryFile(item){
     setLibraryPlayback(current=>current.id===item.id?{id:null,kind:'',paused:true}:current);
     setStatus('MIDI playback finished');
    },Math.max(1,endTicks)+'i');
-   midiPlaybackRef.current={part,player,endId,itemId:item.id,paused:false,sourceTempo};
+   midiPlaybackRef.current={part,player,endId,itemId:item.id,paused:false,sourceTempo,barStarts};
    setLibraryPlayback({id:item.id,kind:'tone',paused:false});setAudioError('');setStatus('Playing MIDI '+item.name);return endSeconds;
   }catch(e){setAudioError('Could not play MIDI file: '+(e?.message||String(e)));setStatus('MIDI playback failed')}
  }
