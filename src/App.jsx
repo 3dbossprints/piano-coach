@@ -278,8 +278,10 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose,libraryItemId=n
    }
    if(!measure)return;
    const bar=bars.find(entry=>entry.measure===measure);if(!bar)return;
-   if(libraryItemId)onSeekLibraryMeasure?.(measure);
-   else{Tone.Transport.position=bar.ticks+'i';setActiveMeasure(measure);const cursor=rendererRef.current?.cursors?.find(entry=>Number(entry.CursorOptions?.type)===3);try{if(cursor){cursor.reset();let guard=0;while(Number(cursor.Iterator?.CurrentMeasureIndex)<measure-1&&guard++<1000)cursor.next();cursor.show();cursor.update();}}catch{}}
+   setActiveMeasure(measure);
+   const cursor=rendererRef.current?.cursors?.find(entry=>Number(entry.CursorOptions?.type)===3);
+   try{if(cursor){cursor.reset();let guard=0;while(Number(cursor.Iterator?.CurrentMeasureIndex)<measure-1&&guard++<1000){if(typeof cursor.nextMeasure==='function')cursor.nextMeasure();else cursor.next();}cursor.show();cursor.update();const page=Number(cursor.updateCurrentPage?.()||cursor.currentPageNumber||1);if(page!==activePageRef.current)showScorePage(page,true);}}catch{}
+   if(libraryItemId)onSeekLibraryMeasure?.(measure);else Tone.Transport.position=bar.ticks+'i';
   };
   host.current.addEventListener('click',handleMeasureClick);
   syncCursor();
@@ -1353,8 +1355,10 @@ function stopLibraryAudioOnly(reset=true){
   try{await audio.play();setLibraryPlayback({id:item.id,kind:'audio',paused:false});setStatus('Playing '+item.name);setAudioError('')}
   catch(e){setAudioError('Could not play '+item.name+': '+e.message)}
  }
- function seekLibraryScoreMeasure(item,measure){
-  const playback=midiPlaybackRef.current;if(!playback||playback.itemId!==item?.id)return;
+ async function seekLibraryScoreMeasure(item,measure){
+  let playback=midiPlaybackRef.current;
+  if(!playback||playback.itemId!==item?.id){await toggleScoreLibraryPlayback(item);playback=midiPlaybackRef.current;}
+  if(!playback||playback.itemId!==item?.id)return;
   const bar=playback.barStarts?.find(entry=>Number(entry.measure)===Number(measure));if(!bar)return;
   const ppq=Number(Tone.Transport.PPQ)||192;const ticks=Math.max(0,Math.round(Number(bar.seconds||0)*(Number(playback.sourceTempo)||120)/60*ppq));
   try{Tone.Transport.position=ticks+'i';setStatus(Tone.Transport.state==='paused'?'Paused at bar '+measure:'Playing from bar '+measure)}catch(error){setAudioError('Could not jump to bar '+measure+': '+(error?.message||String(error)))}
