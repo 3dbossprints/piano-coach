@@ -2772,7 +2772,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 }
 
 /* Library selection and converter refinements */
-.personal-score-card{position:relative;padding-top:48px}
+.personal-score-card{position:relative;padding-top:11px}
 .library-card-checkbox{top:10px;left:10px;right:auto;width:28px;height:28px;border-radius:8px;border-color:#d8e0d8;box-shadow:0 1px 4px #0000000d}
 .library-card-checkbox input{width:17px;height:17px;accent-color:#285b43}
 .personal-score-card.is-selected{border-color:#8caf98;box-shadow:0 0 0 2px #dcebe0}
