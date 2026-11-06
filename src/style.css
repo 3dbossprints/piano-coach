@@ -332,8 +332,10 @@ input[type=range]{accent-color:#8068b8}
 .musiccoach-converter{min-width:0}
 .musiccoach-upload{display:flex;align-items:center;justify-content:center;gap:12px;min-height:94px;border:1px dashed var(--line,#cbd5e1);border-radius:16px;padding:18px;text-align:center;background:var(--panel-soft,#f8fafc);cursor:pointer}
 .musiccoach-upload input{max-width:100%;font:inherit}
-.musiccoach-progress{height:6px;overflow:hidden;border-radius:999px;background:#e2e8f0;margin:14px 0}
-.musiccoach-progress span{display:block;width:45%;height:100%;border-radius:inherit;background:var(--accent,#6d5dfc);animation:musiccoach-loading 1.2s ease-in-out infinite alternate}
+ .musiccoach-progress{height:6px;overflow:hidden;border-radius:999px;background:#e2e8f0;margin:14px 0}
+.musiccoach-progress span{display:block;width:0;height:100%;border-radius:inherit;background:var(--green);animation:musiccoach-fill-to-99 1.35s cubic-bezier(.16,1,.3,1) forwards;transition:width .22s ease}
+.musiccoach-progress.is-complete span{width:100%;animation:none}
+@keyframes musiccoach-fill-to-99{from{width:0}to{width:99%}}
 .musiccoach-notes{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0 18px}
 .musiccoach-notes span{padding:6px 10px;border:1px solid var(--line,#e2e8f0);border-radius:9px;background:var(--panel-soft,#f8fafc);font-weight:650;font-size:.9rem}
 @keyframes musiccoach-loading{from{transform:translateX(-35%)}to{transform:translateX(155%)}}
@@ -2519,7 +2521,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .library-bulk-actions .btn:disabled{opacity:.42;cursor:not-allowed}
 .personal-score-card.selection-mode{position:relative;cursor:pointer;transition:border-color .15s,box-shadow .15s}
 .personal-score-card.selection-mode.is-selected{border-color:var(--green);box-shadow:0 0 0 2px color-mix(in srgb,var(--green) 20%,transparent)}
-.library-card-checkbox{position:absolute;z-index:3;top:12px;right:12px;display:grid;place-items:center;width:30px;height:30px;border:1px solid var(--line);border-radius:9px;background:#fff;box-shadow:0 2px 8px #00000012;cursor:pointer}
+.library-card-checkbox{position:absolute;z-index:3;top:12px;left:12px;display:grid;place-items:center;width:30px;height:30px;border:1px solid var(--line);border-radius:9px;background:#fff;box-shadow:0 2px 8px #00000012;cursor:pointer}
 .library-card-checkbox input{width:18px;height:18px;margin:0;accent-color:var(--green);cursor:pointer}
 .library-combine-backdrop{z-index:10020}
 .library-combine-dialog{width:min(620px,calc(100vw - 28px));max-height:min(86dvh,800px);overflow:auto;padding:clamp(16px,3vw,26px)}
@@ -2768,3 +2770,14 @@ button:disabled { cursor: not-allowed; opacity: .48; }
  .library-combine-footer{display:grid!important;grid-template-columns:1fr 1fr!important}
  .library-combine-footer .btn{width:100%!important}
 }
+
+/* Library selection and converter refinements */
+.personal-score-card{position:relative;padding-top:48px}
+.library-card-checkbox{top:10px;left:10px;right:auto;width:28px;height:28px;border-radius:8px;border-color:#d8e0d8;box-shadow:0 1px 4px #0000000d}
+.library-card-checkbox input{width:17px;height:17px;accent-color:#285b43}
+.personal-score-card.is-selected{border-color:#8caf98;box-shadow:0 0 0 2px #dcebe0}
+.personal-score-actions .learn-library-button{flex:1 1 100%;min-height:38px}
+.library-bulk-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;border:1px solid #dce7dd;border-radius:14px;background:#f7faf6}
+.library-bulk-actions{display:flex;gap:7px;flex-wrap:wrap}
+.library-bulk-actions .btn{min-height:36px}
+@media(max-width:620px){.library-bulk-toolbar{align-items:stretch}.library-bulk-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.library-bulk-actions .btn{width:100%}}
