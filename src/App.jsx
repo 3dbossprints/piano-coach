@@ -281,8 +281,8 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose,libraryItemId=n
      const sheet=rendererRef.current?.GraphicSheet;
      const osmdPoint=sheet?.svgToOsmd?.({x:local.x,y:local.y});
      const graphicalPage=sheet?.MusicPages?.[pageIndex];
-     const graphicalMeasure=osmdPoint&&graphicalPage?sheet.GetNearestObject?.(osmdPoint,'GraphicalMeasure',graphicalPage):null;
-     measure=Number(graphicalMeasure?.MeasureNumber)||0;
+     const staffEntry=osmdPoint&&graphicalPage?sheet.GetNearestStaffEntry?.(osmdPoint,graphicalPage):null;
+     measure=Number(staffEntry?.parentMeasure?.MeasureNumber)||0;
     }
    }catch(error){console.debug('Score measure hit test unavailable; using SVG metadata fallback.',error)}
    if(!measure){
