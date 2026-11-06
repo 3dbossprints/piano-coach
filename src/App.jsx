@@ -272,7 +272,7 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose,libraryItemId=n
     const id=String(node.id||'');
     const className=typeof node.className==='string'?node.className:String(node.className?.baseVal||'');
     const tagged=Number(dataValue);
-    const match=(id+' '+className).match(/(?:measure|bar)[-_ ](?:number[-_ ]?)?(\d+)(?:\\b|[-_])/i);
+    const match=(id+' '+className).match(/(?:measure|bar)[-_ ](?:number[-_ ]?)?(\d+)(?:\b|[-_])/i);
     measure=Number.isFinite(tagged)&&tagged>0?tagged:(match?Number(match[1]):0);
     node=node.parentElement;
    }
@@ -1657,7 +1657,7 @@ async function playMidiLibraryFile(item){
    let xmlText='';
    if(/\.(mid|midi)$/i.test(ext)){
     const parsed=parseStandardMidi(await response.arrayBuffer());
-    xmlText=midiNotesToMusicXML(parsed.notes,parsed.bpm,'4/4',item.name||'Imported MIDI');
+    xmlText=midiNotesToMusicXML(parsed.notes,parsed.bpm,songMeterRef.current||'4/4',item.name||'Imported MIDI');
    }else{
     const raw=await response.text();
     if(ext.endsWith('.musiccoach')){
