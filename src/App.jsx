@@ -1379,7 +1379,7 @@ function stopLibraryAudioOnly(reset=true){
     duration:Math.max(1,Math.round(n.duration*tempo/60*ppq))+'i',
     velocity:n.velocity
    }));
-   const player=createGrandPiano(-8);await Tone.loaded();
+   const player=createGrandPiano(-8);await loadGrandPiano(player);
    const part=new Tone.Part((time,n)=>player.triggerAttackRelease(n.name,n.duration,time,n.velocity),transportNotes);
    Tone.Transport.stop();Tone.Transport.cancel();Tone.Transport.position=0;Tone.Transport.bpm.value=targetTempo;
    part.start(0);Tone.Transport.start();
