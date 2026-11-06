@@ -658,7 +658,7 @@ export default function App(){
   try{Tone.Transport.position=target+'i';}catch{}
   setStatus(playing?'Playing from bar '+measure:'Ready at bar '+measure+' · press Play to continue');
  }
- function playSequence(){
+ async function playSequence(){
   const startTick=Math.max(0,Math.round(Number(practiceSeekTickRef.current)||0));
   stopPlayback();practiceSeekTickRef.current=startTick;
   if(!targets.length){setStatus('Enter notes such as C4/q D4/h R/q first.');return}
