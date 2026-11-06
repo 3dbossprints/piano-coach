@@ -2667,3 +2667,70 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 }
 .library-card-checkbox{overflow:hidden;min-width:38px;min-height:38px}
 .library-card-checkbox input{position:relative;z-index:1;display:block;flex:none}
+
+
+/* Library cards: permanent, quiet checkboxes; no separate selection mode. */
+.personal-score-card{position:relative!important;min-width:0;overflow:visible}
+.library-card-checkbox{
+ position:absolute!important;top:13px!important;left:13px!important;z-index:5!important;
+ display:grid!important;place-items:center!important;width:27px!important;height:27px!important;
+ padding:0!important;margin:0!important;border:1px solid #cbd4cc!important;border-radius:8px!important;
+ background:rgba(255,255,255,.97)!important;box-shadow:0 1px 4px rgba(28,42,31,.08)!important;
+ cursor:pointer!important;transition:background .15s,border-color .15s,box-shadow .15s!important
+}
+.library-card-checkbox input{
+ appearance:none!important;-webkit-appearance:none!important;display:block!important;
+ width:17px!important;height:17px!important;min-width:17px!important;min-height:17px!important;
+ margin:0!important;border:1.5px solid #9aa79c!important;border-radius:5px!important;
+ background:#fff!important;box-shadow:none!important;cursor:pointer!important;position:relative!important
+}
+.library-card-checkbox input:checked{border-color:#426b4b!important;background:#426b4b!important}
+.library-card-checkbox input:checked:after{
+ content:"";position:absolute;left:4px;top:1px;width:5px;height:9px;
+ border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)
+}
+.library-card-checkbox:has(input:checked){border-color:#6e9a77!important;background:#f1f8f1!important;box-shadow:0 0 0 2px rgba(66,107,75,.10)!important}
+.personal-score-card.is-selected{border-color:#82a88a!important;background:#f7fbf7!important;box-shadow:0 0 0 1px rgba(66,107,75,.13)!important}
+.personal-score-card.is-selected .personal-score-art{outline:1px solid rgba(66,107,75,.16);outline-offset:-1px}
+.library-bulk-toolbar{
+ position:sticky;top:8px;z-index:8;display:flex;align-items:center;justify-content:space-between;
+ gap:14px;padding:12px 15px!important;margin:0 0 14px!important;
+ border:1px solid #e2e8e2!important;border-radius:15px!important;
+ background:rgba(250,252,250,.98)!important;box-shadow:0 4px 14px rgba(30,44,33,.06)!important
+}
+.library-bulk-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.library-bulk-actions .btn{min-height:38px;padding:8px 13px;font-size:12px}
+.library-bulk-actions .btn:disabled{opacity:.45}
+@media(max-width:700px){
+ .personal-score-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+ .personal-score-card{padding:10px!important}
+ .library-card-checkbox{top:10px!important;left:10px!important;width:26px!important;height:26px!important}
+ .library-bulk-toolbar{align-items:stretch;flex-direction:column}
+ .library-bulk-actions{display:grid;grid-template-columns:1fr 1fr}
+ .library-bulk-actions .btn{width:100%}
+}
+@media(max-width:420px){.personal-score-grid{grid-template-columns:minmax(0,1fr)!important}}
+
+/* Sheet music should read like a printed A4 spread, not fill the whole monitor. */
+.score-fullscreen-panel{width:min(1120px,calc(100vw - 28px))!important;max-width:1120px!important}
+.score-fullscreen-content{padding:12px 18px 28px!important}
+.expanded-score-toolbar{max-width:880px!important}
+.expanded-score-rendered{max-width:880px!important;padding:4px 4px 28px!important}
+.expanded-score-pages-grid{max-width:880px!important;gap:clamp(14px,1.8vw,24px)!important}
+.expanded-score-pages-grid>[id^="osmdCanvasPage"],
+.expanded-score-pages-grid>.osmd-page,
+.expanded-score-pages-grid>.osmdPage{width:min(100%,420px)!important;max-width:420px!important;height:auto!important;aspect-ratio:auto!important}
+.expanded-score-pages-grid>[id^="osmdCanvasPage"] svg,
+.expanded-score-pages-grid>.osmd-page svg,
+.expanded-score-pages-grid>.osmdPage svg{width:100%!important;height:auto!important;max-width:100%!important;object-fit:contain!important}
+@media(max-width:899px){
+ .score-fullscreen-panel{width:calc(100vw - 16px)!important;max-width:calc(100vw - 16px)!important}
+ .score-fullscreen-content{padding:8px 8px 20px!important}
+ .expanded-score-toolbar{max-width:480px!important}
+ .expanded-score-rendered{max-width:480px!important}
+ .expanded-score-pages-grid{max-width:480px!important;grid-template-columns:minmax(0,1fr)!important}
+ .expanded-score-pages-grid>[id^="osmdCanvasPage"],
+ .expanded-score-pages-grid>.osmd-page,
+ .expanded-score-pages-grid>.osmdPage{width:min(100%,480px)!important;max-width:480px!important}
+}
+@media(max-width:600px){.personal-score-grid{grid-template-columns:minmax(0,1fr)!important}}
