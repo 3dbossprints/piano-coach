@@ -1068,21 +1068,21 @@ async function convertScoreToMusicCoach(file,options={}){
     if(imported===false)throw new Error('The generated MIDI could not be imported as a score.');
     const engineNote=result.transcriptionEngine?' Transcription engine: '+result.transcriptionEngine+'.':'';const separationNote=result.separation?.applied?' Spoken dialogue and sound effects were separated from the music before note detection.':result.separation?.warning?' Dialogue separation could not run ('+result.separation.warning+'); the original mix was transcribed instead.':'';setMusicCoachAnalysis('Audio transcription created an editable score from '+(result.noteCount||'the detected')+' note events.'+engineNote+separationNote+' Review the notation carefully: dense mixes, overlapping instruments and expressive timing can still need manual correction.');
     setMusicCoachStatus(result.separation?.applied?'Dialogue separated · audio transcribed and converted into an editable .musiccoach score.':'Audio transcribed and converted into an editable .musiccoach score.');
-    setStatus('Audio-to-sheet-music conversion completed');
+    setStatus('Audio-to-sheet-music conversion completed');return true;
    }catch(e){
     const detail=e?.message||String(e);
     setMusicCoachStatus('Audio transcription failed: '+detail);
     setMusicCoachAnalysis('No converted score was saved. Try a shorter, clearer recording with one prominent instrument. Your original file has not been uploaded.');
     setAudioError('Could not convert '+file.name+': '+detail);
-    setStatus('Audio transcription failed');
+    setStatus('Audio transcription failed');return false;
    }finally{setMusicCoachBusy(false)}
    return;
   }
   if(ext.endsWith('.musicxml')||ext.endsWith('.xml')||ext.endsWith('.musiccoach'))return await importMusicXML(file,{target:options.target||'Score converter',download:false});
   const isPdf=file.type==='application/pdf'||/\.pdf$/i.test(file.name);
   const isImage=['image/png','image/jpeg','image/webp','image/svg+xml'].includes(file.type)||/\.(png|jpe?g|webp|svg)$/i.test(file.name);
-  if(!isPdf&&!isImage){setMusicCoachStatus('Choose a PDF, PNG, JPEG, WebP or SVG score.');return}
-  if(file.size>25*1024*1024){setMusicCoachStatus('Choose a file smaller than 25 MB.');return}
+  if(!isPdf&&!isImage){setMusicCoachStatus('Choose a PDF, PNG, JPEG, WebP or SVG score.');return false}
+  if(file.size>25*1024*1024){setMusicCoachStatus('Choose a file smaller than 25 MB.');return false}
   setMusicCoachBusy(true);setMusicCoachAnalysis('');setMusicCoachNotes([]);
   if(scoreImageUrl.startsWith('blob:'))URL.revokeObjectURL(scoreImageUrl);
   setScoreImageUrl(URL.createObjectURL(file));setScoreImageName(file.name);setScoreIsPdf(isPdf);
@@ -1100,14 +1100,14 @@ async function convertScoreToMusicCoach(file,options={}){
    setMusicCoachAnalysis('Recognised with HOMR optical music recognition running locally in your browser. Review the rendered notation against the original score before relying on it. OMR can misread notes, rhythms, accidentals, rests and multiple voices; the original source is embedded so you can compare them.');
    await importMusicXML(xmlFile,{target:options.target||'Score converter',download:options.download??true,sourceAsset});
    setMusicCoachStatus('Recognised '+result.pages+' page(s) with on-device HOMR. Review the original and converted score side by side.');setConversionSavedNotice(true);
-   setStatus('On-device OMR completed · review the converted score');
+   setStatus('On-device OMR completed · review the converted score');return true;
   }catch(e){
    const detail=String(e?.message||e);
    console.error('Local sheet-music recognition failed:',e);
    setMusicCoachStatus(friendlyRecognitionError(detail));
    setMusicCoachAnalysis('No converted score was created. The original image or PDF has been kept in your Library so you can retry it. Only a successfully recognised score will show the conversion-saved confirmation.');
    try{saveLibraryFile(file)}catch{}
-   setConversionSavedNotice(false);setStatus('Original source saved to Library · conversion failed');
+   setConversionSavedNotice(false);setStatus('Original source saved to Library · conversion failed');return false;
   }finally{setMusicCoachBusy(false)}
  }
  function exportMusicXml(){if(scoreNotation?.sourceMusicXML){const u=URL.createObjectURL(new Blob([scoreNotation.sourceMusicXML],{type:'application/vnd.recordare.musicxml+xml'})),a=document.createElement('a');a.href=u;a.download=(songTitle||'piano-coach-score')+'.musicxml';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);setStatus('Exported original MusicXML with technical notation intact');return}const notes=events.length?events:parseMusicSequence(expected);if(!notes.length){setStatus('Enter notes such as C4/q D4/h R/q before exporting.');return}const body=notes.map(n=>{const beats=Math.max(.125,Number(n.beats)||1),dur=Math.round(beats*8),type=beats>=4?'whole':beats>=2?'half':beats>=1?'quarter':beats>=.5?'eighth':'16th';if(n.rest)return '<note><rest/><duration>'+dur+'</duration><type>'+type+'</type></note>';const name=midiToNote(n.midi),m=name.match(/^([A-G])(#?)(-?\d+)$/);return '<note><pitch><step>'+m[1]+'</step>'+(m[2]?'<alter>1</alter>':'')+'<octave>'+m[3]+'</octave></pitch><duration>'+dur+'</duration><type>'+type+'</type></note>'}).join('');const parts=timeSignature.split('/'),xml='<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><work><work-title>'+String(songTitle||'Piano Coach score').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</work-title></work><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>8</divisions><time><beats>'+parts[0]+'</beats><beat-type>'+parts[1]+'</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>'+body+'</measure></part></score-partwise>';const u=URL.createObjectURL(new Blob([xml],{type:'application/vnd.recordare.musicxml+xml'})),a=document.createElement('a');a.href=u;a.download='piano-coach-score.musicxml';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);setStatus('Exported MusicXML; original technical notation is preserved when importing MusicXML first.')}function clearNotes(){sessionEvents.current=[];setEvents([]);setStatus('Detected notes cleared')}
