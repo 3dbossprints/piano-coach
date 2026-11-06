@@ -1052,7 +1052,7 @@ async function captureScorePhoto(){
  finally{setCameraBusy(false);}
 }
 async function convertScoreToMusicCoach(file,options={}){
-  if(!file||musicCoachBusy)return;
+  if(!file||musicCoachBusy)return false;
   setMusicCoachStatus('Checking '+file.name+'…');
   setConversionSavedNotice(false);
   const ext=file.name.toLowerCase();
@@ -1098,7 +1098,7 @@ async function convertScoreToMusicCoach(file,options={}){
    const sourceExt=(file.name.split('.').pop()||'png').toLowerCase();const sourceMime=file.type||(isPdf?'application/pdf':({jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',svg:'image/svg+xml'}[sourceExt]||'application/octet-stream'));const sourceAsset={name:file.name,mimeType:sourceMime,size:file.size,data:sourceData};
    setMusicCoachStatus('Recognition complete. Importing '+result.pages+' page(s) and building the .musiccoach file…');
    setMusicCoachAnalysis('Recognised with HOMR optical music recognition running locally in your browser. Review the rendered notation against the original score before relying on it. OMR can misread notes, rhythms, accidentals, rests and multiple voices; the original source is embedded so you can compare them.');
-   await importMusicXML(xmlFile,{target:options.target||'Score converter',download:options.download??true,sourceAsset});
+   const importedScore=await importMusicXML(xmlFile,{target:options.target||'Score converter',download:options.download??true,sourceAsset});if(importedScore===false)throw new Error('The recognised notation could not be imported.');
    setMusicCoachStatus('Recognised '+result.pages+' page(s) with on-device HOMR. Review the original and converted score side by side.');setConversionSavedNotice(true);
    setStatus('On-device OMR completed · review the converted score');return true;
   }catch(e){
