@@ -513,7 +513,7 @@ export default function App(){
  const [cookieSettingsOpen,setCookieSettingsOpen]=useState(false);
  const [practiceStarted,setPracticeStarted]=useState(false),[songTitle,setSongTitle]=useState(''),[practiceMinutes,setPracticeMinutes]=useState('15'),[reflection,setReflection]=useState(''),[practiceFeedback,setPracticeFeedback]=useState(''),[remainingSeconds,setRemainingSeconds]=useState(0);
  const [libraryFiles,setLibraryFiles]=useState(()=>{try{const value=JSON.parse(localStorage.getItem('pc_files')||'[]');return (Array.isArray(value)?value:[]).filter(isSheetMusicLibraryItem)}catch{return[]}});
-  const [librarySelectionMode,setLibrarySelectionMode]=useState(false),[selectedLibraryIds,setSelectedLibraryIds]=useState([]),[combineDialogOpen,setCombineDialogOpen]=useState(false),[combineOrderIds,setCombineOrderIds]=useState([]),[combinedSongTitle,setCombinedSongTitle]=useState('');
+  const [selectedLibraryIds,setSelectedLibraryIds]=useState([]),[combineDialogOpen,setCombineDialogOpen]=useState(false),[combineOrderIds,setCombineOrderIds]=useState([]),[combinedSongTitle,setCombinedSongTitle]=useState('');
  const [bulkPlaybackActive,setBulkPlaybackActive]=useState(false),[bulkPlaybackPaused,setBulkPlaybackPaused]=useState(false);
  const bulkPlaybackCancelRef=useRef(null),bulkPlaybackStopRef=useRef(false),bulkPlaybackPauseRef=useRef(null),bulkPlaybackResumeRef=useRef(null);
  const [libraryHydrated,setLibraryHydrated]=useState(false),[scoreLibraryExpanded,setScoreLibraryExpanded]=useState(false);
@@ -1668,8 +1668,7 @@ async function playMidiLibraryFile(item){
   if(!bulkPlaybackActive||!bulkPlaybackPaused)return;
   const active=libraryPlayback;
   if(active?.kind==='audio'&&active.id){const audio=audioLibraryRefs.current[active.id];audio?.play().catch(error=>setAudioError(error?.message||'Could not resume recording'))}
-  else if(midiPlaybackRef.current?.paused)resumeMidiLibraryPlayback();
-  bulkPlaybackResumeRef.current?.();
+  else{if(midiPlaybackRef.current?.paused)resumeMidiLibraryPlayback();bulkPlaybackResumeRef.current?.();}
   setBulkPlaybackPaused(false);setStatus('Resumed selected playback');
  }
  function playSelectedLibraryItems(){
