@@ -290,6 +290,9 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
        else measureCursor.next();
       }
       measureCursor.update();
+      // Keep the current-measure wash tucked inside the measure instead of
+      // painting a huge block over the full staff system.
+      if(measureCursor.cursorElement){measureCursor.cursorElement.style.transform='scale(.94,.72)';measureCursor.cursorElement.style.transformOrigin='center center';}
       const pageNumber=Number(measureCursor.updateCurrentPage?.()||measureCursor.currentPageNumber||1);
       if(pageNumber!==activePageRef.current)showScorePage(pageNumber,true);
      }
