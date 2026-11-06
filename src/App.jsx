@@ -179,21 +179,21 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
   if(pageContainer){
    pageContainer.classList.add('expanded-score-pages-grid');
    pageContainer.style.display='grid';
-   pageContainer.style.gridTemplateColumns=singlePage?'minmax(0,1fr)':'repeat(2,minmax(0,620px))';
+   pageContainer.style.gridTemplateColumns=singlePage?'minmax(0,1fr)':'repeat(2,minmax(0,480px))';
    pageContainer.style.justifyContent='center';
    pageContainer.style.alignItems='start';
    pageContainer.style.gap='clamp(16px,2vw,34px)';
    pageContainer.style.width='100%';
-   pageContainer.style.maxWidth='1280px';
+   pageContainer.style.maxWidth='1000px';
    pageContainer.style.margin='0 auto';
    pageContainer.style.boxSizing='border-box';
   }
   pages.forEach((page,index)=>{
    const visible=index+1>=spreadStart&&index+1<=spreadEnd;
    page.style.display=visible?'block':'none';
-   page.style.width='min(100%, 620px)';
+   page.style.width='min(100%, 480px)';
    page.style.minWidth='0';
-   page.style.maxWidth='620px';
+   page.style.maxWidth='480px';
    page.style.aspectRatio='210 / 297';
    page.style.position='relative';
    page.style.justifySelf='center';
@@ -222,9 +222,9 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose}) {
    try{
     if(!xml||!/<score-(?:partwise|timewise)\b/i.test(xml))throw new Error('This file does not contain valid MusicXML.');
     host.current.style.width='100%';host.current.style.maxWidth='none';host.current.style.minWidth='0';host.current.style.margin='0 auto';host.current.style.boxSizing='border-box';
-    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:false,pageFormat:'A4_P',newPageFromXML:true,newSystemFromNewPageInXML:true,drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:false,cursorsOptions:[{type:3,color:'#e7a928',alpha:.24,follow:false}],pageBackgroundColor:'#ffffff',backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false,drawMeasureNumbers:true,drawPartAbbreviations:false});
+    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:false,pageFormat:'A4_P',newPageFromXML:true,newSystemFromNewPageInXML:true,drawTitle:true,drawSubtitle:true,drawComposer:true,drawPartNames:true,followCursor:false,cursorsOptions:[{type:3,color:'#d49a26',alpha:.14,follow:false}],pageBackgroundColor:'#ffffff',backend:'svg',stretchLastSystemLine:false,renderSingleHorizontalStaffline:false,drawMeasureNumbers:true,drawPartAbbreviations:false});
     await renderer.load(normalizeMusicXMLTitle(xml,title));if(cancelled)return;
-    renderer.Zoom=1;renderer.render();rendererRef.current=renderer;
+    renderer.EngravingRules.StaffHeight=5.2;renderer.EngravingRules.BetweenStaffDistance=4.5;renderer.EngravingRules.StaffDistance=6.5;renderer.EngravingRules.PageTopMargin=3.5;renderer.EngravingRules.PageBottomMargin=3.5;renderer.EngravingRules.PageLeftMargin=4;renderer.EngravingRules.PageRightMargin=4;renderer.Zoom=1;renderer.render();rendererRef.current=renderer;
     renderer.enableOrDisableCursors(true);
     renderer.cursors?.forEach(cursor=>cursor.hide());
     const pages=getRenderedScorePages();setTotalPages(Math.max(1,pages.length));showScorePage(1,false);
