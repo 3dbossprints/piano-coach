@@ -2461,12 +2461,12 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 
 /* True A4 portrait pages: constrain each sheet to paper proportions in a spread. */
 .expanded-score-pages-grid{
-  grid-template-columns:repeat(2,minmax(0,620px))!important;
+  grid-template-columns:repeat(2,minmax(0,480px))!important;
   justify-content:center!important;
   align-items:start!important;
   gap:clamp(14px,2vw,30px)!important;
   width:100%!important;
-  max-width:1280px!important;
+  max-width:1000px!important;
   margin-inline:auto!important;
 }
 .expanded-score-pages-grid>[id^="osmdCanvasPage"],
@@ -2474,8 +2474,8 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .expanded-score-pages-grid>.osmdPage{
   position:relative!important;
   justify-self:center!important;
-  width:min(100%,620px)!important;
-  max-width:620px!important;
+  width:min(100%,480px)!important;
+  max-width:480px!important;
   aspect-ratio:210 / 297!important;
   height:auto!important;
   min-height:0!important;
@@ -2500,7 +2500,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   object-fit:contain!important;
 }
 @media(max-width:899px){
- .expanded-score-pages-grid{grid-template-columns:minmax(0,1fr)!important;max-width:680px!important}
+ .expanded-score-pages-grid{grid-template-columns:minmax(0,1fr)!important;max-width:520px!important}
  .expanded-score-pages-grid>[id^="osmdCanvasPage"],
  .expanded-score-pages-grid>.osmd-page,
  .expanded-score-pages-grid>.osmdPage{width:min(100%,620px)!important}
