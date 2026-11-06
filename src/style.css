@@ -2581,3 +2581,10 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .library-bulk-actions .bulk-delete-button{background:#fff8f7;color:#a83232;border-color:#e7caca}
 .library-bulk-actions .bulk-delete-button:hover{background:#fff0ee;border-color:#d9a9a4}
 @media(max-width:700px){.library-bulk-toolbar{top:6px}.library-bulk-selection,.library-bulk-actions{gap:8px}}
+
+.library-select-toggle{display:inline-flex!important;align-items:center;justify-content:center;gap:9px;width:auto!important;min-width:98px;height:44px;padding:0 13px!important}
+.library-select-label{font-size:13px;font-weight:750;letter-spacing:.01em}
+.personal-score-card.selection-mode{cursor:pointer}
+.library-card-checkbox input{width:21px;height:21px;border-radius:6px}
+.personal-score-card.selection-mode .library-card-checkbox{display:grid;place-items:center}
+@media(max-width:520px){.library-select-toggle{min-width:88px;padding:0 10px!important}.library-select-label{font-size:12px}}
