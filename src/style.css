@@ -2508,9 +2508,9 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 
 /* Library multi-selection and bulk actions */
 .library-header-actions{display:flex;align-items:center;gap:12px}
-.library-select-toggle{display:inline-flex;align-items:center;gap:8px;padding:9px 13px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font:inherit;font-size:13px;font-weight:750;cursor:pointer}
+.library-select-toggle{display:inline-grid;place-items:center;width:42px;height:42px;padding:0;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);cursor:pointer;flex:0 0 auto}
 .library-select-toggle:hover,.library-select-toggle.active{border-color:var(--green);background:#f2f8f2}
-.library-select-icon{display:inline-grid;place-items:center;width:19px;height:19px;border:1.5px solid currentColor;border-radius:5px;font-size:18px;line-height:1}
+.library-select-icon{display:grid;place-items:center;width:21px;height:21px;border:1.8px solid currentColor;border-radius:5px;font-size:16px;font-weight:900;line-height:1}.library-select-toggle.active .library-select-icon{background:var(--green);border-color:var(--green);color:#fff}
 .library-bulk-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:16px 0;padding:13px 15px;border:1px solid var(--line);border-radius:14px;background:#fbfcfb}
 .library-bulk-selection,.library-bulk-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .library-bulk-selection strong{font-size:14px}
