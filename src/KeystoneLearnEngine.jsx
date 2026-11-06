@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Tone from 'tone';
+import { createGrandPiano, loadGrandPiano } from './grand-piano.js';
 import { buildKeystoneTimeline, midiName, parseKeystoneMusicXML, scoreNotesToKeystoneTimeline, isBlackKey } from './keystone-engine.js';
 
 const COMPUTER_KEYS = 'zsxdcvgbhnjmq2w3er5t6y7u';
@@ -50,14 +51,10 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
 
   const sound = useCallback((midi, on) => {
     if(!Number.isFinite(midi)||midi<0||midi>127)return;
-    if(!pianoSamplerRef.current){
-      const sampleNotes=['A0','C1','D#1','F#1','A1','C2','D#2','F#2','A2','C3','D#3','F#3','A3','C4','D#4','F#4','A4','C5','D#5','F#5','A5','C6','D#6','F#6','A6','C7','D#7','F#7','A7','C8'];
-      const urls=Object.fromEntries(sampleNotes.map(note=>[note,note+'.mp3']));
-      pianoSamplerRef.current=new Tone.Sampler({urls,baseUrl:'https://tonejs.github.io/audio/salamander/',release:1.5,attack:.005,volume:-7}).toDestination();
-    }
+    if(!pianoSamplerRef.current)pianoSamplerRef.current=createGrandPiano(-7);
     const note=midiName(midi);
     if(on){
-      Tone.start().then(()=>Tone.loaded()).then(()=>{if(pressedRef.current.has(midi))pianoSamplerRef.current?.triggerAttack(note)}).catch(error=>console.warn('Grand piano sample could not load:',error));
+      Tone.start().then(()=>loadGrandPiano(pianoSamplerRef.current)).then(()=>{if(pressedRef.current.has(midi))pianoSamplerRef.current?.triggerAttack(note)}).catch(error=>{console.error('Grand piano samples failed to load:',error);});
     }else{
       try{pianoSamplerRef.current?.triggerRelease(note)}catch{}
     }
