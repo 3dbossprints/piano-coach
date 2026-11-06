@@ -2658,3 +2658,12 @@ button:disabled { cursor: not-allowed; opacity: .48; }
  .library-combine-footer{display:grid;grid-template-columns:1fr 1fr}
  .library-combine-footer .btn{width:100%}
 }
+
+/* Keep the accessible selection label available to screen readers without painting it over the card. */
+.library-card-checkbox .sr-only{
+ position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;
+ overflow:hidden!important;clip:rect(0,0,0,0)!important;clip-path:inset(50%)!important;
+ white-space:nowrap!important;border:0!important;opacity:0!important
+}
+.library-card-checkbox{overflow:hidden;min-width:38px;min-height:38px}
+.library-card-checkbox input{position:relative;z-index:1;display:block;flex:none}
