@@ -179,22 +179,22 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose,libraryItemId=n
   if(pageContainer){
    pageContainer.classList.add('expanded-score-pages-grid');
    pageContainer.style.display='grid';
-   pageContainer.style.gridTemplateColumns=singlePage?'minmax(0,1fr)':'repeat(2,minmax(0,540px))';
+   pageContainer.style.gridTemplateColumns=singlePage?'minmax(0,1fr)':'repeat(2,minmax(0,420px))';
    pageContainer.style.justifyContent='center';
    pageContainer.style.alignItems='start';
    pageContainer.style.gap='clamp(16px,2vw,34px)';
    pageContainer.style.width='100%';
-   pageContainer.style.maxWidth='1120px';
+   pageContainer.style.maxWidth=singlePage?'480px':'880px';
    pageContainer.style.margin='0 auto';
    pageContainer.style.boxSizing='border-box';
   }
   pages.forEach((page,index)=>{
    const visible=index+1>=spreadStart&&index+1<=spreadEnd;
    page.style.display=visible?'block':'none';
-   page.style.width='min(100%, 540px)';
+   page.style.width=singlePage?'min(100%, 480px)':'min(100%, 420px)';
    page.style.minWidth='0';
-   page.style.maxWidth='540px';
-   page.style.aspectRatio='210 / 297';
+   page.style.maxWidth=singlePage?'480px':'420px';
+   page.style.aspectRatio='auto';page.style.height='auto';page.style.overflow='visible';
    page.style.position='relative';
    page.style.justifySelf='center';
    page.style.margin='0';
