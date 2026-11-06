@@ -2539,3 +2539,45 @@ button:disabled { cursor: not-allowed; opacity: .48; }
  .library-bulk-actions .btn:first-child{grid-column:1/-1}
  .library-combine-footer{display:grid;grid-template-columns:1fr 1fr}
 }
+
+
+/* Sheet Music: centred, responsive A4 score pages without clipping the notation. */
+.score-fullscreen-panel{width:min(1240px,calc(100vw - 24px));max-width:1240px;min-width:0;box-sizing:border-box}
+.score-fullscreen-content{width:100%;min-width:0;max-width:100%;box-sizing:border-box;overflow-x:hidden;padding:12px clamp(8px,2vw,24px) 28px}
+.expanded-score-player{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+.expanded-score-toolbar{width:100%;max-width:1060px;margin:0 auto 14px;box-sizing:border-box}
+.expanded-score-rendered{width:100%;max-width:1060px;min-width:0;margin:0 auto;padding:4px clamp(4px,1.5vw,16px) 28px;box-sizing:border-box;overflow-x:hidden}
+.expanded-score-pages-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;justify-content:center!important;justify-items:center!important;align-items:start!important;gap:clamp(12px,2vw,28px)!important;width:100%!important;max-width:1060px!important;margin:0 auto!important;padding:0 4px!important;box-sizing:border-box!important}
+.expanded-score-pages-grid>[id^="osmdCanvasPage"],
+.expanded-score-pages-grid>.osmd-page,
+.expanded-score-pages-grid>.osmdPage{width:min(100%,510px)!important;max-width:510px!important;min-width:0!important;height:auto!important;min-height:0!important;aspect-ratio:auto!important;overflow:visible!important;position:relative!important;justify-self:center!important;margin:0!important;padding:0!important;box-sizing:border-box!important;background:#fff!important;border:1px solid #dedbd4!important;box-shadow:0 3px 16px rgba(33,29,22,.12)!important}
+.expanded-score-pages-grid>[id^="osmdCanvasPage"] svg,
+.expanded-score-pages-grid>.osmd-page svg,
+.expanded-score-pages-grid>.osmdPage svg{position:relative!important;inset:auto!important;display:block!important;width:100%!important;height:auto!important;max-width:100%!important;max-height:none!important;margin:0!important;object-fit:contain!important}
+.expanded-score-rendered svg{max-width:100%;height:auto}
+@media(max-width:899px){
+ .score-fullscreen-panel{width:calc(100vw - 12px);max-width:none}
+ .score-fullscreen-content{padding:8px 6px 22px}
+ .expanded-score-toolbar{padding:0 4px}
+ .expanded-score-pages-grid{grid-template-columns:minmax(0,1fr)!important;max-width:560px!important;padding:0!important}
+ .expanded-score-pages-grid>[id^="osmdCanvasPage"],
+ .expanded-score-pages-grid>.osmd-page,
+ .expanded-score-pages-grid>.osmdPage{width:min(100%,540px)!important;max-width:540px!important}
+}
+
+/* Multi-file import and photo-library style selection polish. */
+.personal-score-upload input[type=file]{width:100%;max-width:100%;min-width:0}
+.personal-score-upload>span{font-weight:750}
+.library-select-toggle{width:44px;height:44px;border-radius:13px;border:1px solid #d7ded7;background:#fff;box-shadow:0 2px 8px rgba(31,48,37,.06);transition:background .15s,border-color .15s,box-shadow .15s}
+.library-select-toggle:hover{border-color:var(--green);background:#f5faf5}
+.library-select-toggle.active{border-color:var(--green);background:#edf6ee;box-shadow:0 0 0 3px rgba(59,112,73,.10)}
+.library-select-icon{width:22px;height:22px;border:1.7px solid #819087;border-radius:7px;background:#fff;color:#fff;transition:all .15s}
+.library-select-toggle.active .library-select-icon{border-color:var(--green);background:var(--green);color:#fff}
+.library-bulk-toolbar{position:sticky;top:8px;z-index:8;box-shadow:0 5px 18px rgba(33,45,36,.07);background:rgba(250,252,250,.96);backdrop-filter:blur(12px)}
+.personal-score-card.selection-mode{user-select:none}
+.personal-score-card.selection-mode.is-selected{background:#f5faf5;border-color:var(--green);box-shadow:0 0 0 2px rgba(59,112,73,.14)}
+.library-card-checkbox{width:34px;height:34px;border-radius:11px;border:1px solid #d3dbd3;background:#fff;box-shadow:0 3px 12px rgba(25,40,30,.12)}
+.library-card-checkbox input{width:21px;height:21px;accent-color:var(--green)}
+.library-bulk-actions .bulk-delete-button{background:#fff8f7;color:#a83232;border-color:#e7caca}
+.library-bulk-actions .bulk-delete-button:hover{background:#fff0ee;border-color:#d9a9a4}
+@media(max-width:700px){.library-bulk-toolbar{top:6px}.library-bulk-selection,.library-bulk-actions{gap:8px}}
