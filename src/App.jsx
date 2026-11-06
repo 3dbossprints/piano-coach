@@ -612,7 +612,7 @@ export default function App(){
  const [sessions,setSessions]=useState(()=>{try{const value=JSON.parse(localStorage.getItem('pc_sessions')||'[]');return Array.isArray(value)?value:[]}catch{return[]}});
  const [editingSessionId,setEditingSessionId]=useState(null),[libraryTab,setLibraryTab]=useState('recordings');
  const [saved,setSaved]=useState(()=>{try{const value=JSON.parse(localStorage.getItem('pc_studies')||'[]');return Array.isArray(value)?value:[]}catch{return[]}});
- const synth=useRef(null), mic=useRef(null), analyser=useRef(null), micStream=useRef(null), raf=useRef(null), beatLoop=useRef(null), sequenceLoop=useRef(null), startTime=useRef(0), sessionEvents=useRef([]), recorderRef=useRef(null), chunksRef=useRef([]), recordingTimer=useRef(null), autoAnalyzeRef=useRef(false), analyseBlobRef=useRef(null), practiceTimerRef=useRef(null), midiPlaybackRef=useRef(null);
+ const synth=useRef(null), mic=useRef(null), analyser=useRef(null), micStream=useRef(null), raf=useRef(null), beatLoop=useRef(null), sequenceLoop=useRef(null), startTime=useRef(0), sessionEvents=useRef([]), recorderRef=useRef(null), chunksRef=useRef([]), recordingTimer=useRef(null), autoAnalyzeRef=useRef(false), analyseBlobRef=useRef(null), practiceTimerRef=useRef(null), midiPlaybackRef=useRef(null),practiceSeekTickRef=useRef(0);
  const [targetIndex,setTargetIndex]=useState(0);
  const learnProgressRef=useRef(0),learnPhraseOffsetRef=useRef(0),learnNoteLockRef=useRef(0),learnModeRef=useRef(false),learnChordHitsRef=useRef({key:'',hits:[]}),learnMidiAccessRef=useRef(null);
  const learnMicInputRef=useRef(null),learnMicActiveNoteRef=useRef(null),learnMicCandidateRef=useRef(null),learnMicCandidateFramesRef=useRef(0),learnMicLastSeenRef=useRef(0);
@@ -646,15 +646,36 @@ export default function App(){
   const s=await ensureSynth();const n=midiToNote(midi);
   s.triggerAttackRelease(n,duration);
  }
- async function playSequence(){
-  stopPlayback(); if(!targets.length){setStatus('Enter notes such as C4/q D4/h R/q first.');return}
-  await ensureSynth();setPlaying(true);setStatus('Playing score with note values and rests');
-  let elapsed=0;const beat=60/bpm;const scheduled=[];
-  targets.forEach((item,index)=>{const at=elapsed*beat;if(!item.rest&&item.midi!==null)scheduled.push(Tone.Transport.scheduleOnce(time=>{synth.current?.triggerAttackRelease(midiToNote(item.midi),Math.max(.08,item.beats*beat*.88),time);Tone.Draw.schedule(()=>setTargetIndex(index),time)},'+'+at));elapsed+=item.beats;});
-  scheduled.push(Tone.Transport.scheduleOnce(()=>{Tone.Transport.stop();Tone.Transport.cancel();setPlaying(false);setStatus('Score playback finished')},'+'+(elapsed*beat+.05)));
-  Tone.Transport.bpm.value=bpm;Tone.Transport.start();sequenceLoop.current={dispose:()=>{scheduled.forEach(id=>{try{Tone.Transport.clear(id)}catch{}})}};
+ async function togglePracticePlayback(){
+  if(playing){Tone.Transport.pause();setPlaying(false);setStatus('Score playback paused');return;}
+  if(Tone.Transport.state==='paused'){Tone.Transport.start();setPlaying(true);setStatus('Score playback resumed');return;}
+  playSequence();
  }
- function stopPlayback(){try{sequenceLoop.current?.dispose();sequenceLoop.current=null;Tone.Transport.stop();Tone.Transport.cancel()}catch{}setPlaying(false)}
+ function seekPracticeScoreMeasure(measure,ticks){
+  const target=Math.max(0,Math.round(Number(ticks)||0));
+  practiceSeekTickRef.current=target;
+  try{Tone.Transport.position=target+'i';}catch{}
+  setStatus(playing?'Playing from bar '+measure:'Ready at bar '+measure+' · press Play to continue');
+ }
+ function playSequence(){
+  const startTick=Math.max(0,Math.round(Number(practiceSeekTickRef.current)||0));
+  stopPlayback();practiceSeekTickRef.current=startTick;
+  if(!targets.length){setStatus('Enter notes such as C4/q D4/h R/q first.');return}
+  await ensureSynth();setPlaying(true);setStatus(startTick?'Playing from selected bar':'Playing score with note values and rests');
+  let elapsed=0;const beat=60/bpm,ppq=Number(Tone.Transport.PPQ)||192,startBeat=startTick/ppq;const scheduled=[];
+  targets.forEach((item,index)=>{
+   const noteStartBeat=elapsed;elapsed+=item.beats;
+   if(!item.rest&&item.midi!==null&&elapsed>startBeat){
+    const atTick=Math.round(startTick+Math.max(0,noteStartBeat-startBeat)*ppq);
+    scheduled.push(Tone.Transport.scheduleOnce(time=>{synth.current?.triggerAttackRelease(midiToNote(item.midi),Math.max(.08,item.beats*beat*.88),time);Tone.Draw.schedule(()=>setTargetIndex(index),time)},atTick+'i'));
+   }
+  });
+  const endTick=Math.round(startTick+Math.max(0,elapsed-startBeat)*ppq+Math.max(1,.05*bpm/60*ppq));
+  scheduled.push(Tone.Transport.scheduleOnce(()=>{Tone.Transport.stop();Tone.Transport.cancel();sequenceLoop.current=null;practiceSeekTickRef.current=0;setPlaying(false);setStatus('Score playback finished')},endTick+'i'));
+  Tone.Transport.bpm.value=bpm;Tone.Transport.position=startTick+'i';Tone.Transport.start();practiceSeekTickRef.current=0;
+  sequenceLoop.current={dispose:()=>{scheduled.forEach(id=>{try{Tone.Transport.clear(id)}catch{}})}};
+ }
+ function stopPlayback(){try{sequenceLoop.current?.dispose();sequenceLoop.current=null;Tone.Transport.stop();Tone.Transport.cancel()}catch{}practiceSeekTickRef.current=0;setPlaying(false)}
  async function toggleMetro(){
   if(metronome){stopMetro();return}
   await Tone.start();beatLoop.current=new Tone.Loop((time)=>{const click=new Tone.MembraneSynth({pitchDecay:.01,octaves:2,envelope:{attack:.001,decay:.08,sustain:0,release:.02}}).toDestination();click.volume.value=-17;click.triggerAttackRelease('C6','32n',time);Tone.Draw.schedule(()=>click.dispose(),time+.15)},'4n');
