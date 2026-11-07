@@ -1312,8 +1312,8 @@ async function requestLocalAudioCoachFeedback(blob,title,targetNotes,detectedNot
    const seconds=Math.max(0,learnSeconds);
    const resultHits=Array.isArray(keystoneResult?.hits)?keystoneResult.hits.length:(Number(keystoneResult?.hits)||0);
    const hasPracticeActivity=events.length>0||resultHits>0||learnPhraseOffsetRef.current>0;
+   const selectedSeconds=Math.max(60,Number(practiceMinutes||15)*60),sessionCompleted=!!completed&&seconds>=selectedSeconds;
    if(seconds>0&&(hasPracticeActivity||sessionCompleted)){
-     const selectedSeconds=Math.max(60,Number(practiceMinutes||15)*60),sessionCompleted=!!completed&&seconds>=selectedSeconds;
      const session={id:editingSessionId||Date.now(),date:new Date().toISOString(),lastPractisedAt:new Date().toISOString(),completed:sessionCompleted,completedAt:sessionCompleted?new Date().toISOString():null,
        song:songTitle||'Assisted Practice lesson',minutes:Math.round(seconds/60*10)/10,practiceSeconds:seconds,notes:keystoneResult?.hits??events.length,
        reflection:'Listen & Learn lesson',feedback:completed?(keystoneResult?('Completed Keystone lesson · '+keystoneResult.score+'/100'):'Completed guided score practice'):'Saved to continue later',
