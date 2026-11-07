@@ -216,6 +216,17 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
     return()=>{window.removeEventListener('keydown',onKeyDown,true);window.removeEventListener('keyup',onKeyUp,true);Object.values(keyHeldRef.current).forEach(noteUp);keyHeldRef.current={};};
   }, [keyStart,keyRange,noteDown,noteUp]);
 
+  const listenToSection = useCallback(async () => {
+    if(!selected.length){setMessage('There are no playable notes in this section.');return;}
+    try{
+      await Tone.start();
+      if(!pianoSamplerRef.current)pianoSamplerRef.current=createGrandPiano(-7);
+      await loadGrandPiano(pianoSamplerRef.current);
+      const sampler=pianoSamplerRef.current,origin=selected[0].t,when=Tone.now()+.12;
+      selected.forEach(note=>sampler.triggerAttackRelease(midiName(note.midi),Math.max(.08,note.d),when+Math.max(0,note.t-origin)));
+      setMessage('Listening to the selected section. When you are ready, press Start and play it back.');
+    }catch(error){setMessage('Could not play the section preview: '+(error?.message||'Piano audio is unavailable.'));}
+  },[selected]);
   const connectMidi = useCallback(async () => {
     if(!navigator.requestMIDIAccess){setMessage('Web MIDI is unavailable in this browser. Use Chrome or Edge on HTTPS, or play the on-screen keys.');return;}
     try{const access=await navigator.requestMIDIAccess();midiRef.current=access;const bind=()=>{const inputs=[...access.inputs.values()];inputs.forEach(input=>{input.onmidimessage=event=>{const [status,note,velocity]=event.data,cmd=status&0xf0;if(cmd===0x90&&velocity>0)noteDown(note);else if(cmd===0x80||(cmd===0x90&&velocity===0))noteUp(note);};});setMidiConnected(inputs.length>0);setMidiDeviceName(inputs.map(i=>i.name||i.manufacturer||'MIDI input').join(', ')||'No MIDI device found');};bind();access.onstatechange=bind;}catch(error){setMessage('Could not connect MIDI: '+error.message);}
@@ -241,7 +252,7 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
       <label>To bar<input type="number" min={fromBar} max={maxBar} value={toBar===9999?maxBar:toBar} onChange={e=>setToBar(Math.max(fromBar,Math.min(maxBar,Number(e.target.value)||maxBar)))}/></label>
       <label>Tempo · {bpm} BPM<input type="range" min="20" max="240" step="1" value={bpm} onChange={e=>setBpm(Number(e.target.value))}/></label>
       <div className="keystone-key-controls"><span>Keys start · {midiName(keyStart)}</span><button className="btn" onClick={()=>shiftKey(-12)}>«</button><button className="btn" onClick={()=>shiftKey(-1)}>‹</button><button className="btn" onClick={()=>shiftKey(1)}>›</button><button className="btn" onClick={()=>shiftKey(12)}>»</button><button className="btn" onClick={()=>setKeyStart(Math.max(21,Math.floor(minMidi/12)*12))}>Auto</button></div>
-      <button className="btn btn-dark keystone-start" onClick={startRun}>{runRef.current?'Stop':'Start'}</button>
+      <button className="btn" type="button" onClick={listenToSection}>▶ Listen to section</button><button className="btn btn-dark keystone-start" onClick={startRun}>{runRef.current?'Stop':'Start'}</button>
     </div>
     <div className="keystone-input-panel">
       <div className="keystone-input-heading"><div><strong>Play on your piano</strong><span>Use your computer microphone for acoustic piano notes, or connect a MIDI keyboard for more precise note and chord detection.</span></div><span className={'keystone-input-state '+(microphoneListening?'is-live':'')}>{microphoneListening?'MICROPHONE ON':'MICROPHONE OFF'}</span></div>
