@@ -2,39 +2,35 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calculatePracticeStreak, getQualifyingPracticeDays, getPracticeSeconds, isMeaningfulPracticeSession } from './practice-history.js';
 
-test('a zero-activity score launch is not a practice session', () => {
-  assert.equal(isMeaningfulPracticeSession({ practiceMode: 'learn', practiceSeconds: 0, notes: 0, loadedScoreNotes: [{ midi: 60 }] }), false);
-  assert.equal(isMeaningfulPracticeSession({ practiceSeconds: 60, notes: 0, events: [] }), false);
+const sessionAt = (day, completed = true, seconds = 300) => ({
+  id: day,
+  date: new Date(2026, 10, day, 12, 0, 0).toISOString(),
+  lastPractisedAt: new Date(2026, 10, day, 12, 0, 0).toISOString(),
+  completed,
+  practiceMode: 'normal',
+  practiceSeconds: seconds,
+  events: []
 });
 
-test('genuine activity makes a session eligible for history', () => {
-  assert.equal(isMeaningfulPracticeSession({ practiceSeconds: 20, events: [{ note: 'C4' }] }), true);
-  assert.equal(isMeaningfulPracticeSession({ practiceSeconds: 20, notes: 1 }), true);
-  assert.equal(isMeaningfulPracticeSession({ practiceSeconds: 20, learnProgressBeat: 1 }), true);
+test('a completed five-minute selected session counts as a practice day', () => {
+  assert.equal(isMeaningfulPracticeSession(sessionAt(7, true, 300)), true);
+  assert.deepEqual(getQualifyingPracticeDays([sessionAt(7, true, 300)]), ['2026-11-07']);
 });
 
-test('15-minute streak threshold aggregates all genuine sessions on the same local day', () => {
-  const sessions = [
-    { date: '2026-11-04T09:00:00', practiceSeconds: 480, notes: 3 },
-    { date: '2026-11-04T18:00:00', practiceSeconds: 360, notes: 4 },
-    { date: '2026-11-04T20:00:00', practiceSeconds: 60, notes: 0 },
-  ];
-  assert.deepEqual(getQualifyingPracticeDays(sessions), []);
-  sessions[1].practiceSeconds = 480;
-  assert.deepEqual(getQualifyingPracticeDays(sessions), ['2026-11-04']);
+test('a partially completed selected session does not count', () => {
+  assert.equal(isMeaningfulPracticeSession(sessionAt(7, false, 420)), false);
+  assert.deepEqual(getQualifyingPracticeDays([sessionAt(7, false, 420)]), []);
 });
 
-test('streak counts consecutive qualifying days and tolerates a not-yet-practised today', () => {
-  const sessions = [
-    { date: '2026-11-05T09:00:00', practiceSeconds: 900, notes: 1 },
-    { date: '2026-11-04T09:00:00', practiceSeconds: 900, notes: 1 },
-    { date: '2026-11-03T09:00:00', practiceSeconds: 900, notes: 1 },
-    { date: '2026-11-01T09:00:00', practiceSeconds: 900, notes: 1 },
-  ];
-  assert.equal(calculatePracticeStreak(sessions, new Date(2026, 10, 5, 12)), 3);
-  assert.equal(calculatePracticeStreak(sessions.slice(1), new Date(2026, 10, 5, 12)), 2);
+test('streak counts consecutive completed sessions regardless of selected duration', () => {
+  const sessions = [sessionAt(7, true, 300), sessionAt(6, true, 600), sessionAt(5, false, 420)];
+  assert.equal(calculatePracticeStreak(sessions, new Date(2026, 10, 7, 18, 0, 0)), 2);
 });
 
-test('practice duration falls back to saved minutes for older sessions', () => {
+test('older saved sessions without an explicit completion flag do not inflate streaks', () => {
+  assert.equal(isMeaningfulPracticeSession({ practiceSeconds: 900, notes: 10, date: '2026-11-06T12:00:00' }), false);
+});
+
+test('practice duration still falls back to saved minutes for legacy session display', () => {
   assert.equal(getPracticeSeconds({ minutes: 2.5 }), 150);
 });
