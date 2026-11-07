@@ -787,7 +787,6 @@ export default function App(){
     return n+1;
    }),1000);
   }catch(e){setAudioError('Could not start recording: '+e.message)}
- }).test(existing.name||''));if(matches.length)item.name=baseName+' ('+(matches.length+1)+')'+recordingExtension;return [item,...v]});
      };
      reader.readAsDataURL(blob);
     }catch{}
