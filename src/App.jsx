@@ -1747,7 +1747,7 @@ async function playMidiLibraryFile(item){
    setFullscreenScore({xml:xmlText,title:item.name||'Sheet music',itemId:item.id});
   }catch(e){setAudioError('Could not expand '+(item?.name||'file')+': '+(e.message||String(e)));}
  }
- async async function chooseGradePracticePiece(piece){
+ async function chooseGradePracticePiece(piece){
   if(!piece?.scoreData){setPage('Grade plan');setStatus('Add a score image or PDF to this grade piece before practising it.');return;}
   try{const response=await fetch(piece.scoreData);if(!response.ok)throw new Error('The grade score could not be read.');const blob=await response.blob();const name=piece.scoreName||piece.title+'.png';const extension=(name.match(/\.(musiccoach|musicxml|xml|mid|midi|pdf|png|jpe?g|webp)$/i)||[])[0]||'.png';const file=new File([blob],piece.title+extension,{type:piece.scoreType||blob.type||'image/png'});setSongTitle(piece.title);setPracticeScoreName(name);setPracticeMode('normal');setPracticeStarted(false);setPage('Practice');await handleScoreUpload(file,{target:'Practice',download:false,practiceMode:'normal'});setStatus('Grade piece loaded · '+piece.title);}catch(error){setAudioError('Could not open grade score: '+error.message);setStatus('Grade score could not be loaded');}
  }
