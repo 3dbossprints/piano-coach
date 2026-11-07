@@ -2857,3 +2857,38 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .practice-library-picker-meta>small{display:block;color:var(--muted,#777);font-size:9px;letter-spacing:.08em;font-weight:800}
 @media(max-width:850px){.dashboard-practice-priority,.feedback-comparison-grid{grid-template-columns:1fr}.practice-style-options{grid-template-columns:1fr}.practice-streak-expanded{right:-8px}.grade-target-breakdown{gap:10px}.grade-target-breakdown .text-button{margin-left:0}.feedback-results-heading{flex-direction:column}.practice-score-heading{align-items:flex-start;flex-direction:column}}
 @media(max-width:560px){.practice-streak-trigger{padding:7px 9px}.practice-streak-trigger small{display:none}.practice-streak-expanded{width:min(310px,calc(100vw - 36px))}.grade-target-progress{padding:16px}.grade-target-percent{font-size:23px}.practice-score-page-actions{width:100%}.practice-score-page-actions .btn-dark{flex:1}.feedback-footer-actions{justify-content:stretch}.feedback-footer-actions button{flex:1}}
+
+
+/* Sheet Music library: compact, consistent rows rather than decorative tiles */
+.personal-score-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.personal-score-card{position:relative;display:grid;grid-template-columns:58px minmax(0,1fr) auto;align-items:center;gap:13px;min-width:0;padding:12px 14px 12px 60px;border:1px solid var(--line,#e8e3db);border-radius:13px;background:var(--panel,#fff);transition:border-color .15s ease,background .15s ease}
+.personal-score-card:hover{border-color:var(--accent,#b58a49);background:var(--panel,#fff)}
+.personal-score-card.is-selected{border-color:var(--accent,#b58a49);background:#fbf8f1}
+.personal-score-art{grid-column:1;grid-row:1;width:56px;min-height:56px;height:56px;margin:0;overflow:hidden;border-radius:11px;background:#f1f0ec!important;color:#4b514b}
+.personal-score-card:nth-child(3n+2) .personal-score-art,.personal-score-card:nth-child(3n) .personal-score-art{background:#f1f0ec!important}
+.personal-score-art>span{width:34px;height:34px;border-radius:9px;background:#fff;font-size:19px;box-shadow:none}
+.personal-score-art svg{width:34px;height:34px}
+.personal-score-staff{display:none}
+.personal-score-meta{grid-column:2;grid-row:1;gap:4px}
+.personal-score-meta strong{font-size:13px;line-height:1.4}
+.personal-score-meta span{font-size:10px;color:var(--muted,#777);overflow-wrap:anywhere}
+.personal-score-actions{grid-column:3;grid-row:1;display:flex;align-items:center;justify-content:flex-end;gap:6px;margin:0;flex-wrap:nowrap}
+.personal-score-actions .btn{min-height:34px;padding:7px 10px;font-size:11px;white-space:nowrap}
+.personal-score-actions .btn-dark{flex:0 0 auto}
+.personal-score-actions .learn-library-button{min-width:68px}
+.library-card-checkbox{top:50%;left:13px;transform:translateY(-50%);width:27px;height:27px;border-radius:8px}
+.personal-score-empty{min-height:150px}
+.library-expand-control{display:flex;justify-content:center;margin:14px 0 4px}
+@media(max-width:760px){
+ .personal-score-card{grid-template-columns:50px minmax(0,1fr);gap:10px;padding:11px 12px 11px 54px}
+ .personal-score-art{width:48px;height:48px;min-height:48px}
+ .personal-score-actions{grid-column:2;grid-row:2;justify-content:flex-start;flex-wrap:wrap}
+ .personal-score-meta{grid-column:2;grid-row:1}
+ .personal-score-actions .btn{min-height:32px}
+}
+@media(max-width:420px){
+ .personal-score-card{padding-right:9px}
+ .personal-score-actions{gap:5px}
+ .personal-score-actions .btn{padding:6px 8px;font-size:10px}
+ .personal-score-actions .learn-library-button{min-width:58px}
+}
