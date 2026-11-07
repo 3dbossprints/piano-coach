@@ -768,8 +768,7 @@ export default function App(){
      reader.onload=()=>{
       const stamp=new Date().toISOString().replace(/[:.]/g,'-');
       const dayLabel=new Date().toLocaleDateString('en-GB');const baseName='Practice Session '+dayLabel;const item={id:Date.now()+'-'+Math.random().toString(36).slice(2,8),name:baseName+recordingExtension,type:blob.type||'audio/webm',size:blob.size,data:reader.result,added:new Date().toISOString(),kind:'recording'};
-      setLibraryFiles(v=>{const matches=v.filter(existing=>existing.name===baseName+recordingExtension||new RegExp('^'+baseName.replace(/[.*+?^${}()|[\]\\]/g,'\\const item={id:Date.now(),name:(songTitle||'Practice recording')+' '+stamp+recordingExtension,type:blob.type||'audio/webm',size:blob.size,data:reader.result,added:new Date().toISOString(),kind:'recording'};
-      setLibraryFiles(v=>[item,...v]);')+' \\(\\d+\\)'+recordingExtension.replace('.','\\.')+'
+      setLibraryFiles(v=>{const matches=v.filter(existing=>existing.name===baseName+recordingExtension||existing.name?.startsWith(baseName+' ('));if(matches.length)item.name=baseName+' ('+(matches.length+1)+')'+recordingExtension;return [item,...v]});
      };
      reader.readAsDataURL(blob);
     }catch{}
