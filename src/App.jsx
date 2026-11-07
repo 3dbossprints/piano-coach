@@ -1044,7 +1044,7 @@ function uploadScoreImage(file){if(!file)return;const isPdf=file.type==='applica
    if(options.saveToLibrary!==false)setLibraryFiles(v=>[{id:libraryItemId,name:(score.title||'Imported score')+'.musiccoach',type:'application/vnd.musiccoach.score+json',size:new Blob([json]).size,data,added:new Date().toISOString(),kind:'score',score},...v].sort((a,b)=>new Date(b.added||0)-new Date(a.added||0)));
    
    setConversionSavedNotice(true);
-   setPracticeMode(options.practiceMode||'normal');setPage(options.target||'Sheet music');setActiveScoreId(libraryItemId);if(options.startGuidedLesson){setPracticeStarted(false);setPage('Practice');setPracticeMode('learn');setSheetPianoOpen(true);learnModeRef.current=true;setLearnListenMode(true);setLearnBarProgress(0);setLearnPhraseOffset(0);learnProgressRef.current=0;learnPhraseOffsetRef.current=0;setLearnSeconds(0);setLearnMessage('Score loaded. Choose Learn or Perform, select a section, then press Start.');}setScoreOcrStatus('Import complete. Check the converted score before practising.');setMusicCoachStatus('Imported '+file.name+' and saved it to your Sheet Music library.');setStatus('Saved to Library · '+(score.title||fallbackScoreTitle));return true;
+   setPracticeMode(options.practiceMode||'normal');setPage(options.target||'Sheet music');setActiveScoreId(options.libraryItemId??libraryItemId);if(options.startGuidedLesson){setPracticeStarted(false);setPage('Practice');setPracticeMode('learn');setSheetPianoOpen(true);learnModeRef.current=true;setLearnListenMode(true);setLearnBarProgress(0);setLearnPhraseOffset(0);learnProgressRef.current=0;learnPhraseOffsetRef.current=0;setLearnSeconds(0);setLearnMessage('Score loaded. Choose Learn or Perform, select a section, then press Start.');}setScoreOcrStatus('Import complete. Check the converted score before practising.');setMusicCoachStatus('Imported '+file.name+' and saved it to your Sheet Music library.');setStatus('Saved to Library · '+(score.title||fallbackScoreTitle));return true;
   }).catch(e=>{setScoreOcrStatus('Music file import failed: '+e.message);setMusicCoachStatus('Import failed: '+e.message);setStatus('Could not import '+file.name);return false})
  }
  function exportMusicCoach(){
@@ -1309,7 +1309,7 @@ async function requestLocalAudioCoachFeedback(blob,title,targetNotes,detectedNot
    const resultHits=Array.isArray(keystoneResult?.hits)?keystoneResult.hits.length:(Number(keystoneResult?.hits)||0);
    const hasPracticeActivity=events.length>0||resultHits>0||learnPhraseOffsetRef.current>0;
    if(seconds>0&&hasPracticeActivity){
-     const session={id:editingSessionId||Date.now(),date:new Date().toISOString(),lastPractisedAt:new Date().toISOString(),completed:!!completed,
+     const session={id:editingSessionId||Date.now(),date:new Date().toISOString(),lastPractisedAt:new Date().toISOString(),completed:!!completed&&!!keystoneResult&&Number(keystoneResult.total)>0&&Number(keystoneResult.hits)>=Number(keystoneResult.total),
        song:songTitle||'Assisted Practice lesson',minutes:Math.round(seconds/60*10)/10,practiceSeconds:seconds,notes:keystoneResult?.hits??events.length,
        reflection:'Listen & Learn lesson',feedback:completed?(keystoneResult?('Completed Keystone lesson · '+keystoneResult.score+'/100'):'Completed guided score practice'):'Saved to continue later',
        practiceMode:'learn',learnProgressBeat:learnPhraseOffsetRef.current,learnHand,learnChunkDivision,
@@ -1793,7 +1793,7 @@ async function playMidiLibraryFile(item){
    else throw new Error('This saved score has no file data.');
    const file=new File([blob],item.name||'library-score.musiccoach',{type:item.type||blob.type||'application/octet-stream'});
    setPracticeScoreName(item.name||'Sheet music');setPracticeScoreError('');setPracticeStarted(false);setPracticeMode('learn');setPage('Practice');setStatus('Loading '+(item.name||'score')+' into Practice…');
-   const loaded=await handleScoreUpload(file,{target:'Practice',download:false,practiceMode:'learn',startGuidedLesson:!!options.startGuidedLesson,saveToLibrary:false});if(!loaded)throw new Error('The selected score could not be loaded into the lesson.');
+   const loaded=await handleScoreUpload(file,{target:'Practice',download:false,practiceMode:'learn',startGuidedLesson:!!options.startGuidedLesson,saveToLibrary:false,libraryItemId:item.id});if(!loaded)throw new Error('The selected score could not be loaded into the lesson.');
   }catch(e){setStatus('Could not open score: '+e.message)}
  }
  function downloadMusicData(){
