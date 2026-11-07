@@ -1044,14 +1044,13 @@ function uploadScoreImage(file){if(!file)return;const isPdf=file.type==='applica
    setScoreNotation(score.notation||null);setScoreSourceAsset(score.sourceAsset||null);setScoreComposer(score.composer||'');setScoreArranger(score.arranger||'');setSongTitle(score.title||fallbackScoreTitle);setBpm(Number(score.bpm)||bpm);setTimeSignature(score.timeSignature||'4/4');
    const notes=(score.notes||[]).map((n,i)=>({...n,id:n.id||'score-'+i,midi:n.midi??(n.rest?null:noteToMidi(n.note)),source:'score'}));
    setLoadedScoreNotes(notes);setMusicCoachNotes(notes);setMusicCoachAnalysis(score.analysis||'');setEvents(notes);sessionEvents.current=notes;setLearnHand('both');
-   if(options.startGuidedLesson){setPage('Sheet music');setSheetPianoOpen(true);setPracticeMode('learn');learnModeRef.current=true;setLearnListenMode(true);setLearnBarProgress(0);setLearnPhraseOffset(0);learnProgressRef.current=0;learnPhraseOffsetRef.current=0;setLearnMessage('Your saved score is loaded. Choose Learn or Perform, then press Start.');}
    setExpected(notes.map(n=>n.rest?'R/'+(n.beats>=4?'w':n.beats>=2?'h':n.beats>=1?'q':'e'):n.note+'/'+(n.beats>=4?'w':n.beats>=2?'h':n.beats>=1?'q':'e')).join(' '));
    if(score.sourceAsset?.data){setScoreImageUrl(score.sourceAsset.data);setScoreImageName(score.sourceAsset.name||file.name);setScoreIsPdf(score.sourceAsset.mimeType==='application/pdf')}else{setScoreImageUrl('');setScoreImageName('');setScoreIsPdf(false)}
    const json=encodeMusicCoach(score),data='data:application/vnd.musiccoach.score+json;base64,'+btoa(unescape(encodeURIComponent(json))),libraryItemId=Date.now();
    setLibraryFiles(v=>[{id:libraryItemId+'-'+Math.random().toString(36).slice(2,8),name:(score.title||'Imported score')+'.musiccoach',type:'application/vnd.musiccoach.score+json',size:new Blob([json]).size,data,added:new Date().toISOString(),kind:'score',score},...v].sort((a,b)=>new Date(b.added||0)-new Date(a.added||0)));
    
    setConversionSavedNotice(true);
-   setPracticeMode(options.practiceMode||'normal');setPage(options.target||'Sheet music');setActiveScoreId(libraryItemId);setScoreOcrStatus('Import complete. Check the converted notation against the original before practising.');setMusicCoachStatus('Imported '+file.name+' and saved it to your Sheet Music library.');setStatus('Saved to Library · '+(score.title||fallbackScoreTitle));return true;
+   setPracticeMode(options.practiceMode||'normal');setPage(options.target||'Sheet music');if(options.startGuidedLesson){setPage('Sheet music');setSheetPianoOpen(true);setPracticeMode('learn');learnModeRef.current=true;setLearnListenMode(true);setLearnBarProgress(0);setLearnPhraseOffset(0);learnProgressRef.current=0;learnPhraseOffsetRef.current=0;setLearnSeconds(0);setLearnMessage('Your saved score is loaded. Choose Learn or Perform, then press Start.');}setActiveScoreId(libraryItemId);setScoreOcrStatus('Import complete. Check the converted notation against the original before practising.');setMusicCoachStatus('Imported '+file.name+' and saved it to your Sheet Music library.');setStatus('Saved to Library · '+(score.title||fallbackScoreTitle));return true;
   }).catch(e=>{setScoreOcrStatus('Music file import failed: '+e.message);setMusicCoachStatus('Import failed: '+e.message);setStatus('Could not import '+file.name);return false})
  }
  function exportMusicCoach(){
@@ -1580,8 +1579,7 @@ async function playMidiLibraryFile(item){
    setEvents(all);sessionEvents.current=all;setLoadedScoreNotes(all);setMusicCoachNotes(all);
    setBpm(Math.round(parsed.bpm));setSongTempo(Math.round(parsed.bpm));
    setExpected(all.slice(0,100).map(n=>n.note+'/'+(n.beats>=3.5?'w':n.beats>=1.5?'h':n.beats>=.7?'q':'e')).join(' '));
-   setPracticeMode(options.practiceMode||(options.target==='Practice'?'normal':'learn'));setPage(options.target||'Sheet music');setPracticeStarted(false);
-   if(options.startGuidedLesson){setPage('Sheet music');setSheetPianoOpen(true);setPracticeMode('learn');learnModeRef.current=true;setLearnListenMode(true);setLearnBarProgress(0);setLearnPhraseOffset(0);learnProgressRef.current=0;learnPhraseOffsetRef.current=0;setLearnMessage('Your saved MIDI score is loaded. Choose Learn or Perform, then press Start.');}
+   setPracticeMode(options.practiceMode||(options.target==='Practice'?'normal':'learn'));setPage(options.target||'Sheet music');setPracticeStarted(false);if(options.startGuidedLesson){setPage('Sheet music');setSheetPianoOpen(true);setPracticeMode('learn');learnModeRef.current=true;setLearnListenMode(true);setLearnBarProgress(0);setLearnPhraseOffset(0);learnProgressRef.current=0;learnPhraseOffsetRef.current=0;setLearnSeconds(0);setLearnMessage('Your saved MIDI score is loaded. Choose Learn or Perform, then press Start.');}
    setMusicCoachStatus('Imported '+all.length+' MIDI notes across the full score. Grand-staff notation and editable playback were saved to your Library.');
    setStatus('MIDI imported successfully');return true;
   }catch(e){
