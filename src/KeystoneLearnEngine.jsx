@@ -147,9 +147,21 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
     const errors=hits.filter(n=>Number.isFinite(n.error)),mean=errors.length?errors.reduce((s,n)=>s+n.error,0)/errors.length:0;
     const bars={};run.active.filter(n=>!n.res||n.bad).forEach(n=>(bars[n.measure]??=new Set()).add(midiName(n.midi)));
     const trouble=Object.entries(bars).sort((a,b)=>b[1].size-a[1].size).slice(0,6).map(([bar,ns])=>({bar,notes:[...ns]}));
-    const summary={score,hits:hits.length,total,perfect:hits.filter(n=>n.res==='perfect').length,good:hits.filter(n=>n.res==='good').length,almost:hits.filter(n=>n.res==='almost').length,wrong:run.wrong.length,maxCombo:run.maxCombo,mode:run.mode,hands,tempo:bpm,speed:run.speed,meanTimingMs:errors.length?Math.round(mean*1000):null,trouble};
+    const summary={score,hits:hits.length,total,completed:hits.length===total&&total>0,perfect:hits.filter(n=>n.res==='perfect').length,good:hits.filter(n=>n.res==='good').length,almost:hits.filter(n=>n.res==='almost').length,wrong:run.wrong.length,maxCombo:run.maxCombo,mode:run.mode,hands,tempo:bpm,speed:run.speed,meanTimingMs:errors.length?Math.round(mean*1000):null,trouble};
     setResult(summary);setMessage('Finished. Review your result or start again.');runRef.current=null;setTick(v=>v+1);
   }, [hands,bpm]);
+
+  const listenToSection = useCallback(async () => {
+    if(!selected.length){setMessage('Choose a section with playable notes first.');return;}
+    try{
+      await Tone.start();
+      if(!pianoSamplerRef.current)pianoSamplerRef.current=createGrandPiano(-7);
+      await loadGrandPiano(pianoSamplerRef.current);
+      const start=Math.min(...selected.map(n=>n.t)),now=Tone.now()+.12;
+      selected.forEach(n=>pianoSamplerRef.current?.triggerAttackRelease(midiName(n.midi),Math.max(.08,(Number(n.d)||.5)*60/bpm*.9),now+Math.max(0,n.t-start)*60/bpm));
+      setMessage('Listening to the selected section. When you are ready, press Start to play it yourself.');
+    }catch(error){setMessage('Could not play this section: '+(error.message||String(error)));}
+  },[selected,bpm]);
 
   useEffect(() => {
     const canvas=canvasRef.current,stage=stageRef.current;if(!canvas||!stage)return;
@@ -241,7 +253,7 @@ export default function KeystoneLearnEngine({ xml, notes, bpm: initialBpm = 120,
       <label>To bar<input type="number" min={fromBar} max={maxBar} value={toBar===9999?maxBar:toBar} onChange={e=>setToBar(Math.max(fromBar,Math.min(maxBar,Number(e.target.value)||maxBar)))}/></label>
       <label>Tempo · {bpm} BPM<input type="range" min="20" max="240" step="1" value={bpm} onChange={e=>setBpm(Number(e.target.value))}/></label>
       <div className="keystone-key-controls"><span>Keys start · {midiName(keyStart)}</span><button className="btn" onClick={()=>shiftKey(-12)}>«</button><button className="btn" onClick={()=>shiftKey(-1)}>‹</button><button className="btn" onClick={()=>shiftKey(1)}>›</button><button className="btn" onClick={()=>shiftKey(12)}>»</button><button className="btn" onClick={()=>setKeyStart(Math.max(21,Math.floor(minMidi/12)*12))}>Auto</button></div>
-      <button className="btn btn-dark keystone-start" onClick={startRun}>{runRef.current?'Stop':'Start'}</button>
+      <button className="btn" type="button" onClick={listenToSection}>▶ Listen to section</button><button className="btn btn-dark keystone-start" onClick={startRun}>{runRef.current?'Stop':'Start'}</button>
     </div>
     <div className="keystone-input-panel">
       <div className="keystone-input-heading"><div><strong>Play on your piano</strong><span>Use your computer microphone for acoustic piano notes, or connect a MIDI keyboard for more precise note and chord detection.</span></div><span className={'keystone-input-state '+(microphoneListening?'is-live':'')}>{microphoneListening?'MICROPHONE ON':'MICROPHONE OFF'}</span></div>
