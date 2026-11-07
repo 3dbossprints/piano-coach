@@ -774,9 +774,8 @@ export default function App(){
     try{
      const reader=new FileReader();
      reader.onload=()=>{
-      const stamp=new Date().toISOString().replace(/[:.]/g,'-');
-      const item={id:Date.now(),name:(songTitle||'Practice recording')+' '+stamp+recordingExtension,type:blob.type||'audio/webm',size:blob.size,data:reader.result,added:new Date().toISOString(),kind:'recording'};
-      setLibraryFiles(v=>[item,...v]);
+      const dateLabel=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'2-digit'}),baseName='Practice Session '+dateLabel;
+      setLibraryFiles(v=>{let name=baseName,suffix=2;while(v.some(existing=>existing.name===name+recordingExtension))name=baseName+' ('+suffix+++')';const item={id:Date.now()+'-'+Math.random().toString(36).slice(2,8),name:name+recordingExtension,type:blob.type||'audio/webm',size:blob.size,data:reader.result,added:new Date().toISOString(),kind:'recording'};return [item,...v]});
      };
      reader.readAsDataURL(blob);
     }catch{}
@@ -1313,7 +1312,7 @@ async function requestLocalAudioCoachFeedback(blob,title,targetNotes,detectedNot
    const seconds=Math.max(0,learnSeconds);
    const resultHits=Array.isArray(keystoneResult?.hits)?keystoneResult.hits.length:(Number(keystoneResult?.hits)||0);
    const hasPracticeActivity=events.length>0||resultHits>0||learnPhraseOffsetRef.current>0;
-   if(seconds>0&&hasPracticeActivity){
+   if(seconds>0&&(hasPracticeActivity||sessionCompleted)){
      const selectedSeconds=Math.max(60,Number(practiceMinutes||15)*60),sessionCompleted=!!completed&&seconds>=selectedSeconds;
      const session={id:editingSessionId||Date.now(),date:new Date().toISOString(),lastPractisedAt:new Date().toISOString(),completed:sessionCompleted,completedAt:sessionCompleted?new Date().toISOString():null,
        song:songTitle||'Assisted Practice lesson',minutes:Math.round(seconds/60*10)/10,practiceSeconds:seconds,notes:keystoneResult?.hits??events.length,
@@ -1936,7 +1935,7 @@ async function playMidiLibraryFile(item){
  const gradeReadinessScores=sessions.map(session=>session.keystoneResult?.score).filter(value=>Number.isFinite(Number(value))).map(Number),aiGradeReadiness=gradeReadinessScores.length?Math.round(gradeReadinessScores.reduce((sum,value)=>sum+value,0)/gradeReadinessScores.length):0;
  const gradeProgress=Math.round((gradeTaskCompletion+aiGradeReadiness)/2),gradeTarget=gradePlanSnapshot.target||'Grade 1';
  const gradePieces=Array.isArray(gradePlanSnapshot.pieces)?gradePlanSnapshot.pieces:[];
- const recommendedPractice=libraryFiles.filter(isPlayableSheetMusicItem).map(item=>{const title=String(item.name||'').replace(/\\.(musiccoach|musicxml|xml|mid|midi)$/i,'').toLowerCase();const attempts=sessions.filter(session=>String(session.song||'').toLowerCase().includes(title)||title.includes(String(session.song||'').toLowerCase())).filter(session=>session.keystoneResult&&Number.isFinite(Number(session.keystoneResult.score)));const score=attempts.length?attempts.reduce((sum,session)=>sum+Number(session.keystoneResult.score),0)/attempts.length:null;const last=sessions.filter(session=>String(session.song||'').toLowerCase().includes(title)).sort((x,y)=>new Date(y.lastPractisedAt||y.date||0)-new Date(x.lastPractisedAt||x.date||0))[0];return {item,score,last: last?.lastPractisedAt||last?.date||item.added||null,attempts:attempts.length}}).sort((a,b)=>{if(a.score===null&&b.score!==null)return -1;if(a.score!==null&&b.score===null)return 1;if(a.score!==null&&b.score!==null&&a.score!==b.score)return a.score-b.score;return new Date(a.last||0)-new Date(b.last||0)});
+ const recommendedPractice=libraryFiles.filter(isPlayableSheetMusicItem).map(item=>{const title=String(item.name||'').replace(/\\.(musiccoach|musicxml|xml|mid|midi)$/i,'').toLowerCase();const matches=sessions.filter(session=>{const sessionTitle=String(session.song||'').toLowerCase();return !!sessionTitle&&(sessionTitle.includes(title)||title.includes(sessionTitle))});const attempts=matches.filter(session=>session.keystoneResult&&Number.isFinite(Number(session.keystoneResult.score)));const score=attempts.length?attempts.reduce((sum,session)=>sum+Number(session.keystoneResult.score),0)/attempts.length:null;const last=matches.sort((x,y)=>new Date(y.lastPractisedAt||y.date||0)-new Date(x.lastPractisedAt||x.date||0))[0];return {item,score,last: last?.lastPractisedAt||last?.date||item.added||null,attempts:attempts.length}}).sort((a,b)=>{if(a.score===null&&b.score!==null)return -1;if(a.score!==null&&b.score===null)return 1;if(a.score!==null&&b.score!==null&&a.score!==b.score)return a.score-b.score;return new Date(a.last||0)-new Date(b.last||0)});
  const streakWeekAnchor=new Date();streakWeekAnchor.setHours(0,0,0,0);streakWeekAnchor.setDate(streakWeekAnchor.getDate()-((streakWeekAnchor.getDay()+6)%7));
  const streakWeeks=Array.from({length:10},(_,index)=>{const start=new Date(streakWeekAnchor);start.setDate(start.getDate()-(9-index)*7);const days=Array.from({length:7},(_,dayIndex)=>{const date=new Date(start);date.setDate(start.getDate()+dayIndex);const key=[date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');return {key,date,done:practiceDays.includes(key)}});return {key:days[0].key,label:days[0].date.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' – '+days[6].date.toLocaleDateString('en-GB',{day:'numeric',month:'short'}),days}});
  const nav=['Dashboard','Practice','Sheet music','Grade plan'];
