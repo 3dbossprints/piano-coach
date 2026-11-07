@@ -2781,3 +2781,79 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .library-bulk-actions{display:flex;gap:7px;flex-wrap:wrap}
 .library-bulk-actions .btn{min-height:36px}
 @media(max-width:620px){.library-bulk-toolbar{align-items:stretch}.library-bulk-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.library-bulk-actions .btn{width:100%}}
+
+
+/* Simplified dashboard, practice and feedback flows */
+.practice-streak-corner{position:relative;z-index:40;display:flex;align-items:center}
+.practice-streak-trigger{display:flex;align-items:center;gap:10px;padding:9px 13px;border:1px solid var(--line,#dedbd4);border-radius:14px;background:var(--panel,#fff);color:inherit;text-align:left;cursor:pointer;white-space:nowrap}
+.practice-streak-trigger strong,.practice-streak-trigger small{display:block}
+.practice-streak-trigger strong{font-size:13px;font-weight:750}
+.practice-streak-trigger small{font-size:10px;color:var(--muted,#777);margin-top:2px}
+.practice-streak-flame{display:grid;place-items:center;width:30px;height:30px;border-radius:10px;background:#f7eee0;color:#a56a20;font-size:19px}
+.practice-streak-expanded{position:absolute;right:0;top:calc(100% + 9px);width:310px;padding:14px;border:1px solid var(--line,#dedbd4);border-radius:16px;background:var(--panel,#fff);box-shadow:0 16px 42px #17130f22;opacity:0;visibility:hidden;transform:translateY(-5px);transition:opacity .16s ease,transform .16s ease,visibility .16s ease}
+.practice-streak-corner:hover .practice-streak-expanded,.practice-streak-corner:focus-within .practice-streak-expanded{opacity:1;visibility:visible;transform:translateY(0)}
+.practice-streak-week-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.practice-streak-week-heading strong{font-size:12px}
+.practice-streak-week-heading button{width:30px;height:30px;border:1px solid var(--line,#dedbd4);border-radius:9px;background:transparent;color:inherit;font-size:22px;cursor:pointer}
+.practice-streak-week-heading button:disabled{opacity:.3;cursor:not-allowed}
+.practice-streak-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.practice-streak-day{display:grid;justify-items:center;gap:6px;padding:7px 2px;border-radius:10px;background:var(--surface,#f5f3ef);font-size:10px}
+.practice-streak-day small{color:var(--muted,#777)}
+.practice-streak-day b{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;font-size:11px}
+.practice-streak-day.is-complete b{background:#2f725a;color:white}
+.practice-streak-note{display:block;margin-top:11px;color:var(--muted,#777);font-size:10px;line-height:1.45}
+.grade-target-progress{margin:0 0 18px;padding:20px 22px}
+.grade-target-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
+.grade-target-heading h2{margin:4px 0 3px;font-size:21px}
+.grade-target-heading p{margin:0}
+.grade-target-percent{font-size:28px;font-weight:800;letter-spacing:-.04em}
+.grade-target-track{height:10px;margin:16px 0 10px;border-radius:99px;background:var(--surface,#eeeae3);overflow:hidden}
+.grade-target-track span{display:block;height:100%;border-radius:inherit;background:var(--accent,#b58a49);transition:width .25s ease}
+.grade-target-breakdown{display:flex;align-items:center;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--muted,#777)}
+.grade-target-breakdown .text-button{margin-left:auto}
+.grade-readiness-note{margin:10px 0 0;font-size:12px;color:var(--muted,#777)}
+.dashboard-practice-priority{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:18px}
+.dashboard-priority-card{padding:20px 22px;border:1px solid var(--line,#dedbd4);border-radius:16px;background:var(--panel,#fff)}
+.dashboard-priority-card h2{font-size:19px;margin:8px 0}
+.dashboard-priority-card p{min-height:40px;color:var(--muted,#777);font-size:13px;line-height:1.55}
+.practice-streak-corner+.status-chip{margin-left:6px}
+.practice-style-options{grid-template-columns:repeat(3,minmax(0,1fr))}
+.practice-grid{grid-template-columns:minmax(0,1fr)!important}
+.practice-grid>.studio-panel{width:100%;max-width:980px;margin-inline:auto}
+.practice-metronome{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.practice-metronome .sequence-label{min-width:135px;flex:1}
+.practice-metronome select,.practice-advanced-settings select{width:100%;min-height:40px}
+.practice-score-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}
+.practice-score-page-actions{display:flex;align-items:center;gap:7px}
+.practice-score-page-actions button[aria-label]{font-size:22px;min-width:38px}
+.practice-inline-page-controls{display:flex;align-items:center;justify-content:center;gap:14px;margin:4px auto 12px}
+.practice-inline-page-controls span{font-size:12px;color:var(--muted,#777);min-width:75px;text-align:center}
+.practice-inline-page-controls button{min-width:36px;padding:5px 11px;font-size:20px}
+.musicxml-preview-compact .musicxml-rendered{max-height:720px;overflow:auto}
+.practice-source-preview img{display:block;max-width:100%;height:auto;max-height:900px;object-fit:contain;margin:0 auto}
+.feedback-results-page{display:grid;gap:16px;max-width:1120px;margin:0 auto}
+.feedback-results-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:6px 2px}
+.feedback-results-heading h2{font-size:27px;margin:5px 0}
+.feedback-results-heading p{max-width:700px}
+.feedback-recording-card,.feedback-issues-card,.feedback-clips-card,.feedback-next-steps,.feedback-reflection{padding:20px}
+.feedback-recording-card audio{display:block;width:100%;margin-top:12px}
+.feedback-issue-list{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:10px}
+.feedback-issue-list li{display:flex;align-items:flex-start;gap:12px;padding:11px;border-radius:12px;background:var(--surface,#f5f3ef);font-size:13px;line-height:1.55}
+.feedback-issue-list li b{display:grid;place-items:center;flex:0 0 25px;height:25px;border-radius:50%;background:var(--panel,#fff)}
+.feedback-clip-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:9px}
+.feedback-clip{display:grid;gap:4px;padding:12px;text-align:left;border:1px solid var(--line,#dedbd4);border-radius:12px;background:var(--panel,#fff);color:inherit;cursor:pointer}
+.feedback-clip:disabled{opacity:.55;cursor:not-allowed}
+.feedback-clip-time{font-size:10px;color:var(--muted,#777)}
+.feedback-clip strong{font-size:15px}
+.feedback-clip small{font-size:10px;color:var(--muted,#777)}
+.feedback-comparison-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.feedback-comparison-grid>.panel{padding:18px}
+.feedback-comparison-grid p,.feedback-next-steps>p{font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.feedback-reflection textarea{display:block;width:100%;min-height:100px;margin:12px 0;padding:12px;border:1px solid var(--line,#dedbd4);border-radius:12px;background:var(--panel,#fff);color:inherit;font:inherit}
+.feedback-footer-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.gp-checklist-step{align-items:flex-start}
+.gp-checklist-step>label{display:flex;align-items:center;gap:9px;flex:0 0 auto}
+.gp-checklist-step>label input{width:18px;height:18px;accent-color:var(--accent,#b58a49)}
+.practice-library-picker-meta>small{display:block;color:var(--muted,#777);font-size:9px;letter-spacing:.08em;font-weight:800}
+@media(max-width:850px){.dashboard-practice-priority,.feedback-comparison-grid{grid-template-columns:1fr}.practice-style-options{grid-template-columns:1fr}.practice-streak-expanded{right:-8px}.grade-target-breakdown{gap:10px}.grade-target-breakdown .text-button{margin-left:0}.feedback-results-heading{flex-direction:column}.practice-score-heading{align-items:flex-start;flex-direction:column}}
+@media(max-width:560px){.practice-streak-trigger{padding:7px 9px}.practice-streak-trigger small{display:none}.practice-streak-expanded{width:min(310px,calc(100vw - 36px))}.grade-target-progress{padding:16px}.grade-target-percent{font-size:23px}.practice-score-page-actions{width:100%}.practice-score-page-actions .btn-dark{flex:1}.feedback-footer-actions{justify-content:stretch}.feedback-footer-actions button{flex:1}}
