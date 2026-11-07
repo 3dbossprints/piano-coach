@@ -24,8 +24,9 @@ test('streak counts consecutive completed days and tolerates a not-yet-practised
   assert.equal(calculatePracticeStreak(sessions.slice(1),new Date(2026,10,5,12)),2);
 });
 
-test('a completed session with no practice activity does not count', () => {
-  assert.equal(isMeaningfulPracticeSession({completed:true,practiceSeconds:300,notes:0,events:[]}),false);
+test('a completed selected session counts even if no note transcription was captured', () => {
+  assert.equal(isMeaningfulPracticeSession({completed:true,practiceSeconds:300,notes:0,events:[]}),true);
+  assert.deepEqual(getQualifyingPracticeDays([{date:'2026-11-04T09:00:00',completed:true,practiceSeconds:300,notes:0,events:[]}]),['2026-11-04']);
 });
 
 test('practice duration falls back to saved minutes for older sessions', () => {
