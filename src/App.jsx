@@ -1045,7 +1045,7 @@ function uploadScoreImage(file){if(!file)return;const isPdf=file.type==='applica
    setExpected(notes.map(n=>n.rest?'R/'+(n.beats>=4?'w':n.beats>=2?'h':n.beats>=1?'q':'e'):n.note+'/'+(n.beats>=4?'w':n.beats>=2?'h':n.beats>=1?'q':'e')).join(' '));
    if(score.sourceAsset?.data){setScoreImageUrl(score.sourceAsset.data);setScoreImageName(score.sourceAsset.name||file.name);setScoreIsPdf(score.sourceAsset.mimeType==='application/pdf')}else{setScoreImageUrl('');setScoreImageName('');setScoreIsPdf(false)}
    const json=encodeMusicCoach(score),data='data:application/vnd.musiccoach.score+json;base64,'+btoa(unescape(encodeURIComponent(json))),libraryItemId=Date.now();
-   setLibraryFiles(v=>[{id:libraryItemId+'-'+Math.random().toString(36).slice(2,8),name:(score.title||'Imported score')+'.musiccoach',type:'application/vnd.musiccoach.score+json',size:new Blob([json]).size,data,added:new Date().toISOString(),kind:'score',score},...v].sort((a,b)=>new Date(b.added||0)-new Date(a.added||0)));
+   if(options.saveToLibrary!==false)setLibraryFiles(v=>[{id:libraryItemId+'-'+Math.random().toString(36).slice(2,8),name:(score.title||'Imported score')+'.musiccoach',type:'application/vnd.musiccoach.score+json',size:new Blob([json]).size,data,added:new Date().toISOString(),kind:'score',score},...v].sort((a,b)=>new Date(b.added||0)-new Date(a.added||0)));
    
    setConversionSavedNotice(true);
    setPracticeMode(options.practiceMode||'normal');setPage(options.target||'Sheet music');setActiveScoreId(libraryItemId);setScoreOcrStatus('Import complete. Check the converted notation against the original before practising.');setMusicCoachStatus('Imported '+file.name+' and saved it to your Sheet Music library.');setStatus('Saved to Library · '+(score.title||fallbackScoreTitle));return true;
@@ -1573,7 +1573,7 @@ async function playMidiLibraryFile(item){
    const json=encodeMusicCoach(score),data='data:application/vnd.musiccoach.score+json;base64,'+btoa(unescape(encodeURIComponent(json)));
    const item={id:Date.now(),name:title+'.musiccoach',type:'application/vnd.musiccoach.score+json',size:new Blob([json]).size,data,added:new Date().toISOString(),kind:'score',score};
    setScoreNotation(notation);setScoreSourceAsset(null);setScoreImageUrl('');setScoreImageName('');setScoreIsPdf(false);
-   setLibraryFiles(v=>[{...item,id:Date.now()+'-'+Math.random().toString(36).slice(2,8)},...v].sort((a,b)=>new Date(b.added||0)-new Date(a.added||0)));
+   if(options.saveToLibrary!==false)setLibraryFiles(v=>[{...item,id:Date.now()+'-'+Math.random().toString(36).slice(2,8)},...v].sort((a,b)=>new Date(b.added||0)-new Date(a.added||0)));
    setConversionSavedNotice(true);setSongTitle(title);setLearnHand('both');
    setEvents(all);sessionEvents.current=all;setLoadedScoreNotes(all);setMusicCoachNotes(all);
    setBpm(Math.round(parsed.bpm));setSongTempo(Math.round(parsed.bpm));
@@ -1786,7 +1786,7 @@ async function playMidiLibraryFile(item){
    else throw new Error('This saved score has no file data.');
    const file=new File([blob],item.name||'library-score.musiccoach',{type:item.type||blob.type||'application/octet-stream'});
    setPracticeScoreName(item.name||'Sheet music');setPracticeScoreError('');setPracticeStarted(false);setPracticeMode(options.startGuidedLesson?'learn':'normal');setPage('Practice');setStatus('Loading '+(item.name||'score')+' into Practice…');
-   const loaded=await handleScoreUpload(file,{target:'Practice',download:false,practiceMode:options.startGuidedLesson?'learn':'normal'});
+   const loaded=await handleScoreUpload(file,{target:'Practice',download:false,practiceMode:options.startGuidedLesson?'learn':'normal',saveToLibrary:false,libraryItemId:item.id});
    if(loaded&&options.startGuidedLesson){learnModeRef.current=true;learnPhraseOffsetRef.current=0;learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};setLearnPhraseOffset(0);setLearnBarProgress(0);setLearnSeconds(0);setEvents([]);sessionEvents.current=[];setPracticeStarted(true);setLearnListenMode(true);setSheetPianoOpen(true);setLearnMessage('Assisted Practice is ready. Choose a section and press Start.');setStatus('Assisted Practice started · '+(item.name||'score'));}
   }catch(e){setStatus('Could not open score: '+e.message)}
  }
