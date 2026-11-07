@@ -388,23 +388,30 @@ function ExpandedMusicXMLPlayer({xml,title='Sheet music',onClose,libraryItemId=n
 
 function MusicXMLPreview({xml,title='Sheet music',onExpand}) {
  const host=useRef(null);
- const [error,setError]=useState('');
+ const [error,setError]=useState(''),[activePage,setActivePage]=useState(1),[totalPages,setTotalPages]=useState(1);
+ function showPage(next){
+  const pages=[...(host.current?.querySelectorAll('[id^="osmdCanvasPage"]')||[])];
+  const count=Math.max(1,pages.length),page=Math.max(1,Math.min(count,Number(next)||1));
+  pages.forEach((node,index)=>{node.style.display=index+1===page?'block':'none';node.setAttribute('aria-hidden',index+1===page?'false':'true')});
+  setTotalPages(count);setActivePage(page);
+ }
  useEffect(()=>{
   let cancelled=false,renderer=null;
   async function render(){
    try{
+    setError('');setActivePage(1);setTotalPages(1);
     if(!isValidMusicXML(xml))throw new Error('This score has no valid embedded MusicXML. Its editable note data is still saved, but a notation preview could not be generated.');
-    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:true,drawTitle:false,drawSubtitle:false,drawComposer:false,drawPartNames:false,backend:'svg',stretchLastSystemLine:true,renderSingleHorizontalStaffline:false,drawUpToPageNumber:1});
+    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:true,drawTitle:false,drawSubtitle:false,drawComposer:false,drawPartNames:false,backend:'svg',stretchLastSystemLine:true,renderSingleHorizontalStaffline:false});
     await renderer.load(normalizeMusicXMLTitle(xml,title));
     if(cancelled)return;
-    renderer.Zoom=0.72;
-    renderer.render();
+    renderer.Zoom=0.72;renderer.render();
+    requestAnimationFrame(()=>{if(cancelled)return;const pages=[...(host.current?.querySelectorAll('[id^="osmdCanvasPage"]')||[])];setTotalPages(Math.max(1,pages.length));pages.forEach((node,index)=>{node.style.display=index===0?'block':'none';node.setAttribute('aria-hidden',index===0?'false':'true')});});
    }catch(e){if(!cancelled)setError(e?.message||'Could not render notation');}
   }
   render();
   return()=>{cancelled=true;try{renderer?.clear()}catch{}if(host.current)host.current.innerHTML=''};
  },[xml,title]);
- return <div className="musicxml-preview-compact"><div ref={host} className="musicxml-rendered"/>{error&&<small role="status">{error}</small>}{onExpand&&<button type="button" className="btn btn-small" onClick={onExpand}>Expand sheet ↗</button>}</div>;
+ return <div className="musicxml-preview-compact"><div className="practice-inline-page-controls"><button type="button" className="btn" aria-label="Previous sheet music page" disabled={activePage<=1} onClick={()=>showPage(activePage-1)}>‹</button><span>Page {activePage} of {totalPages}</span><button type="button" className="btn" aria-label="Next sheet music page" disabled={activePage>=totalPages} onClick={()=>showPage(activePage+1)}>›</button></div><div ref={host} className="musicxml-rendered"/>{error&&<small role="status">{error}</small>}{onExpand&&<button type="button" className="btn btn-small" onClick={onExpand}>Expand sheet ↗</button>}</div>;
 }
 
 function AudioBlobPlayer({blob,audioRef}){
