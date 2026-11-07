@@ -787,9 +787,6 @@ export default function App(){
     return n+1;
    }),1000);
   }catch(e){setAudioError('Could not start recording: '+e.message)}
-     };
-     reader.readAsDataURL(blob);
-    }catch{}
     if(recordingTimer.current)clearInterval(recordingTimer.current);
     recordingTimer.current=null;
     setStatus('Recording ready · converting into sheet music…');
