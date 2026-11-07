@@ -1160,7 +1160,7 @@ async function convertScoreToMusicCoach(file,options={}){
    }finally{setMusicCoachBusy(false)}
    return;
   }
-  if(ext.endsWith('.musicxml')||ext.endsWith('.xml')||ext.endsWith('.musiccoach'))return await importMusicXML(file,{target:options.target||'Score converter',download:false});
+  if(ext.endsWith('.musicxml')||ext.endsWith('.xml')||ext.endsWith('.musiccoach'))return await importMusicXML(file,{...options,target:options.target||'Score converter',download:!!options.download});
   const isPdf=file.type==='application/pdf'||/\.pdf$/i.test(file.name);
   const isImage=['image/png','image/jpeg','image/webp','image/svg+xml'].includes(file.type)||/\.(png|jpe?g|webp|svg)$/i.test(file.name);
   if(!isPdf&&!isImage){setMusicCoachStatus('Choose a PDF, PNG, JPEG, WebP or SVG score.');return false}
