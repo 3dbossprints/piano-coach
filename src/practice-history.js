@@ -1,5 +1,3 @@
-const MINIMUM_DAILY_PRACTICE_SECONDS = 15 * 60;
-
 export function getPracticeSeconds(session) {
   const explicit = Number(session?.practiceSeconds);
   if (Number.isFinite(explicit) && explicit > 0) return explicit;
@@ -9,13 +7,9 @@ export function getPracticeSeconds(session) {
 
 export function isMeaningfulPracticeSession(session) {
   if (!session || getPracticeSeconds(session) <= 0) return false;
-  const eventCount = Array.isArray(session.events) ? session.events.length : 0;
-  const noteCount = Number(session.notes) || 0;
-  const progress = Number(session.learnProgressBeat) || 0;
-  const hits = Array.isArray(session.keystoneResult?.hits)
-    ? session.keystoneResult.hits.length
-    : Number(session.keystoneResult?.hits) || 0;
-  return eventCount > 0 || noteCount > 0 || progress > 0 || hits > 0;
+  // Completion is recorded only after the full selected duration (or all assisted-section notes) is finished.
+  // A completed session counts even if no note transcription was captured.
+  return session.completed === true && getPracticeSeconds(session) > 0;
 }
 
 function localDayKey(value) {
@@ -28,7 +22,7 @@ function localDayKey(value) {
   ].join('-');
 }
 
-export function getQualifyingPracticeDays(sessions, minimumSeconds = MINIMUM_DAILY_PRACTICE_SECONDS) {
+export function getQualifyingPracticeDays(sessions) {
   const totals = new Map();
   for (const session of Array.isArray(sessions) ? sessions : []) {
     if (!isMeaningfulPracticeSession(session)) continue;
@@ -36,15 +30,13 @@ export function getQualifyingPracticeDays(sessions, minimumSeconds = MINIMUM_DAI
     if (!key) continue;
     totals.set(key, (totals.get(key) || 0) + getPracticeSeconds(session));
   }
-  return [...totals.entries()]
-    .filter(([, seconds]) => seconds >= minimumSeconds)
-    .map(([key]) => key)
+  return [...totals.keys()]
     .sort()
     .reverse();
 }
 
-export function calculatePracticeStreak(sessions, now = new Date(), minimumSeconds = MINIMUM_DAILY_PRACTICE_SECONDS) {
-  const qualifyingDays = new Set(getQualifyingPracticeDays(sessions, minimumSeconds));
+export function calculatePracticeStreak(sessions, now = new Date()) {
+  const qualifyingDays = new Set(getQualifyingPracticeDays(sessions));
   const today = new Date(now);
   if (Number.isNaN(today.getTime())) return 0;
   const cursor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
