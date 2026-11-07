@@ -6,14 +6,7 @@ export function getPracticeSeconds(session) {
 }
 
 export function isMeaningfulPracticeSession(session) {
-  if (!session || getPracticeSeconds(session) <= 0 || session.completed !== true) return false;
-  const eventCount = Array.isArray(session.events) ? session.events.length : 0;
-  const noteCount = Number(session.notes) || 0;
-  const progress = Number(session.learnProgressBeat) || 0;
-  const hits = Array.isArray(session.keystoneResult?.hits)
-    ? session.keystoneResult.hits.length
-    : Number(session.keystoneResult?.hits) || 0;
-  return eventCount > 0 || noteCount > 0 || progress > 0 || hits > 0;
+  return !!session && session.completed === true && getPracticeSeconds(session) > 0;
 }
 
 function localDayKey(value) {
