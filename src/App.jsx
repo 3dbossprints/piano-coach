@@ -766,30 +766,17 @@ export default function App(){
     const blob=new Blob(chunksRef.current,{type:rec.mimeType||'audio/webm'});
     setRecording(blob);setIsRecording(false);
     const recordingExtension=/mp4/i.test(blob.type)?'.m4a':'.webm';
-    try{
-     const reader=new FileReader();
-     reader.onload=()=>{
-      const stamp=new Date().toISOString().replace(/[:.]/g,'-');
-      const dayLabel=new Date().toLocaleDateString('en-GB');const baseName='Practice Session '+dayLabel;const item={id:Date.now()+'-'+Math.random().toString(36).slice(2,8),name:baseName+recordingExtension,type:blob.type||'audio/webm',size:blob.size,data:reader.result,added:new Date().toISOString(),kind:'recording'};
-      setLibraryFiles(v=>{const matches=v.filter(existing=>existing.name===baseName+recordingExtension||existing.name?.startsWith(baseName+' ('));if(matches.length)item.name=baseName+' ('+(matches.length+1)+')'+recordingExtension;return [item,...v]});
-     };
-     reader.readAsDataURL(blob);
-    }catch{}
+    const dayLabel=new Date().toLocaleDateString('en-GB'),baseName='Practice Session '+dayLabel;
+    const reader=new FileReader();
+    reader.onload=()=>{
+     const item={id:Date.now()+'-'+Math.random().toString(36).slice(2,8),name:baseName+recordingExtension,type:blob.type||'audio/webm',size:blob.size,data:reader.result,added:new Date().toISOString(),kind:'recording'};
+     setLibraryFiles(files=>{const matches=files.filter(existing=>existing.name===baseName+recordingExtension||existing.name?.startsWith(baseName+' ('));const suffix=matches.length?' ('+(matches.length+1)+')':'';return [{...item,name:baseName+suffix+recordingExtension},...files]});
+    };
+    reader.onerror=()=>setAudioError('The recording finished, but could not be saved to your Library.');
+    reader.readAsDataURL(blob);
     if(recordingTimer.current)clearInterval(recordingTimer.current);
     recordingTimer.current=null;
-    setStatus('Recording ready · converting into sheet music…');
-    if(autoAnalyzeRef.current){autoAnalyzeRef.current=false;analyseBlobRef.current?.(blob)}
-   };
-   rec.start();setIsRecording(true);setRecordingSeconds(0);setAudioError('');
-   setStatus('Recording microphone audio · max 3 minutes');
-   recordingTimer.current=setInterval(()=>setRecordingSeconds(n=>{
-    if(n>=179){if(recorderRef.current?.state==='recording')stopRecording();setAudioError('Recording reached the 3-minute safety limit. Your recording is being analysed now.');return 180}
-    return n+1;
-   }),1000);
-  }catch(e){setAudioError('Could not start recording: '+e.message)}
-    if(recordingTimer.current)clearInterval(recordingTimer.current);
-    recordingTimer.current=null;
-    setStatus('Recording ready · converting into sheet music…');
+    setStatus('Recording ready · analysing your performance…');
     if(autoAnalyzeRef.current){autoAnalyzeRef.current=false;analyseBlobRef.current?.(blob)}
    };
    rec.start();setIsRecording(true);setRecordingSeconds(0);setAudioError('');
@@ -800,6 +787,7 @@ export default function App(){
    }),1000);
   }catch(e){setAudioError('Could not start recording: '+e.message)}
  }
+
  function stopRecording(){if(recorderRef.current&&recorderRef.current.state!=='inactive'){autoAnalyzeRef.current=true;recorderRef.current.stop()}else setIsRecording(false);if(recordingTimer.current)clearInterval(recordingTimer.current);recordingTimer.current=null}
  async function startConverterRecording(){
   if(converterRecording||musicCoachBusy)return;
