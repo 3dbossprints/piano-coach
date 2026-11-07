@@ -797,13 +797,12 @@ export default function App(){
     }catch{}
     if(recordingTimer.current)clearInterval(recordingTimer.current);
     recordingTimer.current=null;
-    setStatus('Recording ready · converting into sheet music…');
-    if(autoAnalyzeRef.current){autoAnalyzeRef.current=false;analyseBlobRef.current?.(blob)}
+    if(autoAnalyzeRef.current){setStatus('Recording ready · analysing your practice…');autoAnalyzeRef.current=false;analyseBlobRef.current?.(blob)}else setStatus('Recording saved to your Library');
    };
    rec.start();setIsRecording(true);setRecordingSeconds(0);setAudioError('');
    setStatus('Recording microphone audio · max 3 minutes');
    recordingTimer.current=setInterval(()=>setRecordingSeconds(n=>{
-    if(n>=179){if(recorderRef.current?.state==='recording')stopRecording();setAudioError('Recording reached the 3-minute safety limit. Your recording is being analysed now.');return 180}
+    if(n>=179){if(recorderRef.current?.state==='recording')stopRecording();setAudioError('Recording reached the 3-minute safety limit. The audio has been saved.');return 180}
     return n+1;
    }),1000);
   }catch(e){setAudioError('Could not start recording: '+e.message)}
