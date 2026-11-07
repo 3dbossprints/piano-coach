@@ -551,7 +551,7 @@ export default function App(){
  const [musicCoachMarkings,setMusicCoachMarkings]=useState([]);
  const [events,setEvents]=useState([]);
  const [expected,setExpected]=useState('');
- const [mode,setMode]=useState('Free practice');
+ const [mode,setMode]=useState('Self Practice');
  const [bpm,setBpm]=useState(84);
   const [timeSignature,setTimeSignature]=useState('4/4');
  const [sheetPianoOpen,setSheetPianoOpen]=useState(false),[learnListenMode,setLearnListenMode]=useState(false),[learnBarProgress,setLearnBarProgress]=useState(0),[learnMessage,setLearnMessage]=useState('Turn on Assisted Practice to practise a bar at a time.'),[learnSeconds,setLearnSeconds]=useState(0),[learnPhraseOffset,setLearnPhraseOffset]=useState(0),[learnView,setLearnView]=useState('staff'),[learnHand,setLearnHand]=useState('both'),[learnChunkDivision,setLearnChunkDivision]=useState(1);
