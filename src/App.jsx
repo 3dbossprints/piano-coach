@@ -555,7 +555,7 @@ export default function App(){
  const [mode,setMode]=useState('Free practice');
  const [bpm,setBpm]=useState(84);
   const [timeSignature,setTimeSignature]=useState('4/4');
- const [sheetPianoOpen,setSheetPianoOpen]=useState(false),[learnListenMode,setLearnListenMode]=useState(false),[learnBarProgress,setLearnBarProgress]=useState(0),[learnMessage,setLearnMessage]=useState('Turn on Listen & Learn to practise a bar at a time.'),[learnSeconds,setLearnSeconds]=useState(0),[learnPhraseOffset,setLearnPhraseOffset]=useState(0),[learnView,setLearnView]=useState('staff'),[learnHand,setLearnHand]=useState('both'),[learnChunkDivision,setLearnChunkDivision]=useState(1);
+ const [sheetPianoOpen,setSheetPianoOpen]=useState(false),[learnListenMode,setLearnListenMode]=useState(false),[learnBarProgress,setLearnBarProgress]=useState(0),[learnMessage,setLearnMessage]=useState('Open Assisted Practice to practise a section at a time.'),[learnSeconds,setLearnSeconds]=useState(0),[learnPhraseOffset,setLearnPhraseOffset]=useState(0),[learnView,setLearnView]=useState('staff'),[learnHand,setLearnHand]=useState('both'),[learnChunkDivision,setLearnChunkDivision]=useState(1);
  const [activeScoreId,setActiveScoreId]=useState(null);
  const [learnMidiConnected,setLearnMidiConnected]=useState(false),[learnMidiName,setLearnMidiName]=useState(''),[learnAnimationKey,setLearnAnimationKey]=useState(0);
  const [volume,setVolume]=useState(65);
@@ -1311,12 +1311,12 @@ async function requestLocalAudioCoachFeedback(blob,title,targetNotes,detectedNot
    if(seconds>0&&hasPracticeActivity){
      const session={id:editingSessionId||Date.now(),date:new Date().toISOString(),lastPractisedAt:new Date().toISOString(),completed:!!completed&&!!keystoneResult&&Number(keystoneResult.total)>0&&Number(keystoneResult.hits)>=Number(keystoneResult.total),
        song:songTitle||'Assisted Practice lesson',minutes:Math.round(seconds/60*10)/10,practiceSeconds:seconds,notes:keystoneResult?.hits??events.length,
-       reflection:'Listen & Learn lesson',feedback:completed?(keystoneResult?('Completed Keystone lesson · '+keystoneResult.score+'/100'):'Completed guided score practice'):'Saved to continue later',
+       reflection:'Assisted Practice lesson',feedback:completed?(keystoneResult?('Completed Keystone lesson · '+keystoneResult.score+'/100'):'Completed guided score practice'):'Saved to continue later',
        practiceMode:'learn',learnProgressBeat:learnPhraseOffsetRef.current,learnHand,learnChunkDivision,
        loadedScoreNotes:loadedScoreNotes.map(n=>({...n})),scoreNotation:scoreNotation||null,
        keystoneResult:keystoneResult||null,expected,bpm,timeSignature,events:events.map(e=>({...e}))};
      setSessions(prev=>[session,...prev.filter(s=>s.id!==session.id)]);
-     setStatus(completed?'Listen & Learn completed · '+(keystoneResult?keystoneResult.score+'/100 · ':'')+Math.floor(seconds/60)+' min saved':'Listen & Learn saved · ready to continue later');
+     setStatus(completed?'Assisted Practice completed · '+(keystoneResult?keystoneResult.score+'/100 · ':'')+Math.floor(seconds/60)+' min saved':'Assisted Practice saved · ready to continue later');
    }else setStatus('No practice activity was recorded, so this empty lesson was not saved.');
    setEditingSessionId(null);setPracticeStarted(false);setLearnSeconds(0);setLearnBarProgress(0);
  }
@@ -1337,13 +1337,13 @@ function resumeSavedSession(session){
   setEvents(restored);sessionEvents.current=restored;setReflection(session.reflection||'');setPracticeFeedback(session.feedback||'');
   if(session.practiceMode==='learn'){
     const notes=Array.isArray(session.loadedScoreNotes)?session.loadedScoreNotes:[];
-    if(!notes.some(n=>!n.rest&&Number.isFinite(n.midi??noteToMidi(n.note)))){setLoadedScoreNotes([]);setScoreNotation(null);setLearnListenMode(false);setSheetPianoOpen(false);setPracticeMode('normal');setPage('Practice');setLearnMessage('This saved lesson has no playable uploaded sheet music. Upload a score before starting Listen & Learn.');setStatus('Saved Listen & Learn lesson unavailable: no sheet music');return;}
+    if(!notes.some(n=>!n.rest&&Number.isFinite(n.midi??noteToMidi(n.note)))){setLoadedScoreNotes([]);setScoreNotation(null);setLearnListenMode(false);setSheetPianoOpen(false);setPracticeMode('normal');setPage('Practice');setLearnMessage('This saved lesson has no playable uploaded sheet music. Upload a score before starting Assisted Practice.');setStatus('Saved Assisted Practice lesson unavailable: no sheet music');return;}
     setLoadedScoreNotes(notes);setScoreNotation(session.scoreNotation||null);
     setLearnHand(session.learnHand||'both');setLearnChunkDivision([1,2,4].includes(Number(session.learnChunkDivision))?Number(session.learnChunkDivision):1);
     learnPhraseOffsetRef.current=0;learnProgressRef.current=0;learnChordHitsRef.current={key:'',hits:[]};
     setLearnPhraseOffset(0);setLearnBarProgress(0);setLearnSeconds(Math.max(0,Number(session.practiceSeconds)||0));
     setPracticeMode('learn');setPracticeStarted(false);setLearnListenMode(true);setSheetPianoOpen(true);learnModeRef.current=true;
-    setPage('Practice');setLearnMessage('Saved score reopened in Keystone. Choose the bar range and press Start to continue practising.');setStatus('Resuming Keystone Listen & Learn');return;
+    setPage('Practice');setLearnMessage('Saved score reopened in Keystone. Choose the bar range and press Start to continue practising.');setStatus('Resuming Assisted Practice');return;
   }
   setPracticeMode('normal');setRemainingSeconds(15*60);setPracticeStarted(true);startTime.current=Date.now();
   setPage('Practice');setStatus('Revisiting saved practice session');
@@ -1381,7 +1381,7 @@ function getLearnPhrase(){const meter=String(timeSignature||'4/4').split('/').ma
  async function playLearnPhrase(){if(!learnModeRef.current)return;const phrase=getLearnPhrase();if(!phrase.length){setLearnMessage('You completed this score. Finish the lesson to save your practice.');return}await ensureSynth();if(!learnModeRef.current)return;stopPlayback();setLearnAnimationKey(v=>v+1);const origin=phrase[0]._start??0,now=Tone.now()+1.92;setLearnMessage('Playing the score at '+bpm+' BPM. Listen, then play the phrase.');phrase.forEach(n=>{if(!n.rest&&n.midi!==null){const beatOffset=n._start!==undefined?Math.max(0,n._start-origin):0;synth.current?.triggerAttackRelease(midiToNote(n.midi),Math.max(.12,(Number(n.beats)||1)*60/bpm*.92),now+beatOffset*60/bpm)}});setStatus('Playing score phrase at '+bpm+' BPM');}
  function toggleLearnSession(){
    if(learnListenMode){finishLearnSession();return}
-   if(!loadedScoreNotes?.some(n=>!n.rest&&Number.isFinite(n.midi??noteToMidi(n.note)))){setLearnMessage('Listen & Learn is locked until you upload sheet music containing playable notes. Open Sheet Music or the Sheet Music Converter and import a score first.');setStatus('Upload sheet music to enable Listen & Learn');return}
+   if(!loadedScoreNotes?.some(n=>!n.rest&&Number.isFinite(n.midi??noteToMidi(n.note)))){setLearnMessage('Assisted Practice is locked until you upload sheet music containing playable notes. Open Sheet Music or the Sheet Music Converter and import a score first.');setStatus('Upload sheet music to enable Assisted Practice');return}
    setEditingSessionId(null);startTime.current=Date.now();learnModeRef.current=true;
    learnProgressRef.current=0;learnPhraseOffsetRef.current=0;learnNoteLockRef.current=0;learnChordHitsRef.current={key:'',hits:[]};
    setLearnBarProgress(0);setLearnPhraseOffset(0);setLearnSeconds(0);sessionEvents.current=[];setEvents([]);
@@ -1785,7 +1785,7 @@ async function playMidiLibraryFile(item){
  }
  async function openLibraryScore(item,options={}){
   if(!item)return;
-  if(!isPlayableSheetMusicItem(item)){setStatus('Listen & Learn accepts only structured .musiccoach, MusicXML or MIDI files. Photos, scans and PDFs must be converted first.');return;}
+  if(!isPlayableSheetMusicItem(item)){setStatus('Assisted Practice accepts only structured .musiccoach, MusicXML or MIDI files. Photos, scans and PDFs must be converted first.');return;}
   try{
    let blob;
    if(item.data){const response=await fetch(item.data);if(!response.ok)throw new Error('The stored score could not be read.');blob=await response.blob();}
@@ -2011,7 +2011,7 @@ return <div className="shell"><aside className="sidebar"><a className="brand" hr
     
     {audioItem?<><audio ref={el=>{if(el)audioLibraryRefs.current[item.id]=el;else delete audioLibraryRefs.current[item.id]}} src={item.data||undefined} preload="none" onEnded={()=>setLibraryPlayback({id:null,kind:'',paused:true})}/><button type="button" className="btn btn-dark icon-action compact-score-play" aria-label={libraryPlayback.id===item.id&&libraryPlayback.kind==="audio"&&!libraryPlayback.paused?'Pause recording':'Play recording'} disabled={!item.data} onClick={e=>{e.stopPropagation();toggleLibraryAudio(item)}}>{libraryPlayback.id===item.id&&libraryPlayback.kind==="audio"&&!libraryPlayback.paused?'Ⅱ':'▶'}</button><button type="button" className="btn icon-action compact-score-stop" aria-label="Stop recording" disabled={!item.data} onClick={e=>{e.stopPropagation();stopLibraryItem(item)}}>■</button></>:playable?<><button type="button" className="btn btn-dark icon-action compact-score-play" aria-label={libraryPlayback.id===item.id&&libraryPlayback.kind==="tone"&&!libraryPlayback.paused?'Pause':'Play'} onClick={e=>{e.stopPropagation();toggleScoreLibraryPlayback(item)}}>{libraryPlayback.id===item.id&&libraryPlayback.kind==="tone"&&!libraryPlayback.paused?'Ⅱ':'▶'}</button><button type="button" className="btn icon-action compact-score-stop" aria-label="Stop" onClick={e=>{e.stopPropagation();stopLibraryItem(item)}}>■</button></>:<span className="muted small">Source score · not directly playable</span>}
     
-    {playable?<button type="button" className="btn btn-dark learn-library-button" onClick={e=>{e.stopPropagation();openLibraryScore(item,{startGuidedLesson:true});}}>Learn</button>:<button type="button" className="btn learn-library-button" disabled title="Convert this file to a Piano Coach score before learning">Learn</button>}
+    {playable?<button type="button" className="btn btn-dark learn-library-button" onClick={e=>{e.stopPropagation();openLibraryScore(item,{startGuidedLesson:true});}}>Assisted Practice</button>:<button type="button" className="btn learn-library-button" disabled title="Convert this file to a Piano Coach score before assisted practice">Assisted Practice</button>}
     
    </div>
   </article>}):<div className="personal-score-empty"><div className="music-icon">♫</div><strong>Your saved music will appear here</strong><p>Import MusicXML, MIDI, a .musiccoach score, PDF or a score image to begin.</p><button className="btn" onClick={()=>setPage('Score converter')}>Open sheet music converter →</button></div>}
