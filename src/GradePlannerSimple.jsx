@@ -22,7 +22,7 @@ export default function GradePlannerSimple({sessions=[],onPracticePiece=()=>{}})
   const finalTarget=goal==='exam'?target:next;
   const finalBoard=goal==='exam'?board:'Personal';
   const route=goal==='exam'?(board==='ABRSM'?'Practical Grades':'Trinity Digital — Technical work'):'Personal development';
-  const taskKeys=goal==='exam'&&board==='Trinity'?['pieces','technical','support']:goal==='exam'?['pieces','scales','sight','aural']:['pieces','technique','sight','listening'];setPlan(p=>({...p,goal,board:finalBoard,route,current,target:finalTarget,weeklyHours:Number(days)*Number(minutes)/60,pieces:Array.isArray(p.pieces)?p.pieces:[],taskCount:taskKeys.length,checks:p.checks||Object.fromEntries(taskKeys.map(key=>[key,false]))}));
+  const taskKeys=goal==='exam'&&board==='Trinity'?['pieces','technical','support']:goal==='exam'?['pieces','scales','sight','aural']:['pieces','technique','sight','listening'];setPlan(p=>({...p,goal,board:finalBoard,route,current,target:finalTarget,weeklyHours:Number(days)*Number(minutes)/60,pieces:Array.isArray(p.pieces)?p.pieces:[],taskCount:taskKeys.length,checks:{...Object.fromEntries(taskKeys.map(key=>[key,false])),...(p.checks||{})}}));
   setError('');
   setPlanNotice('Your practice plan has been created and saved in this browser.');
   setDone(true);
