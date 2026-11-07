@@ -2886,3 +2886,19 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .dashboard-recommendation-empty{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px;border:1px dashed #dce2d9;border-radius:12px}
 .dashboard-recommendation-empty p{margin:0;font-size:11px}
 @media(max-width:600px){.dashboard-section-title{align-items:flex-start}.dashboard-recommendation-empty{align-items:flex-start;flex-direction:column}}
+
+
+/* Keep the permanent selection checkbox separate from the file icon. */
+.personal-score-card{grid-template-columns:22px 42px minmax(0,1fr) auto!important;grid-template-areas:"check icon meta actions"!important;padding:12px 14px!important}
+.personal-score-card .library-card-checkbox{position:static!important;grid-area:check;display:grid!important;place-items:center!important;width:20px!important;height:24px!important;margin:0!important;padding:0!important;background:transparent!important}
+.personal-score-card .library-file-type-icon{grid-area:icon}
+.personal-score-card .personal-score-meta{grid-area:meta}
+.personal-score-card .personal-score-actions{grid-area:actions}
+.personal-score-card.is-selected .library-file-type-icon{margin-left:0!important}
+@media(max-width:650px){
+ .personal-score-card{grid-template-columns:22px 38px minmax(0,1fr)!important;grid-template-areas:"check icon meta" "actions actions actions"!important}
+ .personal-score-card .library-card-checkbox{grid-area:check}
+ .personal-score-card .library-file-type-icon{grid-area:icon}
+ .personal-score-card .personal-score-meta{grid-area:meta}
+ .personal-score-card .personal-score-actions{grid-area:actions;padding-left:0!important}
+}
