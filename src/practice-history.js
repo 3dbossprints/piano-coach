@@ -7,13 +7,9 @@ export function getPracticeSeconds(session) {
 
 export function isMeaningfulPracticeSession(session) {
   if (!session || getPracticeSeconds(session) <= 0) return false;
-  const eventCount = Array.isArray(session.events) ? session.events.length : 0;
-  const noteCount = Number(session.notes) || 0;
-  const progress = Number(session.learnProgressBeat) || 0;
-  const hits = Array.isArray(session.keystoneResult?.hits)
-    ? session.keystoneResult.hits.length
-    : Number(session.keystoneResult?.hits) || 0;
-  return session.completed === true && (eventCount > 0 || noteCount > 0 || progress > 0 || hits > 0);
+  // Completion is recorded only after the full selected duration (or all assisted-section notes) is finished.
+  // A completed session counts even if no note transcription was captured.
+  return session.completed === true && getPracticeSeconds(session) > 0;
 }
 
 function localDayKey(value) {
