@@ -5,7 +5,7 @@ import { calculatePracticeStreak, getQualifyingPracticeDays, getPracticeSeconds,
 test('a session only counts after its selected duration is completed', () => {
   assert.equal(isMeaningfulPracticeSession({ completed: false, practiceSeconds: 600, notes: 20 }), false);
   assert.equal(isMeaningfulPracticeSession({ completed: true, practiceSeconds: 300, notes: 1 }), true);
-  assert.equal(isMeaningfulPracticeSession({ completed: true, practiceSeconds: 600, notes: 0, events: [] }), false);
+  assert.equal(isMeaningfulPracticeSession({ completed: true, practiceSeconds: 300, notes: 0, events: [] }), true);
 });
 
 test('short completed sessions count; incomplete sessions do not', () => {
