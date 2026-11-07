@@ -3,7 +3,7 @@ import React,{useEffect,useState} from 'react';
 const LEVELS=['Beginner','Initial Grade','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8'];
 const readPlan=()=>{try{return JSON.parse(localStorage.getItem('pc_grade_plan')||'{}')}catch{return {}}};
 export default function GradePlannerSimple({sessions=[],onPracticePiece=()=>{}}){
- const [done,setDone]=useState(false);
+ const [done,setDone]=useState(()=>!!readPlan().target);
  const [level,setLevel]=useState('Beginner');
  const [goal,setGoal]=useState('exam');
  const [board,setBoard]=useState('ABRSM');
