@@ -2862,3 +2862,12 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .dashboard-grade-target-meta{display:flex;justify-content:space-between;gap:10px;font-size:10px;color:#737d73}
 .gp-task-complete{display:inline-flex;align-items:center;gap:7px;margin-top:9px;font-size:11px;font-weight:650;color:#526b55;cursor:pointer}
 .gp-task-complete input{width:15px;height:15px;accent-color:#527b59}
+
+
+.practice-grade-first{display:grid;gap:8px;margin:0 0 16px;padding:13px;border:1px solid #e8e9e2;border-radius:12px;background:#fafbf8}
+.practice-grade-first>p{margin:0 0 2px}
+.practice-grade-piece{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid #e9ece6}
+.practice-grade-piece>span{display:grid;gap:3px;min-width:0}
+.practice-grade-piece strong{font-size:12px;overflow-wrap:anywhere}
+.practice-grade-piece small{font-size:10px;color:#7b837b}
+.practice-grade-piece .btn{flex:0 0 auto}
