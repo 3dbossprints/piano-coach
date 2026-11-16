@@ -25,7 +25,7 @@ export function compareSequences(expected, actual, bpm = 120) {
   const beatSeconds = 60 / safeBpm;
   const target = [];
   let beatCursor = 0;
-  for (const token of String(expected || '').split(/[\\s,;]+/).filter(Boolean)) {
+  for (const token of String(expected || '').split(/[\s,;]+/).filter(Boolean)) {
     const [pitch, durationToken] = token.split('/');
     const beats = durationBeats[String(durationToken || 'q').toLowerCase()] || 1;
     const midi = /^r(est)?$/i.test(pitch) ? null : noteToMidi(pitch);
