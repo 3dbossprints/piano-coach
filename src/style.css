@@ -2901,3 +2901,18 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .expanded-score-rendered .expanded-score-pages-grid{gap:clamp(10px,1.5vw,22px)!important}
 @media(max-width:650px){.personal-score-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.personal-score-card{padding:9px;min-height:200px}.personal-score-art{min-height:95px}.personal-score-actions .btn{font-size:10px;padding:7px 8px}}
 @media(max-width:420px){.personal-score-grid{grid-template-columns:1fr}.personal-score-card{min-height:0}}
+
+
+/* Keep the session controls in reach without an oversized sheet overlay */
+.practice-score-attached{display:flex;align-items:center;gap:12px;margin:16px 0;padding:12px 15px;border:1px solid var(--line,#e8dfd2);border-radius:12px;background:#fffaf3}
+.practice-score-attached>span:first-child{display:grid;place-items:center;width:34px;height:34px;flex:0 0 34px;border-radius:10px;background:#eaf0e4;color:#668455;font-size:18px}
+.practice-score-attached>span:last-child{display:flex;flex-direction:column;gap:3px;min-width:0}
+.practice-score-attached strong{font-size:13px;color:var(--ink,#242423)}
+.practice-score-attached small{font-size:11px;color:var(--muted,#77766f)}
+.practice-recording-actions{position:sticky;bottom:0;z-index:30;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:18px -18px -18px;padding:14px 18px;background:rgba(255,246,235,.96);border-top:1px solid var(--line,#e8dfd2);border-radius:0 0 16px 16px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.practice-recording-actions .btn-dark{min-width:150px;min-height:44px}
+@media(max-width:640px){
+ .practice-recording-actions{margin:16px -12px -12px;padding:12px;gap:8px}
+ .practice-recording-actions .btn{flex:1 1 auto;min-height:44px}
+ .practice-recording-actions .btn-dark{flex-basis:100%}
+}
