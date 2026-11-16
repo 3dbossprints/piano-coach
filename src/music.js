@@ -19,15 +19,63 @@ export function clampKeyboardStartMidi(noteOrMidi, octaves = 3) {
 export function parseSequence(text) {
   return String(text).split(/[\s,;]+/).filter(Boolean).map(token=>({token,midi:noteToMidi(token)}));
 }
-export function compareSequences(expected, actual) {
-  const a=parseSequence(expected).filter(n=>n.midi!==null), b=actual||[];
-  let correct=0; const rows=[];
-  for(let i=0;i<Math.max(a.length,b.length);i++){
-    const e=a[i],p=b[i],playedMidi=p?.midi??noteToMidi(p?.note); const status=!e?'extra':!p?'missed':e.midi===playedMidi?'correct':'incorrect';
-    if(status==='correct')correct++;
-    rows.push({expected:e?.token||'—',played:p?.note||'—',status});
+export function compareSequences(expected, actual, bpm = 120) {
+  const durationBeats = { w: 4, whole: 4, h: 2, half: 2, q: 1, quarter: 1, e: 0.5, eighth: 0.5, s: 0.25, sixteenth: 0.25 };
+  const safeBpm = Math.max(20, Math.min(300, Number(bpm) || 120));
+  const beatSeconds = 60 / safeBpm;
+  const target = [];
+  let beatCursor = 0;
+  for (const token of String(expected || '').split(/[\\s,;]+/).filter(Boolean)) {
+    const [pitch, durationToken] = token.split('/');
+    const beats = durationBeats[String(durationToken || 'q').toLowerCase()] || 1;
+    const midi = /^r(est)?$/i.test(pitch) ? null : noteToMidi(pitch);
+    if (midi !== null) target.push({ token: pitch, midi, beats, beat: beatCursor });
+    beatCursor += beats;
   }
-  return {rows,correct,total:a.length,accuracy:a.length?Math.round(correct/a.length*100):0};
+  const played = Array.isArray(actual) ? actual : [];
+  const firstPlayedTime = played.map(note => Number(note?.time)).find(Number.isFinite);
+  let correct = 0, pitchErrors = 0, missed = 0, extra = 0, timingIssues = 0;
+  const timingAvailable = played.some(note => Number.isFinite(Number(note?.time)) || Number.isFinite(Number(note?.duration)));
+  const rows = [];
+  for (let i = 0; i < Math.max(target.length, played.length); i++) {
+    const expectedNote = target[i], playedNote = played[i];
+    const playedMidi = playedNote?.midi ?? noteToMidi(playedNote?.note);
+    const pitchStatus = !expectedNote ? 'extra' : !playedNote ? 'missed' : expectedNote.midi === playedMidi ? 'correct' : 'incorrect';
+    if (pitchStatus === 'correct') correct++;
+    else if (pitchStatus === 'incorrect') pitchErrors++;
+    else if (pitchStatus === 'missed') missed++;
+    else extra++;
+    let onsetError = null, durationError = null, timingStatus = 'unavailable';
+    if (expectedNote && playedNote && timingAvailable) {
+      const actualStart = Number(playedNote.time);
+      if (Number.isFinite(actualStart) && Number.isFinite(firstPlayedTime)) {
+        onsetError = (actualStart - firstPlayedTime) - expectedNote.beat * beatSeconds;
+      }
+      const actualDuration = Number(playedNote.duration);
+      if (Number.isFinite(actualDuration) && actualDuration > 0) {
+        durationError = actualDuration - expectedNote.beats * beatSeconds;
+      }
+      const onsetTolerance = Math.max(0.16, beatSeconds * 0.35);
+      const durationTolerance = Math.max(0.18, expectedNote.beats * beatSeconds * 0.45);
+      const offBeat = onsetError !== null && Math.abs(onsetError) > onsetTolerance;
+      const wrongLength = durationError !== null && Math.abs(durationError) > durationTolerance;
+      timingStatus = offBeat || wrongLength ? 'needs-work' : 'steady';
+      if (timingStatus === 'needs-work') timingIssues++;
+    }
+    rows.push({
+      expected: expectedNote?.token || '—',
+      played: playedNote?.note || (playedMidi != null ? midiToNote(playedMidi) : '—'),
+      status: pitchStatus,
+      timingStatus,
+      onsetError,
+      durationError
+    });
+  }
+  return {
+    rows, correct, total: target.length,
+    accuracy: target.length ? Math.round(correct / target.length * 100) : 0,
+    pitchErrors, missed, extra, timingIssues, timingAvailable
+  };
 }
 
 
