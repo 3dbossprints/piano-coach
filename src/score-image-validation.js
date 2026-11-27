@@ -62,7 +62,7 @@ export function hasMusicStaffLines(imageData) {
 
 export function friendlyRecognitionError(error) {
   const detail = String(error?.message || error || '');
-  if (/cv2\\.error|opencv|resize\\.cpp|center_image_on_canvas/i.test(detail)) {
+  if (/cv2\.error|opencv|resize\.cpp|center_image_on_canvas/i.test(detail)) {
     return 'The page could not be straightened for recognition. Retake it straight-on with all four page edges visible, good lighting and no shadows.';
   }
   if (/no staff|no music|no score|not a score|empty page|no notation/i.test(detail)) {
