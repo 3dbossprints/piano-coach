@@ -1194,7 +1194,7 @@ async function convertScoreToMusicCoach(file,options={}){
   if(musicCoachBusy)return;
   const metadataOverrides={title:songTitle,composer:scoreComposer,arranger:scoreArranger};
   const identifiedElements=[...new Set(musicCoachMarkings)];
-  if(scoreSourceAsset?.data&&(/application\\/pdf|^image\\//i.test(scoreSourceAsset.mimeType||''))){
+  if(scoreSourceAsset?.data&&(/application\/pdf|^image\//i.test(scoreSourceAsset.mimeType||''))){
    try{
     setMusicCoachStatus('Saving your corrections and reconverting the original score…');
     const response=await fetch(scoreSourceAsset.data);
