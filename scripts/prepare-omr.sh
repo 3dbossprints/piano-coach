@@ -7,8 +7,8 @@ HOMR_COMMIT=863eb3c6487f3c6fe50267fb71613f05162bb7c5
 BASE_URL=https://github.com/liebharc/homr/releases/download/onnx_checkpoints
 MODELS=(
   segnet_308-3296ccd40960f90ca6ab9c035cca945675d30a0f
-  encoder_pytorch_model_465-597144cab54c8f6d0f6c9619df5c5312694eadd6
-  decoder_pytorch_model_465-597144cab54c8f6d0f6c9619df5c5312694eadd6
+  encoder_pytorch_model_396-f6feedb42ff90087d898b0941a55d040fa6b2903
+  decoder_pytorch_model_396-f6feedb42ff90087d898b0941a55d040fa6b2903
 )
 mkdir -p vendor public/vendor public/models public/omr
 cp omr/runner.py public/omr/runner.py
@@ -20,6 +20,9 @@ if [ ! -d vendor/homr-src/.git ]; then
 fi
 git -C vendor/homr-src fetch -q --depth 1 origin "$HOMR_COMMIT"
 git -C vendor/homr-src checkout -q FETCH_HEAD
+# The 465 ONNX release assets have been removed upstream. Run 396 uses the
+# same 260/62 token vocabulary expected by this pinned HOMR source.
+sed -i 's/pytorch_model_465-597144cab54c8f6d0f6c9619df5c5312694eadd6/pytorch_model_396-f6feedb42ff90087d898b0941a55d040fa6b2903/g' vendor/homr-src/homr/transformer/configs.py
 rm -f vendor/homr.zip
 (cd vendor/homr-src && zip -qr ../homr.zip homr LICENSE -x '*.onnx' '*__pycache__*' '*coreml_cache*')
 cp vendor/homr.zip public/vendor/homr.zip
