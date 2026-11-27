@@ -394,7 +394,7 @@ function MusicXMLPreview({xml,title='Sheet music',onExpand}) {
   async function render(){
    try{
     if(!isValidMusicXML(xml))throw new Error('This score has no valid embedded MusicXML. Its editable note data is still saved, but a notation preview could not be generated.');
-    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:true,drawTitle:false,drawSubtitle:false,drawComposer:false,drawPartNames:false,backend:'svg',stretchLastSystemLine:true,renderSingleHorizontalStaffline:false,drawUpToPageNumber:1});
+    renderer=new OpenSheetMusicDisplay(host.current,{autoResize:true,drawTitle:false,drawSubtitle:false,drawComposer:false,drawPartNames:false,backend:'svg',stretchLastSystemLine:true,renderSingleHorizontalStaffline:false});
     await renderer.load(normalizeMusicXMLTitle(xml,title));
     if(cancelled)return;
     renderer.Zoom=0.72;
@@ -480,13 +480,17 @@ function applyRecognizedScoreMetadata(source,metadata={},fallbackTitle='Imported
   if(!workTitle){workTitle=doc.createElement('work-title');work.appendChild(workTitle);}
   workTitle.textContent=title;
  }
- const creators=[['composer',metadata.composer],['arranger',metadata.arranger]].filter(([,value])=>String(value||'').trim());
- if(creators.length){
+ const creatorTypes=['composer','arranger'];
+ if(creatorTypes.some(type=>Object.prototype.hasOwnProperty.call(metadata,type))){
   let identification=doc.querySelector('identification');
   if(!identification){identification=doc.createElement('identification');const partList=root.querySelector('part-list');root.insertBefore(identification,partList||root.firstChild);}
-  for(const [type,value] of creators){
-   if(identification.querySelector('creator[type="'+type+'"]'))continue;
-   const creator=doc.createElement('creator');creator.setAttribute('type',type);creator.textContent=String(value).trim();identification.appendChild(creator);
+  for(const type of creatorTypes){
+   if(!Object.prototype.hasOwnProperty.call(metadata,type))continue;
+   const value=String(metadata[type]||'').trim();
+   const existing=[...identification.querySelectorAll('creator')].find(node=>node.getAttribute('type')===type);
+   if(!value){existing?.remove();continue;}
+   if(existing)existing.textContent=value;
+   else{const creator=doc.createElement('creator');creator.setAttribute('type',type);creator.textContent=value;identification.appendChild(creator);}
   }
  }
  return new XMLSerializer().serializeToString(doc);
@@ -609,6 +613,16 @@ export default function App(){
   return()=>{cancelled=true;clearInterval(timer)};
  },[cameraOpen,cameraBusy]);
 
+ useEffect(()=>{
+  if(!cameraOpen)return;
+  const stream=cameraStreamRef.current,video=cameraVideoRef.current;
+  if(!stream||!video)return;
+  video.muted=true;video.playsInline=true;
+  if(video.srcObject!==stream)video.srcObject=stream;
+  const start=()=>video.play().catch(()=>setCameraError('The camera preview could not start. Check camera permission and try again.'));
+  if(video.readyState>=2)start();else video.onloadedmetadata=start;
+  return()=>{if(video.onloadedmetadata===start)video.onloadedmetadata=null;};
+ },[cameraOpen]);
  const [converterRecording,setConverterRecording]=useState(false),[converterRecordingSeconds,setConverterRecordingSeconds]=useState(0);
  useEffect(()=>()=>{if(cameraStreamRef.current)cameraStreamRef.current.getTracks().forEach(track=>track.stop());if(converterMicTimerRef.current)clearInterval(converterMicTimerRef.current);try{if(converterMicRecorderRef.current?.state!=='inactive')converterMicRecorderRef.current?.stop()}catch{}converterMicStreamRef.current?.getTracks().forEach(track=>track.stop());},[]);
  const [scoreImageName,setScoreImageName]=useState('');
@@ -1044,7 +1058,7 @@ function uploadScoreImage(file){if(!file)return;const isPdf=file.type==='applica
     notes.sort((a,b)=>a.time-b.time||a.part-b.part||a.staff-b.staff||a.voice.localeCompare(b.voice));
     const rawTitle=xml.querySelector('work > work-title')?.textContent||xml.querySelector('movement-title')?.textContent||xml.querySelector('work-title')?.textContent||'';const composer=xml.querySelector('identification creator[type="composer"]')?.textContent?.trim()||'';const arranger=xml.querySelector('identification creator[type="arranger"]')?.textContent?.trim()||'';const fileTitle=file.name.replace(/\.(musicxml|xml)$/i,'').trim();const title=(!rawTitle.trim()||/^(untitled(?:\s+score)?|score)$/i.test(rawTitle.trim()))?(fileTitle||'Imported score'):rawTitle.trim();const normalizedSourceMusicXML=normalizeMusicXMLTitle(text,title);
     const key=firstPart.querySelector('attributes key');
-    score={format:'musiccoach',version:2,title,composer,arranger,timeSignature:beats+'/'+beatType,bpm:tempo,created:new Date().toISOString(),source:'MusicXML import',notes,notation:{sourceFormat:'MusicXML',sourceMusicXML:normalizedSourceMusicXML,key:key?{fifths:Number(getText(key,'fifths','0')),mode:getText(key,'mode','major')}:null,clefs:parts.flatMap((p,pi)=>[...p.querySelectorAll('clef')].map(c=>({sign:getText(c,'sign'),line:getText(c,'line'),staff:c.getAttribute('number')||'1',part:pi+1}))),notationEvents,partCount:parts.length,technicalSupport:['multi-part and grand-staff timing','backup/forward cursor movement','rests, durations, dots and chords','accidentals, ties and voices','dynamics, articulation and notation events']},sourceAsset:options.sourceAsset||null};
+    score={format:'musiccoach',version:2,title,composer,arranger,timeSignature:beats+'/'+beatType,bpm:tempo,created:new Date().toISOString(),source:'MusicXML import',notes,notation:{sourceFormat:'MusicXML',sourceMusicXML:normalizedSourceMusicXML,key:key?{fifths:Number(getText(key,'fifths','0')),mode:getText(key,'mode','major')}:null,clefs:parts.flatMap((p,pi)=>[...p.querySelectorAll('clef')].map(c=>({sign:getText(c,'sign'),line:getText(c,'line'),staff:c.getAttribute('number')||'1',part:pi+1}))),notationEvents,identifiedElements:Array.isArray(options.identifiedElements)?options.identifiedElements:[],partCount:parts.length,technicalSupport:['multi-part and grand-staff timing','backup/forward cursor movement','rests, durations, dots and chords','accidentals, ties and voices','dynamics, articulation and notation events']},sourceAsset:options.sourceAsset||null};
    }
    if(!Array.isArray(score.notes)||score.notes.length===0)throw new Error('No note events were found in this file. Check that it contains a Piano Coach score or pitched MusicXML notes.');
    const fallbackScoreTitle=file.name.replace(/\.(musiccoach|musicxml|xml)$/i,'').trim()||'Imported score';if(!score.title||/^(untitled(?:\s+score)?|score)$/i.test(String(score.title).trim()))score.title=fallbackScoreTitle;if(score.notation?.sourceMusicXML)score.notation.sourceMusicXML=normalizeMusicXMLTitle(score.notation.sourceMusicXML,score.title);
@@ -1055,7 +1069,11 @@ function uploadScoreImage(file){if(!file)return;const isPdf=file.type==='applica
    setExpected(notes.map(n=>n.rest?'R/'+(n.beats>=4?'w':n.beats>=2?'h':n.beats>=1?'q':'e'):n.note+'/'+(n.beats>=4?'w':n.beats>=2?'h':n.beats>=1?'q':'e')).join(' '));
    if(score.sourceAsset?.data){setScoreImageUrl(score.sourceAsset.data);setScoreImageName(score.sourceAsset.name||file.name);setScoreIsPdf(score.sourceAsset.mimeType==='application/pdf')}else{setScoreImageUrl('');setScoreImageName('');setScoreIsPdf(false)}
    const json=encodeMusicCoach(score),data='data:application/vnd.musiccoach.score+json;base64,'+btoa(unescape(encodeURIComponent(json))),libraryItemId=Date.now();
-   if(options.saveToLibrary!==false)setLibraryFiles(v=>[{id:libraryItemId+'-'+Math.random().toString(36).slice(2,8),name:(score.title||'Imported score')+'.musiccoach',type:'application/vnd.musiccoach.score+json',size:new Blob([json]).size,data,added:new Date().toISOString(),kind:'score',score},...v].sort((a,b)=>new Date(b.added||0)-new Date(a.added||0)));
+   if(options.saveToLibrary!==false)setLibraryFiles(v=>{
+    const item={id:libraryItemId+'-'+Math.random().toString(36).slice(2,8),name:(score.title||'Imported score')+'.musiccoach',type:'application/vnd.musiccoach.score+json',size:new Blob([json]).size,data,added:new Date().toISOString(),kind:'score',score};
+    const remaining=options.replaceSourceName?v.filter(existing=>!(existing.kind==='score'&&existing.score?.sourceAsset?.name===options.replaceSourceName)):v;
+    return [item,...remaining].sort((a,b)=>new Date(b.added||0)-new Date(a.added||0));
+   });
    
    setConversionSavedNotice(true);
    setPracticeMode(options.practiceMode||'normal');setPage(options.target||'Sheet music');setActiveScoreId(libraryItemId);setScoreOcrStatus('Import complete. Check the converted notation against the original before practising.');setMusicCoachStatus('Imported '+file.name+' and saved it to your Sheet Music library.');setStatus('Saved to Library · '+(score.title||fallbackScoreTitle));return true;
@@ -1081,24 +1099,22 @@ async function openScoreCamera(){
   const stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}}});
   cameraStreamRef.current=stream;
   setCameraOpen(true);
-  requestAnimationFrame(()=>{if(cameraVideoRef.current){cameraVideoRef.current.srcObject=stream;cameraVideoRef.current.play().catch(()=>{});}});
  }catch(error){
   const reason=error?.name==='NotAllowedError'?'Camera permission was denied. Allow camera access in your browser settings, then try again.':error?.name==='NotFoundError'?'No camera was found on this device. You can upload a photo instead.':error?.name==='NotReadableError'?'The camera is already being used by another app. Close that app and try again.':'Could not open the camera: '+(error?.message||'Unknown camera error');
   setCameraError(reason);setCameraOpen(true);
  }
 }
 function drawCameraPageCrop(video,canvas){
- const sourceWidth=video.videoWidth,sourceHeight=video.videoHeight,targetAspect=0.707;
- let sx=0,sy=0,sw=sourceWidth,sh=sourceHeight;
- if(sourceWidth/sourceHeight>targetAspect){sw=sourceHeight*targetAspect;sx=(sourceWidth-sw)/2;}
- else{sh=sourceWidth/targetAspect;sy=(sourceHeight-sh)/2;}
- canvas.width=Math.round(720*targetAspect);canvas.height=720;
+ const sourceWidth=video.videoWidth,sourceHeight=video.videoHeight;
+ const scale=Math.min(1,2400/Math.max(1,sourceWidth),3200/Math.max(1,sourceHeight));
+ canvas.width=Math.max(1,Math.round(sourceWidth*scale));canvas.height=Math.max(1,Math.round(sourceHeight*scale));
  const context=canvas.getContext('2d',{willReadFrequently:true});
  if(!context)throw new Error('Could not prepare the camera image.');
- context.drawImage(video,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
+ context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);
+ context.drawImage(video,0,0,sourceWidth,sourceHeight,0,0,canvas.width,canvas.height);
  return context;
 }
-async function captureScorePhoto(){
+async function captureScorePhoto(force=false){
  const video=cameraVideoRef.current;
  if(!video||!video.videoWidth||!video.videoHeight){setCameraError('The camera is not ready yet. Wait for the preview, then try again.');return;}
  setCameraBusy(true);setCameraError('');
@@ -1106,7 +1122,7 @@ async function captureScorePhoto(){
   const canvas=document.createElement('canvas');
   const context=drawCameraPageCrop(video,canvas);
   const imageData=context.getImageData(0,0,canvas.width,canvas.height);
-  if(!hasMusicStaffLines(imageData))throw new Error('I could not find a clear five-line music staff in this photo. Fit the whole sheet inside the guide, keep it straight and in focus, and avoid glare or shadows. No conversion was started.');
+  if(!force&&!hasMusicStaffLines(imageData))throw new Error('I could not confidently find staff lines in this frame. Move closer to the printed music, keep the page in focus and use even lighting, or choose Capture now to try anyway.');
   const blob=await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('Could not capture the photo.')),'image/jpeg',.94));
   const file=new File([blob],'music-sheet-photo-'+new Date().toISOString().replace(/[:.]/g,'-')+'.jpg',{type:'image/jpeg',lastModified:Date.now()});
   stopScoreCamera();
@@ -1154,14 +1170,15 @@ async function convertScoreToMusicCoach(file,options={}){
    const {recognizeScoreFile}=await import('./score-ocr.js');
    const result=await recognizeScoreFile(file,message=>setMusicCoachStatus(message));
    setMusicCoachStatus('Recognised '+result.pages+' page(s). Combining the pages into one continuous score…');
-   const title=String(result.metadata?.title||file.name.replace(/\.[^.]+$/,'')||'Recognised score').trim();
-   const identifiedMusicXML=applyRecognizedScoreMetadata(result.musicXML,result.metadata,title);
+   const metadata={...(result.metadata||{}),...(options.metadataOverrides||{})};
+   const title=String(metadata.title||file.name.replace(/\.[^.]+$/,'')||'Recognised score').trim();
+   const identifiedMusicXML=applyRecognizedScoreMetadata(result.musicXML,metadata,title);
    const xmlFile=new File([identifiedMusicXML],title+'.musicxml',{type:'application/vnd.recordare.musicxml+xml'});
    const sourceData=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('Could not preserve the original score file in the backup.'));reader.readAsDataURL(file)});
    const sourceExt=(file.name.split('.').pop()||'png').toLowerCase();const sourceMime=file.type||(isPdf?'application/pdf':({jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',svg:'image/svg+xml'}[sourceExt]||'application/octet-stream'));const sourceAsset={name:file.name,mimeType:sourceMime,size:file.size,data:sourceData};
    setMusicCoachStatus('Recognition complete. Importing '+result.pages+' page(s) and building the .musiccoach file…');
    setMusicCoachAnalysis('');
-   const importedScore=await importMusicXML(xmlFile,{target:options.target||'Score converter',download:options.download??true,sourceAsset});if(importedScore===false)throw new Error('The recognised notation could not be imported.');
+   const importedScore=await importMusicXML(xmlFile,{target:options.target||'Score converter',download:options.download??true,sourceAsset,identifiedElements:options.identifiedElements,replaceSourceName:options.replaceSourceName});if(importedScore===false)throw new Error('The recognised notation could not be imported.');
    setMusicCoachStatus('');setConversionSavedNotice(true);
    setStatus('On-device OMR completed · review the converted score');return true;
   }catch(e){
@@ -1172,6 +1189,43 @@ async function convertScoreToMusicCoach(file,options={}){
    try{saveLibraryFile(file)}catch{}
    setConversionSavedNotice(false);setStatus('Original source saved to Library · conversion failed');return false;
   }finally{setMusicCoachBusy(false)}
+ }
+ async function saveConverterEdits(){
+  if(musicCoachBusy)return;
+  const metadataOverrides={title:songTitle,composer:scoreComposer,arranger:scoreArranger};
+  const identifiedElements=[...new Set(musicCoachMarkings)];
+  if(scoreSourceAsset?.data&&(/application\/pdf|^image\//i.test(scoreSourceAsset.mimeType||''))){
+   try{
+    setMusicCoachStatus('Saving your corrections and reconverting the original score…');
+    const response=await fetch(scoreSourceAsset.data);
+    if(!response.ok)throw new Error('The original score image could not be reopened.');
+    const blob=await response.blob();
+    const file=new File([blob],scoreSourceAsset.name||'sheet-music.png',{type:scoreSourceAsset.mimeType||blob.type||'image/png'});
+    const saved=await convertScoreToMusicCoach(file,{target:'Score converter',download:false,metadataOverrides,identifiedElements,replaceSourceName:scoreSourceAsset.name});
+    if(!saved)throw new Error('The score could not be reconverted. Your previous saved version has been kept.');
+    setMusicCoachStatus('Corrections saved. The original has been reconverted and the updated score is in your Library.');
+   }catch(error){
+    setMusicCoachStatus('Could not save the corrected score: '+(error.message||String(error)));
+    setStatus('The previous saved score has been kept');
+   }
+   return;
+  }
+  const sourceMusicXML=scoreNotation?.sourceMusicXML?applyRecognizedScoreMetadata(scoreNotation.sourceMusicXML,metadataOverrides,songTitle):'';
+  const notation={...(scoreNotation||{}),...(sourceMusicXML?{sourceMusicXML}:{}),identifiedElements};
+  const notes=Array.isArray(loadedScoreNotes)&&loadedScoreNotes.length?loadedScoreNotes:events;
+  const score={format:'musiccoach',version:2,title:String(songTitle||'My piano score').trim(),composer:String(scoreComposer||'').trim(),arranger:String(scoreArranger||'').trim(),bpm,timeSignature,created:new Date().toISOString(),source:'Piano Coach corrected score',sourceAsset:scoreSourceAsset||null,notes:notes.map((note,index)=>({...note,id:note.id||'score-'+index})),notation};
+  const json=encodeMusicCoach(score);
+  const data='data:application/vnd.musiccoach.score+json;base64,'+btoa(unescape(encodeURIComponent(json)));
+  setScoreNotation(notation);
+  setLibraryFiles(previous=>{
+   const existing=previous.find(item=>scoreSourceAsset?.name&&item.score?.sourceAsset?.name===scoreSourceAsset.name)||previous.find(item=>item.name===score.title+'.musiccoach');
+   const id=existing?.id||Date.now()+'-'+Math.random().toString(36).slice(2,8);
+   const item={id,name:score.title+'.musiccoach',type:'application/vnd.musiccoach.score+json',size:json.length,data,added:new Date().toISOString(),kind:'score',score};
+   return [item,...previous.filter(file=>file.id!==id&&!(scoreSourceAsset?.name&&file.score?.sourceAsset?.name===scoreSourceAsset.name))];
+  });
+  setConversionSavedNotice(true);
+  setMusicCoachStatus('Your title, composer, arranger and identified notation have been saved to the Library.');
+  setStatus('Saved corrected score · '+(songTitle||'Untitled score'));
  }
  function exportMusicXml(){if(scoreNotation?.sourceMusicXML){const u=URL.createObjectURL(new Blob([scoreNotation.sourceMusicXML],{type:'application/vnd.recordare.musicxml+xml'})),a=document.createElement('a');a.href=u;a.download=(songTitle||'piano-coach-score')+'.musicxml';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);setStatus('Exported original MusicXML with technical notation intact');return}const notes=events.length?events:parseMusicSequence(expected);if(!notes.length){setStatus('Enter notes such as C4/q D4/h R/q before exporting.');return}const body=notes.map(n=>{const beats=Math.max(.125,Number(n.beats)||1),dur=Math.round(beats*8),type=beats>=4?'whole':beats>=2?'half':beats>=1?'quarter':beats>=.5?'eighth':'16th';if(n.rest)return '<note><rest/><duration>'+dur+'</duration><type>'+type+'</type></note>';const name=midiToNote(n.midi),m=name.match(/^([A-G])(#?)(-?\d+)$/);return '<note><pitch><step>'+m[1]+'</step>'+(m[2]?'<alter>1</alter>':'')+'<octave>'+m[3]+'</octave></pitch><duration>'+dur+'</duration><type>'+type+'</type></note>'}).join('');const parts=timeSignature.split('/'),xml='<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><work><work-title>'+String(songTitle||'Piano Coach score').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</work-title></work><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>8</divisions><time><beats>'+parts[0]+'</beats><beat-type>'+parts[1]+'</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>'+body+'</measure></part></score-partwise>';const u=URL.createObjectURL(new Blob([xml],{type:'application/vnd.recordare.musicxml+xml'})),a=document.createElement('a');a.href=u;a.download='piano-coach-score.musicxml';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);setStatus('Exported MusicXML; original technical notation is preserved when importing MusicXML first.')}function clearNotes(){sessionEvents.current=[];setEvents([]);setStatus('Detected notes cleared')}
  function undoNote(){sessionEvents.current.pop();setEvents([...sessionEvents.current]);setStatus('Last note removed')}
@@ -1941,10 +1995,25 @@ async function playMidiLibraryFile(item){
  const dashboardSessions=sessions.filter(isMeaningfulPracticeSession).sort((a,b)=>new Date(b.lastPractisedAt||b.date||0)-new Date(a.lastPractisedAt||a.date||0));
  const practiceDays=getQualifyingPracticeDays(dashboardSessions);
  const streak=calculatePracticeStreak(dashboardSessions);
- const gradeChecks=gradePlanSnapshot.checks||{},gradeTaskKeys=Object.keys(gradeChecks),gradeTaskCompletion=gradeTaskKeys.length?Math.round(gradeTaskKeys.filter(key=>gradeChecks[key]).length/gradeTaskKeys.length*100):0;
- const gradeReadinessScores=sessions.map(session=>session.keystoneResult?.score).filter(value=>Number.isFinite(Number(value))).map(Number),aiGradeReadiness=gradeReadinessScores.length?Math.round(gradeReadinessScores.reduce((sum,value)=>sum+value,0)/gradeReadinessScores.length):0;
- const gradeProgress=Math.round((gradeTaskCompletion+aiGradeReadiness)/2),gradeTarget=gradePlanSnapshot.target||'Grade 1';
- const gradePieces=Array.isArray(gradePlanSnapshot.pieces)?gradePlanSnapshot.pieces:[];
+ const gradePlanTasks=Array.isArray(gradePlanSnapshot.tasks)?gradePlanSnapshot.tasks:(Array.isArray(gradePlanSnapshot.pieces)?gradePlanSnapshot.pieces:[]);
+ const gradeTaskEvidence=gradePlanTasks.map(task=>{
+  const title=String(task.title||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const scores=sessions.filter(session=>String(session.song||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()===title)
+   .map(session=>({value:session.keystoneResult?.score??session.feedbackScore,date:session.lastPractisedAt||session.date||0}))
+   .filter(item=>item.value!==null&&item.value!==undefined&&Number.isFinite(Number(item.value))&&Number(item.value)>=0&&Number(item.value)<=100)
+   .sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  const totalWeight=scores.reduce((sum,_,index)=>sum+scores.length-index,0);
+  const progress=scores.length?scores.reduce((sum,item,index)=>sum+Number(item.value)*(scores.length-index),0)/totalWeight:null;
+  return {task,progress};
+ });
+ const gradeTaskCompletion=gradePlanTasks.length?Math.round(gradeTaskEvidence.filter(item=>item.progress!==null).length/gradePlanTasks.length*100):0;
+ const gradeReadinessScores=gradeTaskEvidence.filter(item=>item.progress!==null).map(item=>item.progress);
+ const aiGradeReadiness=gradeReadinessScores.length?Math.round(gradeReadinessScores.reduce((sum,value)=>sum+value,0)/gradeReadinessScores.length):0;
+ const gradeTarget=gradePlanSnapshot.target||'Grade 1';
+ const gradeStandard=({'Initial Grade':58,'Grade 1':62,'Grade 2':66,'Grade 3':70,'Grade 4':74,'Grade 5':78,'Grade 6':82,'Grade 7':86,'Grade 8':90})[gradeTarget]||62;
+ const gradeCoverage=gradePlanTasks.length?gradeReadinessScores.length/gradePlanTasks.length:0;
+ const gradeProgress=gradeReadinessScores.length?Math.min(100,Math.round(aiGradeReadiness/gradeStandard*100*(.55+.45*gradeCoverage))):0;
+ const gradePieces=gradeTaskEvidence.filter(item=>(item.task.kind||'pieces')==='pieces').sort((a,b)=>a.progress===null&&b.progress!==null?-1:b.progress===null&&a.progress!==null?1:(a.progress??0)-(b.progress??0)).slice(0,3).map(item=>({...item.task,progress:item.progress}));
  const feedbackIssues=String(practiceFeedback||'').split(/(?<=[.!?])\s+/).map(part=>part.trim()).filter(Boolean).slice(0,3);
  const recommendedPractice=libraryFiles.filter(isPlayableSheetMusicItem).map(item=>{const title=String(item.name||'').replace(/\.(musiccoach|musicxml|xml|mid|midi)$/i,'').toLowerCase();const matches=sessions.filter(session=>{const sessionTitle=String(session.song||'').toLowerCase();return !!sessionTitle&&(sessionTitle.includes(title)||title.includes(sessionTitle))});const attempts=matches.filter(session=>Number.isFinite(Number(session.keystoneResult?.score??session.feedbackScore)));const score=attempts.length?attempts.reduce((sum,session)=>sum+Number(session.keystoneResult?.score??session.feedbackScore),0)/attempts.length:null;const last=matches.sort((x,y)=>new Date(y.lastPractisedAt||y.date||0)-new Date(x.lastPractisedAt||x.date||0))[0];return {item,score,last: last?.lastPractisedAt||last?.date||item.added||null,attempts:attempts.length}}).sort((a,b)=>{if(a.score===null&&b.score!==null)return -1;if(a.score!==null&&b.score===null)return 1;if(a.score!==null&&b.score!==null&&a.score!==b.score)return a.score-b.score;return new Date(a.last||0)-new Date(b.last||0)});
  const streakWeekAnchor=new Date();streakWeekAnchor.setHours(0,0,0,0);streakWeekAnchor.setDate(streakWeekAnchor.getDate()-((streakWeekAnchor.getDay()+6)%7));
@@ -2023,7 +2092,7 @@ return <div className="shell"><aside className="sidebar"><a className="brand" hr
  <section className="panel grade-target-card">
   <div className="grade-target-heading"><div><span className="eyebrow">YOUR GRADE TARGET</span><h2>{gradeTarget} progress</h2><p className="muted">Task completion and assessed readiness, averaged together.</p></div><strong className="grade-target-percent">{gradeProgress}%</strong></div>
   <div className="grade-progress-track" role="progressbar" aria-label="Overall grade progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={gradeProgress}><span style={{width:gradeProgress+'%'}}/></div>
-  <div className="grade-progress-breakdown"><span>Tasks completed <b>{gradeTaskCompletion}%</b></span><span>AI grade readiness <b>{gradeReadinessScores.length?aiGradeReadiness+'%':'Not assessed'}</b></span></div>
+  <div className="grade-progress-breakdown"><span>Targets assessed <b>{gradeTaskCompletion}%</b></span><span>AI grade readiness <b>{gradeReadinessScores.length?aiGradeReadiness+'%':'Not assessed'}</b></span></div>
   {!gradePlanSnapshot.target&&<button className="text-button" onClick={()=>setPage('Grade plan')}>Set up your grade target →</button>}
  </section>
  <section className="streak-card" aria-label="Practice streak">
@@ -2035,7 +2104,7 @@ return <div className="shell"><aside className="sidebar"><a className="brand" hr
  </section>
  <section className="dashboard-recommendations">
   <div className="dashboard-section-title"><div><h2>Grade practice</h2><p className="muted">Work through your grade pieces before your personal repertoire.</p></div><button className="btn" onClick={()=>setPage('Grade plan')}>Open grade plan</button></div>
-  {gradePieces.length?gradePieces.slice(0,3).map(piece=><article className="dashboard-practice-row" key={piece.id}><div><span className="eyebrow">{piece.category||'GRADE PIECE'}</span><strong>{piece.title}</strong><small>{piece.composer||piece.scoreName||'Your grade repertoire'}</small></div><button className="btn" onClick={()=>setPage('Grade plan')}>Practise →</button></article>):<div className="dashboard-empty"><div><strong>No grade pieces added yet</strong><p>Add your exam pieces to get them at the top of your practice list.</p></div><button className="btn" onClick={()=>setPage('Grade plan')}>Add grade pieces</button></div>}
+  {gradePieces.length?gradePieces.slice(0,3).map(piece=><article className="dashboard-practice-row" key={piece.id}><div><span className="eyebrow">{piece.category||'GRADE PIECE'}</span><strong>{piece.title}</strong><small>{piece.composer||piece.scoreName||'Your grade repertoire'} · {piece.progress===null?'Not assessed yet':Math.round(piece.progress)+'% recent playing level'}</small></div><button className="btn" onClick={()=>setPage('Grade plan')}>Practise →</button></article>):<div className="dashboard-empty"><div><strong>No grade pieces added yet</strong><p>Add your exam pieces to get them at the top of your practice list.</p></div><button className="btn" onClick={()=>setPage('Grade plan')}>Add grade pieces</button></div>}
  </section>
  <section className="dashboard-recommendations">
   <div className="dashboard-section-title"><div><h2>Personal practice music</h2><p className="muted">Your uploaded pieces, prioritised by the lowest assessed score or longest time since practice.</p></div><button className="btn" onClick={()=>setPage('Sheet music')}>Open Library</button></div>
@@ -2079,7 +2148,7 @@ return <div className="shell"><aside className="sidebar"><a className="brand" hr
  </section></div>}<div className="sheet-converter-cta"><div><strong>Got sheet music you want online?</strong><span>Convert your sheet music into an interactive score in Piano Coach.</span></div><button type="button" className="btn btn-dark" onClick={()=>setPage('Score converter')}>Visit the sheet music converter →</button></div>
 </section></div>}
  {sheetPianoOpen&&!learnListenMode?(<div className="piano-modal-backdrop" role="dialog" aria-modal="true" aria-label="Piano playback and learning"><section className="panel piano-modal"><div className="panel-head"><div><div className="eyebrow">PIANO PLAYER</div><h2>{songTitle||'Your score'}</h2></div><button className="btn" onClick={()=>setSheetPianoOpen(false)}>Close ✕</button></div><p className="muted">Hear the score phrase, then repeat it on a real piano with microphone listening or on the laptop keyboard.</p><div className="toolbar"><button className="btn" onClick={()=>listening?stopMic():startMic()}>{listening?'Disconnect piano microphone':'🎙 Listen to my piano'}</button><button className="btn btn-dark" onClick={async()=>{const ns=parseMusicSequence(expected).slice(0,Math.max(1,Number(timeSignature.split('/')[0])*2));const s=await ensureSynth();let beat=0;for(const n of ns){if(!n.rest&&n.midi!=null)s.triggerAttackRelease(midiToNote(n.midi),Math.max(.12,n.beats*60/bpm),Tone.now()+beat*60/bpm);beat+=n.beats||1}setLearnMessage('Playing the score preview. Listen, then repeat the phrase.')}}>▶ Listen to score</button><button className="btn" disabled={!learnListenMode&&!loadedScoreNotes.some(n=>!n.rest&&Number.isFinite(n.midi??noteToMidi(n.note)))} title={!learnListenMode&&!loadedScoreNotes.some(n=>!n.rest&&Number.isFinite(n.midi??noteToMidi(n.note)))?'Upload playable sheet music to enable Assisted Practice':''} onClick={()=>{if(learnListenMode){finishLearnSession()}else{toggleLearnSession();setLearnMessage('Play the current bar or section using the on-screen piano or your real piano MIDI keyboard. Lesson time counts towards practice.')}}}>{learnListenMode?'■ Finish lesson':'Start two-bar lesson'}</button></div><div className="virtual-piano-scroll"><div className="piano virtual-piano" style={{"--keyboard-white-key-width":(100/Math.max(1,virtualWhiteKeys.length))+"%"}} aria-label="Virtual piano keyboard">{virtualWhiteKeys.map(k=><button key={k.midi} className={"white-key "+(heldKeys[k.note]?"is-held":"")} style={{flex:"0 0 var(--keyboard-white-key-width)",width:"var(--keyboard-white-key-width)",minWidth:0}} onPointerDown={e=>{e.preventDefault();e.currentTarget.setPointerCapture?.(e.pointerId);pressKey(k.note)}} onPointerUp={()=>releaseKey(k.note)} onPointerCancel={()=>releaseKey(k.note)} onLostPointerCapture={()=>releaseKey(k.note)} aria-label={"Play "+k.note} title={k.note}><span>{k.note}</span></button>)}{virtualBlackKeys.map(k=><button key={k.midi} className={"black-key "+(heldKeys[k.note]?"is-held":"")} style={{left:(virtualWhiteKeys.filter(w=>w.midi<k.midi).length*(100/Math.max(1,virtualWhiteKeys.length)))+"%",width:(100/Math.max(1,virtualWhiteKeys.length))*.62+"%",transform:"translateX(-50%)"}} onPointerDown={e=>{e.preventDefault();e.currentTarget.setPointerCapture?.(e.pointerId);pressKey(k.note)}} onPointerUp={()=>releaseKey(k.note)} onPointerCancel={()=>releaseKey(k.note)} onLostPointerCapture={()=>releaseKey(k.note)} aria-label={"Play "+k.note} title={k.note}><span>{k.note}</span></button>)}</div></div><p className="muted small">For microphone practice, close this panel and start the microphone in Practice. Laptop keyboard mapping: A W S E D F T G Y H U J K.</p></section></div>):null}{renderLearnFullscreen()}{page==='Score converter'&&<section className="panel musiccoach-converter"><div className="toolbar extras-toolbar"><button className="btn btn-dark" type="button" aria-current="page" title="You are viewing the sheet music converter">You're here: Converter</button></div><div className="eyebrow">SCORE CONVERTER</div><h2>Sheet music converter</h2><p className="muted">Convert a page, score file or recording into editable sheet music.</p><label className="converter-dialogue-option"><input type="checkbox" checked={separateDialogue} onChange={e=>setSeparateDialogue(e.target.checked)}/><span><strong>Separate spoken dialogue from audio</strong><small>Video uploads do this automatically. Enable for MP3/M4A recordings that contain film dialogue. First use downloads a roughly 31 MB model and needs extra memory.</small></span></label><div className="converter-input-actions"><div className="converter-action-stack"><button type="button" className="btn btn-dark converter-camera-button" onClick={openScoreCamera} disabled={musicCoachBusy}><span aria-hidden="true">▣</span> Convert from photo <span className="beta-pill">BETA</span></button><button type="button" className={"btn converter-recording-button"+(converterRecording?' is-recording':'')} onClick={converterRecording?stopConverterRecording:startConverterRecording} disabled={musicCoachBusy} aria-pressed={converterRecording}><span aria-hidden="true">{converterRecording?'■':'●'}</span> {converterRecording?'Stop & convert':'Convert from recording'}</button>{converterRecording&&<span className="converter-recording-status" role="status">Recording live · {Math.floor(converterRecordingSeconds/60)}:{String(converterRecordingSeconds%60).padStart(2,'0')} / 8:00</span>}</div>
- <label className={"upload-score musiccoach-upload"+(scoreDropActive?' is-drag-active':'')} onDragEnter={e=>{if(Array.from(e.dataTransfer?.types||[]).includes('Files')){e.preventDefault();setScoreDropActive(true)}}} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect='copy';setScoreDropActive(true)}} onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget))setScoreDropActive(false)}} onDrop={e=>{e.preventDefault();e.stopPropagation();setScoreDropActive(false);const file=e.dataTransfer?.files?.[0];if(file)convertScoreToMusicCoach(file,{target:'Score converter',download:false})}}><span className="musiccoach-upload-icon" aria-hidden="true">⇧</span><strong>{musicCoachBusy?(musicCoachStatus||'Preparing your file…'):'Drop a file here or choose from your device'}</strong><small>PDF, PNG, JPG, WebP, MusicXML, MIDI, MP3, M4A, WAV, MP4 or WebM</small><input type="file" accept=".musiccoach,.musicxml,.xml,.mid,.midi,.svg,.mp3,.m4a,.mp4,.webm,application/vnd.musiccoach.score+json,application/vnd.recordare.musicxml+xml,application/xml,text/xml,audio/midi,audio/mpeg,audio/mp4,audio/x-m4a,audio/webm,video/mp4,video/webm,application/pdf,.pdf,image/png,image/jpeg,image/webp,image/svg+xml" disabled={musicCoachBusy} onChange={e=>{const f=e.target.files?.[0];if(f)convertScoreToMusicCoach(f,{target:'Score converter',download:false});e.target.value=''}}/></label></div>{(!musicCoachBusy&&scoreNotation)&&<details className="notation-guide"><summary id="notation-guide-title">Notation identification guide <span>Optional · expand</span></summary><p className="muted small">MusicXML notation is retained automatically where it is encoded. For photo and PDF recognition, check these markings against the original: optical recognition can miss or misread complex symbols. Select anything that needs a second look.</p><div className="notation-guide-grid">{NOTATION_GUIDE.map(item=><label className="notation-guide-item" key={item.id}><input type="checkbox" checked={musicCoachMarkings.includes(item.id)} onChange={e=>setMusicCoachMarkings(old=>e.target.checked?[...old,item.id]:old.filter(id=>id!==item.id))}/><span><strong>{item.label}</strong><small>{item.help}</small></span></label>)}</div><p className="muted small">{musicCoachMarkings.length} marking group{musicCoachMarkings.length===1?"":"s"} selected. You can leave this blank if you are unsure.</p></details>}{(scoreNotation||loadedScoreNotes.length>0)&&<div className="score-metadata-fields">
+ <label className={"upload-score musiccoach-upload"+(scoreDropActive?' is-drag-active':'')} onDragEnter={e=>{if(Array.from(e.dataTransfer?.types||[]).includes('Files')){e.preventDefault();setScoreDropActive(true)}}} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect='copy';setScoreDropActive(true)}} onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget))setScoreDropActive(false)}} onDrop={e=>{e.preventDefault();e.stopPropagation();setScoreDropActive(false);const file=e.dataTransfer?.files?.[0];if(file)convertScoreToMusicCoach(file,{target:'Score converter',download:false})}}><span className="musiccoach-upload-icon" aria-hidden="true">⇧</span><strong>{musicCoachBusy?(musicCoachStatus||'Preparing your file…'):'Drop a file here or choose from your device'}</strong><small>PDF, PNG, JPG, WebP, MusicXML, MIDI, MP3, M4A, WAV, MP4 or WebM</small><input type="file" accept=".musiccoach,.musicxml,.xml,.mid,.midi,.svg,.mp3,.m4a,.mp4,.webm,application/vnd.musiccoach.score+json,application/vnd.recordare.musicxml+xml,application/xml,text/xml,audio/midi,audio/mpeg,audio/mp4,audio/x-m4a,audio/webm,video/mp4,video/webm,application/pdf,.pdf,image/png,image/jpeg,image/webp,image/svg+xml" disabled={musicCoachBusy} onChange={e=>{const f=e.target.files?.[0];if(f)convertScoreToMusicCoach(f,{target:'Score converter',download:false});e.target.value=''}}/></label></div>{(!musicCoachBusy&&scoreNotation)&&<details className="notation-guide"><summary id="notation-guide-title">Notation identification guide <span>Optional · expand</span></summary><p className="muted small">MusicXML notation is retained automatically where it is encoded. For photo and PDF recognition, check these markings against the original: optical recognition can miss or misread complex symbols. Select anything that needs a second look.</p><div className="notation-guide-grid">{NOTATION_GUIDE.map(item=><label className="notation-guide-item" key={item.id}><input type="checkbox" checked={musicCoachMarkings.includes(item.id)} onChange={e=>setMusicCoachMarkings(old=>e.target.checked?[...old,item.id]:old.filter(id=>id!==item.id))}/><span><strong>{item.label}</strong><small>{item.help}</small></span></label>)}</div><p className="muted small">{musicCoachMarkings.length} marking group{musicCoachMarkings.length===1?"":"s"} selected. You can leave this blank if you are unsure.</p></details>}{(scoreNotation||loadedScoreNotes.length>0)&&<div className="notation-guide-save"><button type="button" className="btn btn-dark" onClick={saveConverterEdits} disabled={musicCoachBusy}>{musicCoachBusy?'Re-converting…':'Save identified elements & reconvert'}</button><small>Save your title, composer, arranger and selected notation markings. Photo/PDF scores are reprocessed from the original.</small></div>}{(scoreNotation||loadedScoreNotes.length>0)&&<div className="score-metadata-fields">
  <label>Piece title<input value={songTitle} onChange={e=>setSongTitle(e.target.value)} placeholder="Title of the piece"/></label>
  <label>Composer<input value={scoreComposer} onChange={e=>setScoreComposer(e.target.value)} placeholder="Composer name"/></label>
  <label>Arranger<input value={scoreArranger} onChange={e=>setScoreArranger(e.target.value)} placeholder="Arranger name"/></label>
@@ -2087,7 +2156,7 @@ return <div className="shell"><aside className="sidebar"><a className="brand" hr
  <header className="score-camera-header"><div><span className="eyebrow">SHEET MUSIC CONVERTER · BETA</span><h3 id="score-camera-title">Photograph your sheet music</h3><p className="muted small">Place one complete sheet page inside the frame. Hold the camera steady, straight-on and in good light. It will capture automatically when it detects the five staff lines.</p></div><button type="button" className="btn" onClick={stopScoreCamera}>✕ Close</button></header>
  {cameraError&&<p className="audio-error" role="alert">{cameraError}</p>}
  <div className="score-camera-preview"><div className="score-camera-frame" aria-hidden="true"><span/><span/><span/><span/></div>{cameraStreamRef.current?<video ref={cameraVideoRef} autoPlay muted playsInline aria-label="Live camera preview"/>:<div className="score-camera-placeholder">Camera preview will appear here</div>}</div>
- <div className="score-camera-actions"><button type="button" className="btn" onClick={stopScoreCamera}>Cancel</button><button type="button" className="btn btn-dark" onClick={captureScorePhoto} disabled={!cameraStreamRef.current||cameraBusy||musicCoachBusy}>Capture now</button></div>
+ <div className="score-camera-actions"><button type="button" className="btn" onClick={stopScoreCamera}>Cancel</button><button type="button" className="btn btn-dark" onClick={()=>captureScorePhoto(true)} disabled={!cameraStreamRef.current||cameraBusy||musicCoachBusy}>Capture now</button></div>
  <p className="muted small" role="status">Auto-capture is on · keep the whole page inside the frame. You can also capture manually.</p>
  </section></div>}
  {(scoreImageUrl||scoreNotation?.sourceMusicXML||loadedScoreNotes.length>0)&&<div className="score-review-grid">{scoreImageUrl&&<section className="score-review-card"><div className="eyebrow">ORIGINAL SCORE</div><div className="score-preview">{scoreIsPdf?<iframe title="Original score PDF" src={scoreImageUrl} style={{width:'100%',minHeight:420,border:0}}/>:<img src={scoreImageUrl} alt={scoreImageName||'Original score'}/>}<strong>{scoreImageName||'Original uploaded score'}</strong></div></section>}{(scoreNotation?.sourceMusicXML||loadedScoreNotes.length>0)&&<section className="score-review-card"><div className="eyebrow">CONVERTED NOTATION</div>{(scoreComposer||scoreArranger)&&<div className="score-identification"><strong>{songTitle||'Untitled score'}</strong>{scoreComposer&&<span>Composer: {scoreComposer}</span>}{scoreArranger&&<span>Arranger: {scoreArranger}</span>}</div>}{loadedScoreMusicXML?<MusicXMLPreview xml={loadedScoreMusicXML} title={songTitle||'Converted score'}/>:<div className="musiccoach-native-preview"><Staff notes={loadedScoreNotes} expanded bpm={bpm} timeSignature={timeSignature}/></div>}</section>}</div>}{musicCoachAnalysis&&<div className="tutor-answer"><strong>AI analysis</strong><p>{musicCoachAnalysis}</p></div>}</section>}{false&&page==='Extras'&&extraTool==='score'&&<div className="sheet-music-workspace"><section className="panel"><div className="eyebrow">SCORE TOOLS</div><h2>Work with your score</h2><p className="muted">Upload notation, inspect it, extract a draft note sequence, and send it to practice. Use Sheet music to search across catalogues and sources.</p><label className="upload-score">Upload score PDF or image<input type="file" accept="application/pdf,.pdf,image/png,image/jpeg,image/webp" onChange={e=>{const f=e.target.files?.[0];if(f)handleScoreUpload(f,{target:'Extras'});e.target.value=''}}/></label><label className="upload-score">Import MusicXML or .musiccoach<input type="file" accept=".musiccoach,.musicxml,.xml,application/vnd.musiccoach.score+json,application/xml,text/xml" onChange={e=>{const f=e.target.files?.[0];if(f)handleScoreUpload(f,{target:'Extras'});e.target.value=''}}/></label>{scoreImageUrl&&<div className="score-preview">{scoreIsPdf?<iframe title="Score preview" src={scoreImageUrl} style={{width:"100%",minHeight:360}}/>:<img src={scoreImageUrl} alt="Uploaded score"/>}<strong>{scoreImageName}</strong></div>}<label className="sequence-label">Notes from score<input value={expected} onChange={e=>setExpected(e.target.value)} placeholder="C4/q D4/h R/q E4/e"/></label><p className="muted small">Enter notes with durations: <b>/w</b> whole note, <b>/h</b> minim (half note), <b>/q</b> crotchet (quarter), <b>/e</b> quaver (eighth), and <b>R/q</b> for a quarter rest. Example: C4/q D4/h R/q E4/e.</p><div className="toolbar"><button className="btn" onClick={()=>{setPage("Practice");setPracticeStarted(false);setSongTitle(songTitle||scoreImageName.replace(/\.[^.]+$/,""));}}>Practise this score</button><button className="btn" onClick={saveStudy}>Save notes</button><button className="btn" onClick={exportMusicXml}>Convert .musiccoach → MusicXML</button><button className="btn" onClick={exportNotes}>Convert .musiccoach → MIDI</button></div><p className="muted small">{scoreOcrStatus}</p>{scoreOcrWarning&&<div className="tutor-answer">{scoreOcrWarning}</div>}<Staff notes={parseSequence(expected).filter(n=>n.midi!==null).map((n,i)=>({id:i,note:n.token}))} expanded/></section><section className="panel"><h2>Note comparison</h2><p className="muted">Target sequence accuracy: {comparison.accuracy}%</p><button className="btn btn-dark" onClick={playSequence}>Play target sequence</button>{comparison.rows.slice(0,30).map((r,i)=><div className="list-item" key={i}><div><strong>{r.expected}</strong><small>Played: {r.played} · {r.status}</small></div></div>)}</section></div>}

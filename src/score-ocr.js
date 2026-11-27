@@ -26,7 +26,7 @@ function getWorker(onProgress) {
         const msg = event.data || {};
         if (msg.type === 'ready') { clearTimeout(timeout); resolve(msg); return; }
         if (msg.type === 'progress') {
-          if (msg.stage === 'download') onProgress?.('Downloading on-device music recognition models (' + Math.round(100 * (msg.loaded || 0) / MODEL_BYTES) + '%)…');
+          if (msg.stage === 'download') onProgress?.('Downloading on-device music recognition models (' + Math.round(100 * (msg.loaded || 0) / (msg.total || MODEL_BYTES)) + '%)…');
           else if (msg.stage === 'python') onProgress?.('Starting local music recognition runtime…');
           else if (msg.stage === 'retry') onProgress?.('Retrying a model download (attempt ' + msg.attempt + ')…');
           return;
