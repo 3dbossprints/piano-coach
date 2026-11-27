@@ -47,5 +47,5 @@ test('rejects scattered horizontal marks that do not form a staff', () => {
 
 test('recognition errors are presented as useful guidance, not stack traces', () => {
   assert.match(friendlyRecognitionError(new Error('cv2.error: resize.cpp failed')), /straight-on/i);
-  assert.doesNotMatch(friendlyRecognitionError(new Error('Traceback (most recent call last)')), /Traceback|resize\\.cpp/);
+  assert.doesNotMatch(friendlyRecognitionError(new Error('Traceback (most recent call last)')), /Traceback|resize\.cpp/);
 });
