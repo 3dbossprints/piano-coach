@@ -1995,10 +1995,25 @@ async function playMidiLibraryFile(item){
  const dashboardSessions=sessions.filter(isMeaningfulPracticeSession).sort((a,b)=>new Date(b.lastPractisedAt||b.date||0)-new Date(a.lastPractisedAt||a.date||0));
  const practiceDays=getQualifyingPracticeDays(dashboardSessions);
  const streak=calculatePracticeStreak(dashboardSessions);
- const gradeChecks=gradePlanSnapshot.checks||{},gradeTaskKeys=Object.keys(gradeChecks),gradeTaskCompletion=gradeTaskKeys.length?Math.round(gradeTaskKeys.filter(key=>gradeChecks[key]).length/gradeTaskKeys.length*100):0;
- const gradeReadinessScores=sessions.map(session=>session.keystoneResult?.score).filter(value=>Number.isFinite(Number(value))).map(Number),aiGradeReadiness=gradeReadinessScores.length?Math.round(gradeReadinessScores.reduce((sum,value)=>sum+value,0)/gradeReadinessScores.length):0;
- const gradeProgress=Math.round((gradeTaskCompletion+aiGradeReadiness)/2),gradeTarget=gradePlanSnapshot.target||'Grade 1';
- const gradePieces=Array.isArray(gradePlanSnapshot.pieces)?gradePlanSnapshot.pieces:[];
+ const gradePlanTasks=Array.isArray(gradePlanSnapshot.tasks)?gradePlanSnapshot.tasks:(Array.isArray(gradePlanSnapshot.pieces)?gradePlanSnapshot.pieces:[]);
+ const gradeTaskEvidence=gradePlanTasks.map(task=>{
+  const title=String(task.title||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const scores=sessions.filter(session=>String(session.song||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()===title)
+   .map(session=>({value:session.keystoneResult?.score??session.feedbackScore,date:session.lastPractisedAt||session.date||0}))
+   .filter(item=>item.value!==null&&item.value!==undefined&&Number.isFinite(Number(item.value))&&Number(item.value)>=0&&Number(item.value)<=100)
+   .sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  const totalWeight=scores.reduce((sum,_,index)=>sum+scores.length-index,0);
+  const progress=scores.length?scores.reduce((sum,item,index)=>sum+Number(item.value)*(scores.length-index),0)/totalWeight:null;
+  return {task,progress};
+ });
+ const gradeTaskCompletion=gradePlanTasks.length?Math.round(gradeTaskEvidence.filter(item=>item.progress!==null).length/gradePlanTasks.length*100):0;
+ const gradeReadinessScores=gradeTaskEvidence.filter(item=>item.progress!==null).map(item=>item.progress);
+ const aiGradeReadiness=gradeReadinessScores.length?Math.round(gradeReadinessScores.reduce((sum,value)=>sum+value,0)/gradeReadinessScores.length):0;
+ const gradeTarget=gradePlanSnapshot.target||'Grade 1';
+ const gradeStandard=({'Initial Grade':58,'Grade 1':62,'Grade 2':66,'Grade 3':70,'Grade 4':74,'Grade 5':78,'Grade 6':82,'Grade 7':86,'Grade 8':90})[gradeTarget]||62;
+ const gradeCoverage=gradePlanTasks.length?gradeReadinessScores.length/gradePlanTasks.length:0;
+ const gradeProgress=gradeReadinessScores.length?Math.min(100,Math.round(aiGradeReadiness/gradeStandard*100*(.55+.45*gradeCoverage))):0;
+ const gradePieces=Array.isArray(gradePlanSnapshot.pieces)?gradePlanSnapshot.pieces:gradePlanTasks.filter(task=>(task.kind||'pieces')==='pieces');
  const feedbackIssues=String(practiceFeedback||'').split(/(?<=[.!?])\s+/).map(part=>part.trim()).filter(Boolean).slice(0,3);
  const recommendedPractice=libraryFiles.filter(isPlayableSheetMusicItem).map(item=>{const title=String(item.name||'').replace(/\.(musiccoach|musicxml|xml|mid|midi)$/i,'').toLowerCase();const matches=sessions.filter(session=>{const sessionTitle=String(session.song||'').toLowerCase();return !!sessionTitle&&(sessionTitle.includes(title)||title.includes(sessionTitle))});const attempts=matches.filter(session=>Number.isFinite(Number(session.keystoneResult?.score??session.feedbackScore)));const score=attempts.length?attempts.reduce((sum,session)=>sum+Number(session.keystoneResult?.score??session.feedbackScore),0)/attempts.length:null;const last=matches.sort((x,y)=>new Date(y.lastPractisedAt||y.date||0)-new Date(x.lastPractisedAt||x.date||0))[0];return {item,score,last: last?.lastPractisedAt||last?.date||item.added||null,attempts:attempts.length}}).sort((a,b)=>{if(a.score===null&&b.score!==null)return -1;if(a.score!==null&&b.score===null)return 1;if(a.score!==null&&b.score!==null&&a.score!==b.score)return a.score-b.score;return new Date(a.last||0)-new Date(b.last||0)});
  const streakWeekAnchor=new Date();streakWeekAnchor.setHours(0,0,0,0);streakWeekAnchor.setDate(streakWeekAnchor.getDate()-((streakWeekAnchor.getDay()+6)%7));
@@ -2077,7 +2092,7 @@ return <div className="shell"><aside className="sidebar"><a className="brand" hr
  <section className="panel grade-target-card">
   <div className="grade-target-heading"><div><span className="eyebrow">YOUR GRADE TARGET</span><h2>{gradeTarget} progress</h2><p className="muted">Task completion and assessed readiness, averaged together.</p></div><strong className="grade-target-percent">{gradeProgress}%</strong></div>
   <div className="grade-progress-track" role="progressbar" aria-label="Overall grade progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={gradeProgress}><span style={{width:gradeProgress+'%'}}/></div>
-  <div className="grade-progress-breakdown"><span>Tasks completed <b>{gradeTaskCompletion}%</b></span><span>AI grade readiness <b>{gradeReadinessScores.length?aiGradeReadiness+'%':'Not assessed'}</b></span></div>
+  <div className="grade-progress-breakdown"><span>Targets assessed <b>{gradeTaskCompletion}%</b></span><span>AI grade readiness <b>{gradeReadinessScores.length?aiGradeReadiness+'%':'Not assessed'}</b></span></div>
   {!gradePlanSnapshot.target&&<button className="text-button" onClick={()=>setPage('Grade plan')}>Set up your grade target →</button>}
  </section>
  <section className="streak-card" aria-label="Practice streak">
