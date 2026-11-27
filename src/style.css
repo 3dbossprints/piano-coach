@@ -2916,3 +2916,50 @@ button:disabled { cursor: not-allowed; opacity: .48; }
  .practice-recording-actions .btn{flex:1 1 auto;min-height:44px}
  .practice-recording-actions .btn-dark{flex-basis:100%}
 }
+
+
+/* Grade Plan task board and editing surfaces */
+.gp-dashboard-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+.gp-category-panel{min-width:0}
+.gp-category-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.gp-category-heading h3{margin:0 0 4px}
+.gp-category-heading small{display:block;color:var(--muted);font-size:11px;line-height:1.45}
+.gp-category-heading>span{display:grid;place-items:center;min-width:28px;height:28px;border-radius:99px;background:#eee7fb;color:#594486;font-weight:800;font-size:12px}
+.gp-add-task{width:100%;margin:4px 0 12px}
+.gp-task-list{display:grid;gap:10px}
+.gp-task-card{min-width:0;padding:13px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.78)}
+.gp-task-card-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.gp-task-card-heading>div{display:grid;gap:4px;min-width:0}
+.gp-task-card-heading strong{font-size:13px;overflow-wrap:anywhere}
+.gp-task-card-heading small,.gp-task-file{font-size:10px;color:var(--muted);line-height:1.4;overflow-wrap:anywhere}
+.gp-task-card-heading>b{flex:0 0 auto;font-size:14px}
+.gp-task-card>p{margin:9px 0}
+.gp-task-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.gp-task-actions .btn{padding:7px 9px;font-size:11px;flex:1 1 auto}
+.gp-score-upload{display:flex;flex-direction:column;gap:6px;margin-top:10px;color:var(--muted);font-size:11px;font-weight:700}
+.gp-score-upload input{width:100%;font-size:11px;min-width:0}
+.gp-grade-task-empty{padding:14px;border:1px dashed var(--line);border-radius:13px;color:var(--muted);font-size:12px;line-height:1.55}
+.gp-grade-task-empty p{margin:0}
+.gp-readiness-breakdown{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+.gp-readiness-breakdown>div{display:grid;gap:4px;padding:12px;border:1px solid var(--line);border-radius:12px;background:rgba(249,246,253,.72)}
+.gp-readiness-breakdown span,.gp-readiness-breakdown small{font-size:10px;color:var(--muted)}
+.gp-readiness-breakdown strong{font-size:18px}
+.gp-priority-list{display:grid;gap:8px}
+.gp-priority-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid #f0ebf5}
+.gp-priority-row>div{display:grid;gap:4px;min-width:0}
+.gp-priority-row strong{font-size:12px;overflow-wrap:anywhere}
+.gp-priority-row small{font-size:10px;color:var(--muted)}
+.gp-priority-row>b{font-size:13px}
+.gp-priority-row .btn{padding:7px 10px;font-size:11px}
+.gp-editor-backdrop{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:18px;background:rgba(37,32,49,.48);backdrop-filter:blur(8px);overflow:auto}
+.gp-task-editor{width:min(620px,100%);max-height:min(90vh,900px);overflow:auto;display:grid;gap:12px;padding:clamp(18px,3vw,28px)}
+.gp-task-editor label{display:grid;gap:6px;font-size:12px;font-weight:700;color:var(--muted)}
+.gp-task-editor input,.gp-task-editor select,.gp-task-editor textarea{width:100%;min-width:0}
+.gp-task-editor .panel-head{margin-bottom:2px}
+.gp-readiness-panel .gp-track{margin:12px 0}
+.notation-guide-save{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0 18px;padding:12px 14px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.72)}
+.notation-guide-save small{flex:1 1 240px;color:var(--muted);font-size:11px;line-height:1.5}
+.musicxml-preview-compact .musicxml-rendered{max-height:78vh;overflow:auto;overscroll-behavior:contain}
+.musicxml-preview-compact .musicxml-rendered svg{display:block;max-width:none;height:auto}
+@media(max-width:900px){.gp-dashboard-columns{grid-template-columns:1fr}.gp-readiness-breakdown{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:560px){.gp-readiness-breakdown{grid-template-columns:1fr}.gp-priority-row{grid-template-columns:minmax(0,1fr) auto}.gp-priority-row .btn{grid-column:1/-1}.gp-hero{flex-wrap:wrap}.gp-editor-backdrop{padding:8px}.gp-task-editor{max-height:94vh}}
