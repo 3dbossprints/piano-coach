@@ -63,9 +63,12 @@ async function fetchPiece(url, start, end) {
   }
 }
 
-async function downloadModel(name, size, totalBytes) {
+async function downloadModel(name, size, totalBytes, completedBefore = 0) {
   const cache = await caches.open(MODEL_CACHE);
-  if (await cache.match(modelUrl(name))) return; // stored whole by an earlier version
+  if (await cache.match(modelUrl(name))) {
+    post({ type: "progress", stage: "download", name, loaded: completedBefore + size, total: totalBytes });
+    return;
+  } // stored whole by an earlier version
   let loaded = 0;
   for (let i = 0; i * PIECE < size; i++) {
     const start = i * PIECE;
@@ -77,7 +80,7 @@ async function downloadModel(name, size, totalBytes) {
           if (got.whole) {
             if (got.whole.byteLength !== size) throw new Error("short read");
             await cache.put(modelUrl(name), new Response(got.whole));
-            post({ type: "progress", stage: "download", name, loaded: size, total: totalBytes });
+            post({ type: "progress", stage: "download", name, loaded: completedBefore + size, total: totalBytes });
             return;
           }
           await cache.put(pieceKey(name, i), new Response(got.piece));
@@ -93,7 +96,7 @@ async function downloadModel(name, size, totalBytes) {
         }
       }
     }
-    loaded = end + 1;
+    loaded = completedBefore + end + 1;
     post({ type: "progress", stage: "download", name, loaded, total: totalBytes });
   }
 }
@@ -306,8 +309,10 @@ async function init() {
 
   const modelSizes = await Promise.all(MODELS.map(getModelSize));
   const totalModelBytes = modelSizes.reduce((sum, size) => sum + size, 0);
+  let completedBytes = 0;
   for (let i = 0; i < MODELS.length; i++) {
-    await downloadModel(MODELS[i], modelSizes[i], totalModelBytes);
+    await downloadModel(MODELS[i], modelSizes[i], totalModelBytes, completedBytes);
+    completedBytes += modelSizes[i];
   }
   post({ type: "ready", gpu: useGpu });
 }
