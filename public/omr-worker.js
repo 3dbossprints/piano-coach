@@ -32,7 +32,7 @@ const STALL_MS = 30000;
 async function getModelSize(name) {
   const response = await fetch(modelUrl(name), { headers: { Range: "bytes=0-0" }, cache: "no-store" });
   if (response.status === 206) {
-    const match = response.headers.get("content-range")?.match(/\\/(\\d+)$/);
+    const match = response.headers.get("content-range")?.match(/\/(\d+)$/);
     await response.body?.cancel();
     if (match) return Number(match[1]);
   }
