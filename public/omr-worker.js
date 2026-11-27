@@ -8,12 +8,9 @@ const ORT_URL = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/";
 const MODEL_CACHE = "partscanner-models-v1";
 const MODELS = [
   "segnet_308-3296ccd40960f90ca6ab9c035cca945675d30a0f.onnx",
-  "encoder_pytorch_model_465-597144cab54c8f6d0f6c9619df5c5312694eadd6.onnx",
-  "decoder_pytorch_model_465-597144cab54c8f6d0f6c9619df5c5312694eadd6.onnx",
+  "encoder_pytorch_model_396-f6feedb42ff90087d898b0941a55d040fa6b2903.onnx",
+  "decoder_pytorch_model_396-f6feedb42ff90087d898b0941a55d040fa6b2903.onnx",
 ];
-// Uncompressed total, for progress: servers may gzip, so content-length
-// doesn't match the bytes received.
-const MODELS_TOTAL_BYTES = 157482318;
 // The decoder runs hundreds of tiny steps per staff, where WebGPU's per-call
 // overhead loses to WASM; the big convolutional models gain from the GPU.
 const GPU_MODELS = new Set([MODELS[0], MODELS[1]]);
@@ -32,11 +29,21 @@ let useGpu = false;
 // after the app is closed) instead of restarting a 57 MB file.
 const PIECE = 4 * 1024 * 1024;
 const STALL_MS = 30000;
-const MODEL_SIZES = {
-  [MODELS[0]]: 57311361,
-  [MODELS[1]]: 52861122,
-  [MODELS[2]]: 47309835,
-};
+async function getModelSize(name) {
+  const response = await fetch(modelUrl(name), { headers: { Range: "bytes=0-0" }, cache: "no-store" });
+  if (response.status === 206) {
+    const match = response.headers.get("content-range")?.match(/\\/(\\d+)$/);
+    await response.body?.cancel();
+    if (match) return Number(match[1]);
+  }
+  if (response.status === 200) {
+    const whole = await response.arrayBuffer();
+    const cache = await caches.open(MODEL_CACHE);
+    await cache.put(modelUrl(name), new Response(whole, { headers: { "Content-Length": String(whole.byteLength) } }));
+    return whole.byteLength;
+  }
+  throw new Error(`could not determine the size of ${name} (HTTP ${response.status})`);
+}
 const modelUrl = (name) => new URL("models/" + name, location.href).href;
 const pieceKey = (name, i) => `${modelUrl(name)}?piece=${i}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -56,10 +63,9 @@ async function fetchPiece(url, start, end) {
   }
 }
 
-async function downloadModel(name) {
+async function downloadModel(name, size, totalBytes) {
   const cache = await caches.open(MODEL_CACHE);
   if (await cache.match(modelUrl(name))) return; // stored whole by an earlier version
-  const size = MODEL_SIZES[name];
   let loaded = 0;
   for (let i = 0; i * PIECE < size; i++) {
     const start = i * PIECE;
@@ -71,7 +77,7 @@ async function downloadModel(name) {
           if (got.whole) {
             if (got.whole.byteLength !== size) throw new Error("short read");
             await cache.put(modelUrl(name), new Response(got.whole));
-            post({ type: "progress", stage: "download", name, loaded: size, total: MODELS_TOTAL_BYTES });
+            post({ type: "progress", stage: "download", name, loaded: size, total: totalBytes });
             return;
           }
           await cache.put(pieceKey(name, i), new Response(got.piece));
@@ -88,7 +94,7 @@ async function downloadModel(name) {
       }
     }
     loaded = end + 1;
-    post({ type: "progress", stage: "download", name, loaded, total: MODELS_TOTAL_BYTES });
+    post({ type: "progress", stage: "download", name, loaded, total: totalBytes });
   }
 }
 
@@ -96,7 +102,7 @@ async function modelBytes(name) {
   const cache = await caches.open(MODEL_CACHE);
   const whole = await cache.match(modelUrl(name));
   if (whole) return new Uint8Array(await whole.arrayBuffer());
-  const size = MODEL_SIZES[name];
+  const size = await getModelSize(name);
   const bytes = new Uint8Array(size);
   for (let i = 0; i * PIECE < size; i++) {
     const piece = await cache.match(pieceKey(name, i));
@@ -298,8 +304,10 @@ async function init() {
   recognise = pyodide.pyimport("runner").recognise;
   recogniseProfiled = pyodide.pyimport("runner").recognise_profiled;
 
-  for (const name of MODELS) {
-    await downloadModel(name);
+  const modelSizes = await Promise.all(MODELS.map(getModelSize));
+  const totalModelBytes = modelSizes.reduce((sum, size) => sum + size, 0);
+  for (let i = 0; i < MODELS.length; i++) {
+    await downloadModel(MODELS[i], modelSizes[i], totalModelBytes);
   }
   post({ type: "ready", gpu: useGpu });
 }
